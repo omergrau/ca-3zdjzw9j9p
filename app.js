@@ -333,6 +333,7 @@ function renderAlbum(view, inReader) {
     right.replaceChildren(rightFor(bk.p));
     left.replaceChildren(leftFor(bk.p));
     ind.textContent = bk.p < pages.length ? 'דף ' + (bk.p + 1) + ' מתוך ' + pages.length : 'סוף האלבום';
+    if (jump) jump.value = String(bk.p);
     prev.disabled = false; next.disabled = bk.p >= pages.length;
   }
 
@@ -358,7 +359,7 @@ function renderAlbum(view, inReader) {
     return lf;
   }
   function animate(lf, from, to) {
-    const dur = reduce ? 1 : 900;
+    const dur = reduce ? 1 : 620;
     const a = lf.animate([{ transform: 'rotateY(' + from + 'deg)' }, { transform: 'rotateY(' + to + 'deg)' }],
       { duration: dur, easing: 'cubic-bezier(.45,.05,.3,1)', fill: 'forwards' });
     const sh = lf.querySelector('.leaf-shade');
@@ -394,6 +395,26 @@ function renderAlbum(view, inReader) {
 
   const prev = el('button', { class: 'btn ghost', type: 'button', text: '→ אחורה', onclick: backward });
   const next = el('button', { class: 'btn ghost', type: 'button', text: 'קדימה ←', onclick: forward });
+
+  const jump = el('select', { class: 'pg-jump', 'aria-label': 'קפוץ לדף' });
+  const jumpLabels = new Map();
+  pages.forEach((p, i) => {
+    let label = p.sec.title;
+    // Keep the useful collection heading compact in the side picker.
+    if (st.tab === 'mandate') label = label.split(' · ')[0];
+    if (p.parts > 1) label += ' (' + p.part + '/' + p.parts + ')';
+    // Repeated section names are still separate physical pages.
+    jumpLabels.set(i, label);
+    jump.append(el('option', { value: String(i), text: label + ' — דף ' + (i + 1) }));
+  });
+  jump.append(el('option', { value: String(pages.length), text: 'סוף האלבום' }));
+  jump.onchange = () => {
+    if (busy) { jump.value = String(bk.p); return; }
+    const target = Number(jump.value);
+    if (!Number.isFinite(target) || target < 0 || target > pages.length || target === bk.p) return;
+    bk.p = target;
+    paint();
+  };
 
   if (!isOpen) {
     book.append(cover);
@@ -431,7 +452,7 @@ function renderAlbum(view, inReader) {
   });
   book.addEventListener('pointercancel', e => { if (e.pointerId === swipePointer) { swipePointer = null; swipeBlocked = false; sx = null; } });
 
-  const nav = el('div', { class: 'pg-nav' }, [prev, ind, next]);
+  const nav = el('div', { class: 'pg-nav' }, [prev, el('div', { class: 'pg-center' }, [jump, ind]), next]);
   nav.hidden = !isOpen;
   view.append(el('div', { class: 'desk' }, [book, nav]));
   if (isOpen) paint();
