@@ -384,16 +384,21 @@ function renderAlbum(view, inReader) {
       left.replaceChildren(leftFor(bk.p));
       if (turn && !reduce) {
         turn.classList.add('single-turn', 'single-turn-forward');
+        const shade = el('span', { class: 'single-turn-shade', 'aria-hidden': 'true' });
+        turn.append(shade);
         book.append(turn);
-        await turn.animate(
+        const pageAnim = turn.animate(
           [
-            {transform:'perspective(1400px) rotateY(0deg) translateZ(0) scaleX(1)',opacity:1,offset:0},
-            {transform:'perspective(1400px) rotateY(-18deg) translateZ(18px) scaleX(.985)',opacity:1,offset:.22},
-            {transform:'perspective(1400px) rotateY(-72deg) translateZ(34px) scaleX(.94)',opacity:.96,offset:.62},
-            {transform:'perspective(1400px) rotateY(-126deg) translateZ(8px) scaleX(.9)',opacity:0,offset:1}
+            {transform:'rotateY(0deg) translateZ(0)',offset:0},
+            {transform:'rotateY(-12deg) translateZ(14px)',offset:.18},
+            {transform:'rotateY(-48deg) translateZ(30px)',offset:.48},
+            {transform:'rotateY(-92deg) translateZ(42px)',offset:.76},
+            {transform:'rotateY(-112deg) translateZ(18px)',offset:1}
           ],
-          {duration:680,easing:'cubic-bezier(.35,.02,.18,1)',fill:'forwards'}
-        ).finished;
+          {duration:760,easing:'cubic-bezier(.32,.02,.16,1)',fill:'forwards'}
+        );
+        shade.animate([{opacity:.08},{opacity:.62,offset:.58},{opacity:.2}], {duration:760,fill:'forwards'});
+        await pageAnim.finished;
         turn.remove();
       }
       paint(); busy = false; return;
@@ -413,15 +418,17 @@ function renderAlbum(view, inReader) {
       left.replaceChildren(incoming);
       if (!reduce) {
         incoming.classList.add('single-turn-back');
-        await incoming.animate(
+        const a = incoming.animate(
           [
-            {transform:'perspective(1400px) rotateY(-126deg) translateZ(8px) scaleX(.9)',opacity:.15,offset:0},
-            {transform:'perspective(1400px) rotateY(-70deg) translateZ(34px) scaleX(.94)',opacity:.95,offset:.4},
-            {transform:'perspective(1400px) rotateY(-16deg) translateZ(18px) scaleX(.985)',opacity:1,offset:.8},
-            {transform:'perspective(1400px) rotateY(0deg) translateZ(0) scaleX(1)',opacity:1,offset:1}
+            {transform:'rotateY(-112deg) translateZ(18px)',offset:0},
+            {transform:'rotateY(-88deg) translateZ(42px)',offset:.25},
+            {transform:'rotateY(-44deg) translateZ(30px)',offset:.55},
+            {transform:'rotateY(-10deg) translateZ(14px)',offset:.84},
+            {transform:'rotateY(0deg) translateZ(0)',offset:1}
           ],
-          {duration:680,easing:'cubic-bezier(.25,.72,.2,1)',fill:'forwards'}
-        ).finished;
+          {duration:760,easing:'cubic-bezier(.22,.72,.18,1)',fill:'forwards'}
+        );
+        await a.finished;
         incoming.classList.remove('single-turn-back');
       }
       paint(); busy = false; return;
@@ -664,7 +671,7 @@ function layoutReader() {
   const book = stage.querySelector('.book');
   if (book) {
     const pw = portrait
-      ? Math.max(150, Math.min(W - 12, (H - 32) * 242 / 312))
+      ? Math.max(160, Math.min(W - 4, (H - 12) * 242 / 312))
       : Math.max(80, Math.min((W - 132) / 2, (H - 34) * 242 / 312));
     book.style.setProperty('--pw', pw + 'px');
   }
