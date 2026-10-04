@@ -256,7 +256,7 @@ hr.sep { border: 0; border-top: 1px solid var(--line); margin-block: 0; }
 .vt { border: 0; background: transparent; border-radius: 99px; padding: 5px 16px; font-size: 14px; font-weight: 700; color: var(--muted); }
 .vt[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
 
-/* ---------- album: burgundy binder cover, GRANDE black coin sheets, white coin holders ---------- */
+/* ---------- album: burgundy binder cover, black coin sheets, white coin holders ---------- */
 .binder { --leather: #5b1620; --leather-2: #7a2430; --foil: #e3c06a;
   border-radius: 18px; padding: 18px 14px 14px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; color: #f6e7dc; min-width: 0;
   background:

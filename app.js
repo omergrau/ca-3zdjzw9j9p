@@ -180,17 +180,14 @@ function render() {
   st.justAdded = null;
 }
 
-/* ---------- album pages (LEUCHTTURM GRANDE coin sheets with coin holders) ---------- */
-function sheetSetting() { try { return localStorage.getItem('album.sheet') || 'auto'; } catch (e) { return 'auto'; } }
+/* ---------- album pages (sheets of pockets with coin holders) ---------- */
 // The sheet for a page: the setting, or (auto) the smallest sheet whose holder window fits the page's largest coin.
 function sheetFor(maxDiam) {
-  const pick = sheetSetting();
-  if (SHEET_TYPES[pick]) return SHEET_TYPES[pick];
-  return maxDiam <= SHEET_TYPES.M20K.maxWindow ? SHEET_TYPES.M20K : SHEET_TYPES.M12K;
+  return maxDiam <= SHEET_TYPES.P20.maxWindow ? SHEET_TYPES.P20 : SHEET_TYPES.P12;
 }
 // Smallest standard holder window the coin fits through (XL holders: coin size + 1 mm).
 function windowFor(diam, sheet) {
-  if (sheet.key === 'M20K') return HOLDER_WINDOWS.find(w => w >= diam) || HOLDER_WINDOWS[HOLDER_WINDOWS.length - 1];
+  if (sheet.key === 'P20') return HOLDER_WINDOWS.find(w => w >= diam) || HOLDER_WINDOWS[HOLDER_WINDOWS.length - 1];
   return Math.ceil(diam + 1);
 }
 function albumSections(series) {
@@ -210,7 +207,7 @@ function albumPages(series) {
     let i = 0, part = 0;
     const parts = [];
     while (i < sec.items.length) {
-      let sheet = sheetFor(Math.max(...sec.items.slice(i, i + SHEET_TYPES.M20K.pockets).map(c => c.diam || 25)));
+      let sheet = sheetFor(Math.max(...sec.items.slice(i, i + SHEET_TYPES.P20.pockets).map(c => c.diam || 25)));
       let chunk = sec.items.slice(i, i + sheet.pockets);
       const fit = sheetFor(Math.max(...chunk.map(c => c.diam || 25)));   // a smaller chunk may fit a smaller sheet
       if (fit.pockets !== sheet.pockets) { sheet = fit; chunk = sec.items.slice(i, i + sheet.pockets); }
@@ -255,7 +252,7 @@ function pageFront(p, i) {
       el('span', { class: 'pg-meta', text: meta }),
     ]),
     grid,
-    el('div', { class: 'pg-foot' }, [el('span', { text: p.sheet.name }), el('span', { text: String(i + 1) })]),
+    el('div', { class: 'pg-foot' }, [el('span', { text: p.sheet.pockets + ' כיסים' }), el('span', { text: String(i + 1) })]),
   ]);
 }
 // The back of a sheet: the same pockets seen from behind (columns mirrored). A missing coin has no holder.
@@ -731,13 +728,6 @@ function openMenu(msg) {
     file.value = '';
   });
   let last = ''; try { last = localStorage.getItem('album.lastBackup') || ''; } catch (e) {}
-  const sheetSel = el('select', { id: 'm-sheet' }, [
-    ['auto', 'אוטומטי לפי המטבע הגדול בדף'],
-    ['M20K', 'GRANDE M20K · 20 כיסים · עד 39.5 מ"מ'],
-    ['M12K', 'GRANDE M12K (XL) · 12 כיסים'],
-  ].map(([v, t]) => el('option', { value: v, text: t })));
-  sheetSel.value = sheetSetting();
-  sheetSel.addEventListener('change', () => { try { localStorage.setItem('album.sheet', sheetSel.value); } catch (e) {} render(); });
   const colRows = st.collections.map(c => {
     const row = el('div', { class: 'col-row' }, [el('span', { text: c.name + (c.kind === 'own' ? ' (אוסף משלך)' : '') })]);
     const rm = el('button', { class: 'btn danger', type: 'button', text: 'הסר', onclick: () => {
@@ -751,10 +741,6 @@ function openMenu(msg) {
     el('h2', { text: 'האוספים שלי' }),
     ...(colRows.length ? colRows : [el('p', { class: 'muted', text: 'עוד אין אוספים.' })]),
     el('button', { class: 'btn', type: 'button', text: '+ אוסף חדש', onclick: () => { $('#menu').close(); openLibrary(); } }),
-    el('hr', { class: 'sep' }),
-    el('h2', { text: 'דפי האלבום' }),
-    el('div', { class: 'field' }, [el('label', { for: 'm-sheet', text: 'סוג דף GRANDE' }), sheetSel]),
-    el('p', { class: 'muted', text: 'במצב אוטומטי, כל דף מקבל את הדף הקטן ביותר שמסגרת המטבע שלו מתאימה למטבע הגדול ביותר באותו דף. בכל מסגרת יש חור בקוטר הסטנדרטי הקרוב (17.5 עד 39.5 מ"מ).' }),
     el('hr', { class: 'sep' }),
     el('h2', { text: 'גיבוי' }),
     el('p', { class: 'muted', text: 'האוסף והתמונות שמורים רק בטלפון הזה. כדאי לשמור גיבוי מדי פעם ולשלוח אותו לעצמך (למשל במייל או בדרייב). התמונות נכללות בגיבוי.' }),

@@ -87,13 +87,13 @@ const CATALOGS = {
 const GRADES = ['', 'G', 'VG', 'F', 'VF', 'XF', 'AU', 'UNC', 'פרוף'];
 
 
-// Album pages follow the LEUCHTTURM GRANDE coin system (sheet 242 x 312 mm): coins sit in cardboard
-// coin holders, and the sheet's pockets hold the holders. Two coin sheets exist:
-//   M20K: 20 pockets for 50 x 50 mm holders (window 17.5 - 39.5 mm)
-//   M12K: 12 pockets for XL holders (67 x 67 mm), for coins too big for a 39.5 mm window.
+// Album pages (sheet 242 x 312 mm): coins sit in square cardboard coin holders, and the sheet's pockets
+// hold the holders. A page always uses the smallest layout whose holder window fits its largest coin:
+//   P20: 20 pockets for 50 x 50 mm holders (window 17.5 - 39.5 mm)
+//   P12: 12 pockets for 67 x 67 mm holders, for coins too big for a 39.5 mm window.
 const ALBUM_PAGE = { w: 242, h: 312 };
 const SHEET_TYPES = {
-  M20K: { key: 'M20K', name: 'GRANDE M20K', pockets: 20, cols: 4, rows: 5, holder: 50, maxWindow: 39.5 },
-  M12K: { key: 'M12K', name: 'GRANDE M12K (XL)', pockets: 12, cols: 3, rows: 4, holder: 67, maxWindow: 60 },
+  P20: { key: 'P20', pockets: 20, cols: 4, rows: 5, holder: 50, maxWindow: 39.5 },
+  P12: { key: 'P12', pockets: 12, cols: 3, rows: 4, holder: 67, maxWindow: 60 },
 };
 const HOLDER_WINDOWS = [17.5, 20, 22.5, 25, 27.5, 30, 32.5, 35, 37.5, 39.5];   // 50 x 50 mm holders
