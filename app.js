@@ -1452,7 +1452,7 @@ function libraryContent(onDone) {
     const has = !!colById(key);
     return el('div', { class: 'lib-card ' + c.theme }, [
       el('b', { text: c.name }), el('span', { class: 'lib-sub', text: c.sub }), el('p', { text: c.about }),
-      el('button', { class: 'btn ' + (has ? '' : 'gold'), type: 'button', text: has ? 'כבר באלבום שלך' : '+ הוסף לאלבום שלי', disabled: has,
+      has ? null : el('button', { class: 'btn gold', type: 'button', text: '+ הוסף לאלבום שלי',
         onclick: async () => { await addCatalog(key); onDone && onDone(); } }),
     ]);
   });
