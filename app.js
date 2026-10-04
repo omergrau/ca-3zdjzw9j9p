@@ -320,9 +320,10 @@ function renderAlbum(view, inReader) {
   const bk = st.book[st.tab] = st.book[st.tab] || { open: false, p: 0 };
   bk.p = Math.min(bk.p, pages.length);   // p = pages.length: the last sheet is turned, the back cover's inside shows on the left
   const isOpen = inReader && bk.open;   // outside reading mode the album shows its closed cover
+  const singlePage = inReader && reader.portrait;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const book = el('div', { class: 'book' + (isOpen ? ' open' : ''), role: 'region', 'aria-label': 'אלבום ' + curCol().name });
+  const book = el('div', { class: 'book' + (isOpen ? ' open' : '') + (singlePage ? ' single-page' : ''), role: 'region', 'aria-label': 'אלבום ' + curCol().name });
   const right = el('div', { class: 'side right' }), left = el('div', { class: 'side left' });
   const ind = el('span', { class: 'pg-ind' });
   let busy = false;
@@ -330,8 +331,13 @@ function renderAlbum(view, inReader) {
   const rightFor = p => p === 0 ? coverInside() : pageBack(pages[p - 1], p - 1);
   const leftFor = p => p < pages.length ? pageFront(pages[p], p) : coverInside(true);
   function paint() {
-    right.replaceChildren(rightFor(bk.p));
-    left.replaceChildren(leftFor(bk.p));
+    if (singlePage) {
+      right.replaceChildren();
+      left.replaceChildren(leftFor(bk.p));
+    } else {
+      right.replaceChildren(rightFor(bk.p));
+      left.replaceChildren(leftFor(bk.p));
+    }
     ind.textContent = bk.p < pages.length ? 'דף ' + (bk.p + 1) + ' מתוך ' + pages.length : 'סוף האלבום';
     if (jump) jump.value = String(bk.p);
     prev.disabled = false; next.disabled = bk.p >= pages.length;
@@ -371,6 +377,13 @@ function renderAlbum(view, inReader) {
   async function forward() {
     if (busy || bk.p >= pages.length) return;
     busy = true;
+    if (singlePage) {
+      bk.p++;
+      left.replaceChildren(leftFor(bk.p));
+      if (!reduce) await left.animate([{opacity:.25,transform:'translateX(-10%)'},{opacity:1,transform:'translateX(0)'}],
+        {duration:220,easing:'ease-out'}).finished;
+      paint(); busy = false; return;
+    }
     const lf = leaf(pageFront(pages[bk.p], bk.p), pageBack(pages[bk.p], bk.p), 'left');
     left.replaceChildren(leftFor(bk.p + 1));
     await animate(lf, 0, 180);
@@ -380,6 +393,13 @@ function renderAlbum(view, inReader) {
   async function backward() {
     if (busy) return;
     busy = true;
+    if (singlePage && bk.p > 0) {
+      bk.p--;
+      left.replaceChildren(leftFor(bk.p));
+      if (!reduce) await left.animate([{opacity:.25,transform:'translateX(10%)'},{opacity:1,transform:'translateX(0)'}],
+        {duration:220,easing:'ease-out'}).finished;
+      paint(); busy = false; return;
+    }
     if (bk.p === 0) {
       const lf = leaf(coverInside(), coverFace(), 'right');
       right.replaceChildren();
@@ -426,9 +446,12 @@ function renderAlbum(view, inReader) {
       book.append(right, left);
       right.replaceChildren(); left.replaceChildren(pageFront(pages[0], 0));
       bk.p = 0;
-      const lf = leaf(coverFace(), coverInside(), 'left');
-      await animate(lf, 0, 180);
-      lf.remove(); bk.open = true; paint(); busy = false;
+      if (!singlePage) {
+        const lf = leaf(coverFace(), coverInside(), 'left');
+        await animate(lf, 0, 180);
+        lf.remove();
+      }
+      bk.open = true; paint(); busy = false;
       nav.hidden = false; edges.hidden = false;
     });
   } else { book.append(right, left); }
@@ -479,7 +502,7 @@ function renderAlbum(view, inReader) {
 // The open book is wider than tall (two sheets side by side), so a phone held upright is the wrong shape.
 // Reading mode goes full screen and asks for landscape; where the phone can't lock orientation,
 // the book itself is turned 90 degrees and the reader turns the phone.
-const reader = { rotated: false, pushed: false, zoom: 1, panX: 0, panY: 0 };
+const reader = { rotated: false, portrait: false, pushed: false, zoom: 1, panX: 0, panY: 0 };
 
 function resetReaderZoom() {
   reader.zoom = 1; reader.panX = 0; reader.panY = 0;
@@ -576,7 +599,6 @@ function enterReader() {
   const de = document.documentElement;
   if (de.requestFullscreen && !document.fullscreenElement) {
     de.requestFullscreen({ navigationUI: 'hide' })
-      .then(() => screen.orientation && screen.orientation.lock ? screen.orientation.lock('landscape') : null)
       .catch(() => {}).finally(layoutReader);
   }
   try { history.pushState({ reader: 1 }, ''); reader.pushed = true; } catch (e) {}
@@ -602,13 +624,22 @@ function exitReader(fromHistory) {
 function layoutReader() {
   if (!st.reader) return;
   const stage = $('#readerStage'), W = window.innerWidth, H = window.innerHeight;
-  reader.rotated = H > W * 1.05;
-  const sw = reader.rotated ? H : W, sh = reader.rotated ? W : H;
-  stage.style.width = sw + 'px'; stage.style.height = sh + 'px';
-  stage.style.transform = 'translate(-50%, -50%)' + (reader.rotated ? ' rotate(90deg)' : '');
+  const portrait = H > W * 1.05;
+  const changed = reader.portrait !== portrait;
+  reader.portrait = portrait;
+  reader.rotated = false;
+  stage.style.width = W + 'px'; stage.style.height = H + 'px';
+  stage.style.transform = 'translate(-50%, -50%)';
+  if (changed) {
+    resetReaderZoom();
+    stage.textContent = '';
+    renderAlbum(stage, true);
+  }
   const book = stage.querySelector('.book');
   if (book) {
-    const pw = Math.max(80, Math.min((sw - 132) / 2, (sh - 34) * 242 / 312));   // side arrows + page number below
+    const pw = portrait
+      ? Math.max(120, Math.min(W - 72, (H - 92) * 242 / 312))
+      : Math.max(80, Math.min((W - 132) / 2, (H - 34) * 242 / 312));
     book.style.setProperty('--pw', pw + 'px');
   }
   applyReaderZoom();
