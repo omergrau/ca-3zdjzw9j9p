@@ -718,3 +718,15 @@ body[data-series="file"] { --velvet: var(--file-velvet); --velvet-2: var(--file-
 .menu-chevron { color: var(--muted); font-size: 22px; }
 .menu-wide { width: 100%; }
 .menu-info { padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); display: grid; gap: 2px; font-size: 13px; }
+
+/* catalog picker: compact list, not promotional cards */
+.catalog-list { display: grid; grid-template-columns: 1fr; gap: 0; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: var(--paper); }
+.catalog-list .catalog-row { min-height: 76px; padding: 11px 12px; border-radius: 0; border: 0; border-bottom: 1px solid var(--line); background: var(--paper); color: var(--ink); box-shadow: none; display: grid; grid-template-columns: 5px minmax(0,1fr) auto; gap: 11px; align-items: center; }
+.catalog-list .catalog-row:last-child { border-bottom: 0; }
+.catalog-swatch { align-self: stretch; width: 5px; min-height: 48px; border-radius: 99px; background: linear-gradient(180deg,var(--album-a),var(--album-c)); }
+.catalog-copy { min-width: 0; display: grid; gap: 2px; }
+.catalog-copy b { font-family: var(--f-display); font-size: 17px; line-height: 1.2; }
+.catalog-copy .lib-sub { color: var(--muted); font-size: 12px; }
+.catalog-copy small { color: var(--muted); font-size: 11px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.catalog-add { width: 38px; height: 38px; border: 0; border-radius: 50%; background: var(--ink); color: var(--paper); font-size: 22px; line-height: 1; display: grid; place-items: center; cursor: pointer; }
+.catalog-owned { font-size: 11px; font-weight: 700; color: var(--muted); padding-inline: 4px; }
