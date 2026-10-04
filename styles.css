@@ -385,6 +385,9 @@ hr.sep { border: 0; border-top: 1px solid var(--line); margin-block: 0; }
 body.reading { overflow: hidden; }
 .reader-stage { position: absolute; left: 50%; top: 50%; display: grid; place-items: center; transform-origin: center; }
 .reader-stage .desk { gap: 10px; }
+#reader .book { transform: translate(var(--reader-pan-x, 0px), var(--reader-pan-y, 0px)) scale(var(--reader-zoom, 1)); transform-origin: center; transition: transform .16s ease-out; }
+#reader .desk.zoomed .book { transition: none; cursor: zoom-out; }
+#reader .desk.zoomed .pg-nav { opacity: .35; }
 .reader-x { position: absolute; top: calc(10px + env(safe-area-inset-top, 0px)); inset-inline-end: 12px; z-index: 2; width: 42px; height: 42px; border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, .25); background: rgba(0, 0, 0, .45); color: #f6e7dc; font-size: 18px; }
 #reader .pg-nav .btn.ghost { background: rgba(255, 255, 255, .08); color: #f6e7dc; border-color: rgba(255, 255, 255, .22); }
