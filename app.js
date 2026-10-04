@@ -390,14 +390,14 @@ function renderAlbum(view, inReader) {
         const pageAnim = turn.animate(
           [
             {transform:'rotateY(0deg) translateZ(0)',offset:0},
-            {transform:'rotateY(-12deg) translateZ(14px)',offset:.18},
-            {transform:'rotateY(-48deg) translateZ(30px)',offset:.48},
-            {transform:'rotateY(-92deg) translateZ(42px)',offset:.76},
-            {transform:'rotateY(-112deg) translateZ(18px)',offset:1}
+            {transform:'rotateY(12deg) translateZ(14px)',offset:.18},
+            {transform:'rotateY(52deg) translateZ(32px)',offset:.48},
+            {transform:'rotateY(108deg) translateZ(38px)',offset:.76},
+            {transform:'rotateY(178deg) translateZ(2px)',offset:1}
           ],
           {duration:760,easing:'cubic-bezier(.32,.02,.16,1)',fill:'forwards'}
         );
-        shade.animate([{opacity:.08},{opacity:.62,offset:.58},{opacity:.2}], {duration:760,fill:'forwards'});
+        shade.animate([{opacity:.04},{opacity:.58,offset:.5},{opacity:.18}], {duration:760,fill:'forwards'});
         await pageAnim.finished;
         turn.remove();
       }
@@ -420,10 +420,10 @@ function renderAlbum(view, inReader) {
         incoming.classList.add('single-turn-back');
         const a = incoming.animate(
           [
-            {transform:'rotateY(-112deg) translateZ(18px)',offset:0},
-            {transform:'rotateY(-88deg) translateZ(42px)',offset:.25},
-            {transform:'rotateY(-44deg) translateZ(30px)',offset:.55},
-            {transform:'rotateY(-10deg) translateZ(14px)',offset:.84},
+            {transform:'rotateY(178deg) translateZ(2px)',offset:0},
+            {transform:'rotateY(112deg) translateZ(38px)',offset:.25},
+            {transform:'rotateY(54deg) translateZ(32px)',offset:.55},
+            {transform:'rotateY(12deg) translateZ(14px)',offset:.84},
             {transform:'rotateY(0deg) translateZ(0)',offset:1}
           ],
           {duration:760,easing:'cubic-bezier(.22,.72,.18,1)',fill:'forwards'}
