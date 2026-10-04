@@ -430,43 +430,60 @@ function renderAlbum(view, inReader) {
     book.append(lf);
     return lf;
   }
+  // Page turns: 558 ms for a leaf, 198 ms for the one-page slide.
+  // A tap during a turn isn't lost: the running turn snaps to its end and the next one starts right away.
+  const TURN_MS = 558, SLIDE_MS = 198;
+  let running = [];
+  const queued = [];
+  const track = a => { running.push(a); return a.finished; };
+  function hurry(next) {
+    if (queued.length < 4) queued.push(next);
+    for (const a of running) { try { a.finish(); } catch (e) {} }
+  }
+  function settle() {
+    running = []; busy = false;
+    const next = queued.shift();
+    if (next) next();
+  }
   function animate(lf, from, to) {
-    const dur = reduce ? 1 : 620;
+    const dur = reduce ? 1 : TURN_MS;
     const a = lf.animate([{ transform: 'rotateY(' + from + 'deg)' }, { transform: 'rotateY(' + to + 'deg)' }],
       { duration: dur, easing: 'cubic-bezier(.45,.05,.3,1)', fill: 'forwards' });
     const sh = lf.querySelector('.leaf-shade');
-    sh.animate([{ opacity: 0 }, { opacity: .55, offset: .5 }, { opacity: 0 }], { duration: dur, fill: 'forwards' });
-    return a.finished;
+    track(sh.animate([{ opacity: 0 }, { opacity: .55, offset: .5 }, { opacity: 0 }], { duration: dur, fill: 'forwards' }));
+    return track(a);
   }
 
   // Forward: the left page (front of p) turns over to the right, showing its back.
   async function forward() {
-    if (busy || bk.p >= pages.length) return;
+    if (busy) { hurry(forward); return; }
+    if (bk.p >= pages.length) { queued.length = 0; return; }   // the end of the album: drop extra taps
     busy = true;
     if (singlePage) {
       bk.p++;
       left.replaceChildren(leftFor(bk.p));
-      if (!reduce) await left.animate([{opacity:.25,transform:'translateX(-10%)'},{opacity:1,transform:'translateX(0)'}],
-        {duration:220,easing:'ease-out'}).finished;
-      paint(); busy = false; return;
+      if (!reduce) await track(left.animate([{opacity:.25,transform:'translateX(-10%)'},{opacity:1,transform:'translateX(0)'}],
+        {duration:SLIDE_MS,easing:'ease-out'}));
+      paint(); settle(); return;
     }
     const lf = leaf(pageFront(pages[bk.p], bk.p), pageBack(pages[bk.p], bk.p), 'left');
     left.replaceChildren(leftFor(bk.p + 1));
     await animate(lf, 0, 180);
-    bk.p++; lf.remove(); paint(); busy = false;
+    bk.p++; lf.remove(); paint(); settle();
   }
   // Back: the right page (back of p-1) turns over to the left, showing page p-1's front. At p = 0 the cover closes.
   async function backward() {
-    if (busy) return;
+    if (busy) { hurry(backward); return; }
     busy = true;
     if (singlePage && bk.p > 0) {
       bk.p--;
       left.replaceChildren(leftFor(bk.p));
-      if (!reduce) await left.animate([{opacity:.25,transform:'translateX(10%)'},{opacity:1,transform:'translateX(0)'}],
-        {duration:220,easing:'ease-out'}).finished;
-      paint(); busy = false; return;
+      if (!reduce) await track(left.animate([{opacity:.25,transform:'translateX(10%)'},{opacity:1,transform:'translateX(0)'}],
+        {duration:SLIDE_MS,easing:'ease-out'}));
+      paint(); settle(); return;
     }
     if (bk.p === 0) {
+      queued.length = 0;   // the cover is closing; nothing to turn after it
       const lf = leaf(coverInside(), coverFace(), 'right');
       right.replaceChildren();
       await animate(lf, 0, -180);
@@ -475,7 +492,7 @@ function renderAlbum(view, inReader) {
     const lf = leaf(pageBack(pages[bk.p - 1], bk.p - 1), pageFront(pages[bk.p - 1], bk.p - 1), 'right');
     right.replaceChildren(rightFor(bk.p - 1));
     await animate(lf, 0, -180);
-    bk.p--; lf.remove(); paint(); busy = false;
+    bk.p--; lf.remove(); paint(); settle();
   }
   function coverFace() { const c = cover.cloneNode(true); c.className = 'cover as-face'; return c; }
 
