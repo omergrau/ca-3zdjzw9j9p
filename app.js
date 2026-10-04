@@ -207,46 +207,162 @@ function reignSpan(items) {
   const names = [...new Set(items.map(i => (CROWN_REIGNS.find(r => r.key === i.reign) || {}).name).filter(Boolean))];
   return names.length > 1 ? names[0] + ' – ' + names[names.length - 1] : (names[0] || '');
 }
+/* ---------- the album as a book (Hebrew binding: pages turn from left to right) ----------
+   Open at page p: the LEFT side shows the front of page p, the RIGHT side shows the back of page p-1
+   (or the inside of the cover for p = 0). Turning forward lifts the left page over the spine to the right. */
+function pageFront(p, i) {
+  const have = p.items.filter(it => st.owned.has(it.id)).length;
+  const meta = (st.tab === 'crowns' && !p.items[0].custom ? reignSpan(p.items) + ' · ' : '') + have + '/' + p.items.length + ' באוסף';
+  const grid = el('div', { class: 'pg-grid', style: 'grid-template-columns:repeat(' + p.sheet.cols + ',minmax(0,1fr));grid-template-rows:repeat(' + p.sheet.rows + ',minmax(0,1fr))' },
+    p.items.map(it => holderEl(it, p.sheet)));
+  for (let k = p.items.length; k < p.sheet.pockets; k++) grid.append(el('span', { class: 'pocket empty', 'aria-hidden': 'true' }));
+  return el('section', { class: 'pg front', 'aria-label': 'דף ' + (i + 1) }, [
+    el('div', { class: 'pg-head' }, [
+      el('span', { class: 'pg-title', text: p.sec.title + (p.parts > 1 ? ' (' + p.part + '/' + p.parts + ')' : '') }),
+      el('span', { class: 'pg-meta', text: meta }),
+    ]),
+    grid,
+    el('div', { class: 'pg-foot' }, [el('span', { text: p.sheet.name }), el('span', { text: String(i + 1) })]),
+  ]);
+}
+// The back of a sheet: the same pockets seen from behind (columns mirrored). A missing coin has no holder.
+function pageBack(p, i) {
+  const cells = [];
+  for (let r = 0; r < p.sheet.rows; r++) for (let c = p.sheet.cols - 1; c >= 0; c--) {
+    const it = p.items[r * p.sheet.cols + c];
+    if (it && st.owned.has(it.id)) {
+      const win = windowFor(it.diam || 25, p.sheet);
+      const coin = el('span', { class: 'coin' + (it.holed ? ' holed' : '') });
+      coin.style.width = coin.style.height = ((it.diam || 25) / win * 100) + '%';
+      cells.push(el('span', { class: 'pocket own back-holder slot m-' + it.metal }, [el('span', { class: 'holder' }, [
+        el('span', { class: 'window', style: '--w:' + (win / p.sheet.holder * 100) + '%' }, [coin]),
+        el('span', { class: 'hl-lbl', text: String(it.y || '') }),
+      ])]));
+    } else cells.push(el('span', { class: 'pocket empty', 'aria-hidden': 'true' }));
+  }
+  return el('section', { class: 'pg back', 'aria-label': 'גב דף ' + (i + 1) }, [
+    el('div', { class: 'pg-head' }, [el('span', { class: 'pg-meta', text: 'גב דף ' + (i + 1) })]),
+    el('div', { class: 'pg-grid', style: 'grid-template-columns:repeat(' + p.sheet.cols + ',minmax(0,1fr));grid-template-rows:repeat(' + p.sheet.rows + ',minmax(0,1fr))' }, cells),
+    el('div', { class: 'pg-foot' }, [el('span', { text: '' }), el('span', { text: '' })]),
+  ]);
+}
+function coverInside() {
+  const x = seriesStats(st.tab);
+  return el('section', { class: 'pg lining' }, [el('div', { class: 'lining-inner' }, [
+    el('span', { class: 'ex-libris', text: 'אלבום' }),
+    el('b', { text: SERIES[st.tab].name }),
+    el('span', { text: x.have + ' מתוך ' + x.total + ' מטבעות' }),
+  ])]);
+}
+
 function renderAlbum(view) {
   const pages = albumPages(st.tab);
-  const strip = el('div', { class: 'album', role: 'region', 'aria-label': 'דפי האלבום. החלק לצדדים לדף הבא.' });
-  pages.forEach((p, i) => {
-    const have = p.items.filter(it => st.owned.has(it.id)).length;
-    const meta = (st.tab === 'crowns' && !p.items[0].custom ? reignSpan(p.items) + ' · ' : '') + have + '/' + p.items.length + ' באוסף';
-    const grid = el('div', { class: 'pg-grid', style: 'grid-template-columns:repeat(' + p.sheet.cols + ',minmax(0,1fr));grid-template-rows:repeat(' + p.sheet.rows + ',minmax(0,1fr))' },
-      p.items.map(it => holderEl(it, p.sheet)));
-    for (let k = p.items.length; k < p.sheet.pockets; k++) grid.append(el('span', { class: 'pocket empty', 'aria-hidden': 'true' }));
-    strip.append(el('section', { class: 'pg', 'aria-label': 'דף ' + (i + 1) }, [
-      el('div', { class: 'pg-head' }, [
-        el('span', { class: 'pg-title', text: p.sec.title + (p.parts > 1 ? ' (' + p.part + '/' + p.parts + ')' : '') }),
-        el('span', { class: 'pg-meta', text: meta }),
-      ]),
-      grid,
-      el('div', { class: 'pg-foot' }, [el('span', { text: p.sheet.name + ' · ' + p.sheet.pockets + ' כיסים' }), el('span', { text: String(i + 1) })]),
-    ]));
-  });
-  const ind = el('span', { class: 'pg-ind', text: 'דף 1 מתוך ' + pages.length });
-  const cur = () => Math.round(Math.abs(strip.scrollLeft) / Math.max(1, strip.clientWidth));
-  const go = d => {
-    const t = strip.children[Math.min(pages.length - 1, Math.max(0, cur() + d))];
-    if (t) t.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
-  };
-  strip.addEventListener('scroll', () => {
-    const c = cur();
-    ind.textContent = 'דף ' + (c + 1) + ' מתוך ' + pages.length;
-    st.pageByTab = Object.assign(st.pageByTab || {}, { [st.tab]: c });
-  }, { passive: true });
-  const binder = el('div', { class: 'binder' }, [
-    el('div', { class: 'binder-title' }, [el('span', { text: SERIES[st.tab].name }), el('small', { text: SERIES[st.tab].sub })]),
-    strip,
-    el('div', { class: 'pg-nav' }, [
-      el('button', { class: 'btn ghost', type: 'button', text: '→ הקודם', onclick: () => go(-1) }), ind,
-      el('button', { class: 'btn ghost', type: 'button', text: 'הבא ←', onclick: () => go(1) }),
+  st.book = st.book || {};
+  const bk = st.book[st.tab] = st.book[st.tab] || { open: false, p: 0 };
+  bk.p = Math.min(bk.p, pages.length - 1);
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const book = el('div', { class: 'book' + (bk.open ? ' open' : ''), role: 'region', 'aria-label': 'אלבום ' + SERIES[st.tab].name });
+  const right = el('div', { class: 'side right' }), left = el('div', { class: 'side left' });
+  const ind = el('span', { class: 'pg-ind' });
+  let busy = false;
+
+  const rightFor = p => p === 0 ? coverInside() : pageBack(pages[p - 1], p - 1);
+  function paint() {
+    right.replaceChildren(rightFor(bk.p));
+    left.replaceChildren(pageFront(pages[bk.p], bk.p));
+    ind.textContent = 'דף ' + (bk.p + 1) + ' מתוך ' + pages.length;
+    prev.disabled = false; next.disabled = bk.p >= pages.length - 1;
+  }
+
+  // Closed: only the front cover.
+  const x = seriesStats(st.tab);
+  const cover = el('button', { class: 'cover', type: 'button', 'aria-label': 'פתח את האלבום ' + SERIES[st.tab].name }, [
+    el('span', { class: 'cover-frame' }, [
+      el('span', { class: 'cover-kicker', text: 'אלבום מטבעות' }),
+      el('span', { class: 'cover-name', text: SERIES[st.tab].name }),
+      el('span', { class: 'cover-sub', text: SERIES[st.tab].sub }),
+      el('span', { class: 'cover-count', text: x.have + ' / ' + x.total }),
+      el('span', { class: 'cover-hint', text: 'לחץ לפתיחה' }),
     ]),
   ]);
-  view.append(binder);
-  const keep = (st.pageByTab || {})[st.tab];
-  if (keep) requestAnimationFrame(() => { const t = strip.children[keep]; if (t) t.scrollIntoView({ inline: 'start', block: 'nearest' }); });
+
+  function leaf(frontEl, backEl, fromSide) {
+    const lf = el('div', { class: 'leaf from-' + fromSide }, [
+      el('div', { class: 'face face-front' }, [frontEl]),
+      el('div', { class: 'face face-back' }, [backEl]),
+      el('div', { class: 'leaf-shade', 'aria-hidden': 'true' }),
+    ]);
+    book.append(lf);
+    return lf;
+  }
+  function animate(lf, from, to) {
+    const dur = reduce ? 1 : 900;
+    const a = lf.animate([{ transform: 'rotateY(' + from + 'deg)' }, { transform: 'rotateY(' + to + 'deg)' }],
+      { duration: dur, easing: 'cubic-bezier(.45,.05,.3,1)', fill: 'forwards' });
+    const sh = lf.querySelector('.leaf-shade');
+    sh.animate([{ opacity: 0 }, { opacity: .55, offset: .5 }, { opacity: 0 }], { duration: dur, fill: 'forwards' });
+    return a.finished;
+  }
+
+  // Forward: the left page (front of p) turns over to the right, showing its back.
+  async function forward() {
+    if (busy || bk.p >= pages.length - 1) return;
+    busy = true;
+    const lf = leaf(pageFront(pages[bk.p], bk.p), pageBack(pages[bk.p], bk.p), 'left');
+    left.replaceChildren(pageFront(pages[bk.p + 1], bk.p + 1));
+    await animate(lf, 0, 180);
+    bk.p++; lf.remove(); paint(); busy = false;
+  }
+  // Back: the right page (back of p-1) turns over to the left, showing page p-1's front. At p = 0 the cover closes.
+  async function backward() {
+    if (busy) return;
+    busy = true;
+    if (bk.p === 0) {
+      const lf = leaf(coverInside(), coverFace(), 'right');
+      right.replaceChildren();
+      await animate(lf, 0, -180);
+      bk.open = false; busy = false; render(); return;
+    }
+    const lf = leaf(pageBack(pages[bk.p - 1], bk.p - 1), pageFront(pages[bk.p - 1], bk.p - 1), 'right');
+    right.replaceChildren(rightFor(bk.p - 1));
+    await animate(lf, 0, -180);
+    bk.p--; lf.remove(); paint(); busy = false;
+  }
+  function coverFace() { const c = cover.cloneNode(true); c.className = 'cover as-face'; return c; }
+
+  const prev = el('button', { class: 'btn ghost', type: 'button', text: '→ אחורה', onclick: backward });
+  const next = el('button', { class: 'btn ghost', type: 'button', text: 'קדימה ←', onclick: forward });
+
+  if (!bk.open) {
+    book.append(cover);
+    cover.addEventListener('click', async () => {
+      if (busy) return; busy = true;
+      book.classList.add('open');
+      cover.remove();
+      book.append(right, left);
+      right.replaceChildren(); left.replaceChildren(pageFront(pages[0], 0));
+      bk.p = 0;
+      const lf = leaf(coverFace(), coverInside(), 'left');
+      await animate(lf, 0, 180);
+      lf.remove(); bk.open = true; paint(); busy = false;
+      nav.hidden = false;
+    });
+  } else { book.append(right, left); }
+
+  // Swipe: in a Hebrew book you pull the left page to the right to go forward.
+  let sx = null, sy = 0;
+  book.addEventListener('pointerdown', e => { if (bk.open) { sx = e.clientX; sy = e.clientY; } });
+  book.addEventListener('pointerup', e => {
+    if (sx === null) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy; sx = null;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.3) { dx > 0 ? forward() : backward(); }
+  });
+
+  const nav = el('div', { class: 'pg-nav' }, [prev, ind, next]);
+  nav.hidden = !bk.open;
+  view.append(el('div', { class: 'desk' }, [book, nav]));
+  if (bk.open) paint();
 }
 
 let toastTimer = 0;
