@@ -395,6 +395,30 @@ body.reading { overflow: hidden; }
 }
 #reader .desk.zoomed .book { transition: none; cursor: zoom-out; }
 #reader .desk.zoomed .pg-nav { opacity: .35; }
+
+/* Pinch performance mode: keep the live DOM, but strip expensive paint effects while it moves. */
+#readerStage.pinching .book,
+#readerStage.pinching .book * {
+  transition: none !important;
+  animation: none !important;
+}
+#readerStage.pinching .book { box-shadow: none !important; }
+#readerStage.pinching .book .pg,
+#readerStage.pinching .book .holder,
+#readerStage.pinching .book .window,
+#readerStage.pinching .book .coin {
+  box-shadow: none !important;
+  filter: none !important;
+}
+#readerStage.pinching .book .coin::before,
+#readerStage.pinching .book .coin::after,
+#readerStage.pinching .book .pg::after {
+  display: none !important;
+}
+#readerStage.pinching .book img {
+  image-rendering: auto;
+  backface-visibility: hidden;
+}
 .reader-x { position: absolute; top: calc(10px + env(safe-area-inset-top, 0px)); inset-inline-end: 12px; z-index: 2; width: 42px; height: 42px; border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, .25); background: rgba(0, 0, 0, .45); color: #f6e7dc; font-size: 18px; }
 #reader .pg-nav .btn.ghost { background: rgba(255, 255, 255, .08); color: #f6e7dc; border-color: rgba(255, 255, 255, .22); }
