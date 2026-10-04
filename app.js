@@ -190,6 +190,7 @@ function render() {
   document.querySelectorAll('.vt').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.v === st.view)));
   $('#customizeBtn').hidden = !(curCol() && curCol().kind === 'catalog');
   $('.chips').hidden = st.view === 'album';
+  renderSort();
   const view = $('#view'); view.textContent = '';
   if (st.view === 'album') {
     renderAlbum(view, false);
@@ -212,17 +213,70 @@ function windowFor(diam, sheet) {
   if (sheet.key === 'P20') return HOLDER_WINDOWS.find(w => w >= diam) || HOLDER_WINDOWS[HOLDER_WINDOWS.length - 1];
   return Math.ceil(diam + 1);
 }
+/* ---------- album order ----------
+   Each collection keeps its own order: by the catalog's grouping (denomination, or reign for the crowns)
+   or by year. Catalogs that span countries can also go country first, on top of either order. */
+function sortModes(series) {
+  const col = colById(series), cat = CATALOGS[series];
+  if (!col || col.kind === 'own' || !cat) return [['added', 'סדר הוספה'], ['year', 'שנה']];
+  return series === 'crowns' ? [['year', 'שנה'], ['group', cat.groupLabel]] : [['group', cat.groupLabel || 'ערך'], ['year', 'שנה']];
+}
+function hasCountries(series) { const cat = CATALOGS[series]; return !!(cat && cat.countries && cat.countries.length > 1); }
+function sortOf(series) {
+  const col = colById(series), modes = sortModes(series), s = (col && col.sort) || {};
+  return { by: modes.some(m => m[0] === s.by) ? s.by : modes[0][0], country: !!s.country && hasCountries(series) };
+}
+async function setSort(series, sort) {
+  const col = colById(series); if (!col) return;
+  col.sort = sort;
+  if (st.book && st.book[series]) st.book[series].p = 0;   // the pages move, so start from the first one
+  await saveCollections(); render();
+}
+// where a coin's denomination stands in its catalog (groups are listed from the smallest value up)
+function valueRank(it) {
+  if (it.series === 'mandate') return it.d || 0;
+  const cat = CATALOGS[it.series], i = cat && cat.groups ? cat.groups.findIndex(g => g.key === it.group) : -1;
+  return i < 0 ? 0 : i;
+}
+const byYear = (a, b) => (Number(a.y) || 0) - (Number(b.y) || 0) || valueRank(a) - valueRank(b);
+const byValue = (a, b) => valueRank(a) - valueRank(b) || (Number(a.y) || 0) - (Number(b.y) || 0);
+function yearSpan(items) {
+  const ys = items.map(i => Number(i.y)).filter(Boolean);
+  if (!ys.length) return '';
+  const lo = Math.min(...ys), hi = Math.max(...ys);
+  return lo === hi ? String(lo) : lo + '–' + hi;
+}
+// Sections of the album, in order. A section starts on a new page; `years` sections title each page by its years.
 function albumSections(series) {
   const extras = allItems(series).filter(i => i.custom);
+  const col = colById(series), s = sortOf(series), years = s.by === 'year';
+  if (col && col.kind === 'own') return extras.length ? [{ title: col.name, items: years ? [...extras].sort(byYear) : extras, years }] : [];
+  const cat = CATALOGS[series], vis = visibleIn(series);
+  const list = (cat && cat.list ? cat.list : []).filter(vis);
   const out = [];
-  const col = colById(series);
-  if (col && col.kind === 'own') return extras.length ? [{ title: col.name, items: extras }] : [];
-  const vis = visibleIn(series);
-  if (series === 'crowns') out.push({ title: 'קראונים בריטיים', items: CROWNS.filter(vis) });
-  else if (series !== 'mandate') { const cat = CATALOGS[series]; for (const g of (cat && cat.list ? cat.groups : [])) out.push({ title: g.name, items: cat.list.filter(c => c.group === g.key && vis(c)) }); }
-  else for (const den of MANDATE_DENOMS) out.push({ title: den.d + (den.d === 1 ? ' מיל' : ' מילים') + ' · ' + den.metalName.split(',')[0] + ' · ' + den.diam + ' מ"מ', items: MANDATE.filter(c => c.d === den.d && vis(c)) });
-  if (extras.length) out.push({ title: 'מטבעות שהוספת', items: extras });
-  return out.filter(s => s.items.length);
+  if (s.country) {
+    const known = new Set(cat.countries.map(c => c.key));
+    for (const c of cat.countries) out.push({ title: c.name, items: list.filter(i => i.country === c.key).sort(years ? byYear : byValue), years });
+    out.push({ title: 'ללא מדינה', items: list.filter(i => !known.has(i.country)).sort(years ? byYear : byValue), years });
+  }
+  else if (years) out.push({ title: cat.name, items: [...list].sort(byYear), years });
+  else if (series === 'mandate') for (const den of MANDATE_DENOMS) out.push({ title: den.d + (den.d === 1 ? ' מיל' : ' מילים') + ' · ' + den.metalName.split(',')[0] + ' · ' + den.diam + ' מ"מ', items: list.filter(c => c.d === den.d) });
+  else for (const g of cat.groups || []) out.push({ title: g.name, items: list.filter(c => c.group === g.key) });
+  if (extras.length) out.push({ title: 'מטבעות שהוספת', items: years ? [...extras].sort(byYear) : extras, years });
+  return out.filter(x => x.items.length);
+}
+function renderSort() {
+  const box = $('#sortBox'), col = curCol();
+  box.hidden = st.view !== 'album' || !col;
+  if (box.hidden) return;
+  const series = col.id, s = sortOf(series);
+  box.replaceChildren(
+    el('span', { class: 'sort-lbl', text: 'מיון:' }),
+    el('div', { class: 'sort-opts' }, sortModes(series).map(([k, t]) => el('button', { class: 'so', type: 'button', 'aria-pressed': String(s.by === k), text: t,
+      onclick: () => { if (s.by !== k) setSort(series, { by: k, country: s.country }); } }))),
+    hasCountries(series) ? el('button', { class: 'so-country', type: 'button', 'aria-pressed': String(s.country), text: '🌍 לפי מדינה',
+      title: 'מקבץ כל מדינה בנפרד, בתוך המיון שבחרת', onclick: () => setSort(series, { by: s.by, country: !s.country }) }) : null,
+  );
 }
 // Fill pages in order; a new section starts a new page. Each page is sized by its own largest coin.
 function albumPages(series) {
@@ -272,7 +326,7 @@ function pageFront(p, i) {
   for (let k = p.items.length; k < p.sheet.pockets; k++) grid.append(el('span', { class: 'pocket empty', 'aria-hidden': 'true' }));
   return el('section', { class: 'pg front', 'aria-label': 'דף ' + (i + 1) }, [
     el('div', { class: 'pg-head' }, [
-      el('span', { class: 'pg-title', text: p.sec.title + (p.parts > 1 ? ' (' + p.part + '/' + p.parts + ')' : '') }),
+      el('span', { class: 'pg-title', text: p.sec.title + (p.sec.years ? ' · ' + yearSpan(p.items) : p.parts > 1 ? ' (' + p.part + '/' + p.parts + ')' : '') }),
       el('span', { class: 'pg-meta', text: meta }),
     ]),
     grid,
@@ -422,7 +476,8 @@ function renderAlbum(view, inReader) {
     let label = p.sec.title;
     // Keep the useful collection heading compact in the side picker.
     if (st.tab === 'mandate') label = label.split(' · ')[0];
-    if (p.parts > 1) label += ' (' + p.part + '/' + p.parts + ')';
+    if (p.sec.years) label += ' · ' + yearSpan(p.items);
+    else if (p.parts > 1) label += ' (' + p.part + '/' + p.parts + ')';
     // Repeated section names are still separate physical pages.
     jumpLabels.set(i, label);
     jump.append(el('option', { value: String(i), text: label + ' — דף ' + (i + 1) }));

@@ -638,3 +638,12 @@ body[data-series="file"] { --velvet: var(--file-velvet); --velvet-2: var(--file-
 }
 
 .ph-edit { padding: 4px 10px; font-size: 12px; }
+
+/* album order */
+.sortbox { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.sort-lbl { font-size: 13px; font-weight: 700; color: var(--muted); }
+.sort-opts { display: inline-flex; gap: 4px; padding: 4px; background: var(--paper-2); border: 1px solid var(--line); border-radius: 99px; }
+.so { border: 0; background: transparent; border-radius: 99px; padding: 5px 14px; font-size: 14px; font-weight: 700; color: var(--muted); }
+.so[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.so-country { border: 1px solid var(--line); background: var(--paper-2); border-radius: 99px; padding: 6px 12px; font-size: 14px; font-weight: 700; color: var(--muted); }
+.so-country[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: transparent; }

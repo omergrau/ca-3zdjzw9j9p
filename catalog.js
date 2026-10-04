@@ -105,9 +105,10 @@ async function loadCatalogFile(key) {
   if (!res.ok) throw new Error('catalog ' + key + ' ' + res.status);
   const data = await res.json();
   Object.assign(cat, { name: data.name || cat.name, sub: data.sub || cat.sub, about: data.about || cat.about,
-    theme: data.theme || cat.theme, groupLabel: data.groupLabel || cat.groupLabel, groups: data.groups || [] });
+    theme: data.theme || cat.theme, groupLabel: data.groupLabel || cat.groupLabel, groups: data.groups || [],
+    countries: data.countries || [] });   // optional [{ key, name }] for catalogs that span several countries (items carry `country`)
   cat.list = (data.items || []).map(it => ({
-    id: key + '-' + it.id, series: key, group: it.group, y: it.y, tag: it.tag || '', rare: it.rare || '', variant: !!it.variant,
+    id: key + '-' + it.id, series: key, group: it.group, country: it.country || '', y: it.y, tag: it.tag || '', rare: it.rare || '', variant: !!it.variant,
     metal: it.metal || 'silver', metalName: it.metalName || METAL_NAME[it.metal] || '', diam: Number(it.diam) || 25, holed: !!it.holed,
     title: it.label, sub: cat.name + (it.variant ? ' · וריאנט' : ''), design: it.note || '',
   }));
