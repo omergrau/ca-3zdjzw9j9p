@@ -36,7 +36,7 @@ function coinEl(item) {
 function slotEl(item) {
   const own = st.owned.has(item.id);
   const b = el('button', {
-    type: 'button', class: 'slot m-' + item.metal + (own ? ' own' : ''),
+    type: 'button', class: 'slot m-' + item.metal + (own ? ' own' : '') + (st.justAdded === item.id ? ' pop' : ''),
     'aria-label': item.title + (own ? ', יש באוסף' : ', חסר') + (item.rare ? ', ' + item.rare : ''),
     onclick: () => openSheet(item.id),
   }, [coinEl(item), el('span', { class: 'lbl', text: own ? (st.owned.get(item.id).grade || 'יש') : (item.tag || '') })]);
@@ -44,44 +44,67 @@ function slotEl(item) {
   return b;
 }
 
+function seriesStats(key) {
+  const items = allItems(key), have = items.filter(i => st.owned.has(i.id)).length;
+  return { total: items.length, have, pct: items.length ? Math.round(have / items.length * 100) : 0 };
+}
+
+function renderStats() {
+  const host = $('#stats'); host.textContent = '';
+  const c = seriesStats('crowns'), m = seriesStats('mandate');
+  const have = c.have + m.have, total = c.total + m.total;
+  const missingRare = allItems('crowns').concat(allItems('mandate')).filter(i => i.rare && !st.owned.has(i.id)).length;
+  const stat = (cls, n, t) => el('div', { class: 'stat ' + cls }, [el('b', { text: String(n) }), el('span', { text: t })]);
+  host.append(stat('gold', have, 'מטבעות באלבום'), stat('', (total ? Math.round(have / total * 100) : 0) + '%', 'מכל הסדרות'), stat('copper', total - have, 'עוד חסרים'));
+}
+
 function renderTabs() {
   const host = $('#tabs'); host.textContent = '';
   for (const [key, s] of Object.entries(SERIES)) {
-    const items = allItems(key), have = items.filter(i => st.owned.has(i.id)).length;
-    const pct = items.length ? Math.round(have / items.length * 100) : 0;
-    host.append(el('button', { class: 'tab', role: 'tab', type: 'button', 'aria-selected': String(st.tab === key),
+    const x = seriesStats(key);
+    const ring = el('span', { class: 'ring', style: '--p:' + x.pct }, [el('span', { text: x.pct + '%' })]);
+    host.append(el('button', { class: 'tab ' + key, role: 'tab', type: 'button', 'aria-selected': String(st.tab === key),
       onclick: () => { st.tab = key; try { localStorage.setItem('album.tab', key); } catch (e) {} render(); } }, [
+      ring,
       el('span', { class: 't-name', text: s.name }),
       el('span', { class: 't-sub', text: s.sub }),
-      el('span', { class: 't-count', text: have + ' מתוך ' + items.length + ' · ' + pct + '%' }),
-      el('span', { class: 'bar' }, [el('i', { style: 'width:' + pct + '%' })]),
+      el('span', { class: 't-count', text: x.have + ' מתוך ' + x.total }),
     ]));
   }
 }
 
 function renderLegend() {
   const L = $('#legend'); L.textContent = '';
-  const g = m => 'radial-gradient(circle at 35% 30%, var(--' + m + '-a), var(--' + m + '-c))';
-  const mk = (bg, t, dashed) => el('span', {}, [el('i', { class: 'mini', style: 'background:' + bg + (dashed ? ';border:2px dashed var(--line)' : '') }), t]);
+  const g = m => 'radial-gradient(circle at 32% 28%, var(--' + m + '-a), var(--' + m + '-b) 55%, var(--' + m + '-c))';
+  const mk = (bg, t) => el('span', {}, [el('i', { class: 'mini', style: 'background:' + bg }), t]);
   if (st.tab === 'crowns') L.append(mk(g('silver'), 'כסף'), mk(g('cuni'), 'קופרו-ניקל'));
   else L.append(mk(g('bronze'), 'ברונזה'), mk(g('cuni'), 'קופרו-ניקל'), mk(g('silver'), 'כסף'));
-  L.append(mk('var(--hole)', 'חסר', true), mk('var(--rare)', 'נדיר / הערה'));
+  L.append(mk('radial-gradient(circle at 50% 35%, #555a66, #23262d)', 'חסר'), mk('radial-gradient(circle at 35% 30%, #ffc2c8, var(--ruby) 60%, #a3192a)', 'נדיר / הערה'));
+}
+
+function trayHead(title, sub, extra) {
+  return el('div', { class: 'tray-head' }, [el('h2', { text: title }), extra || null, el('p', { text: sub })]);
 }
 
 function renderCrowns(view) {
-  const page = el('div', { class: 'page' });
+  const tray = el('div', { class: 'tray' }, [trayHead('קראונים בריטיים', 'חמישה שילינג. לכל מלך המונוגרמה המלכותית שלו.')]);
   for (const r of CROWN_REIGNS) {
     const items = CROWNS.filter(c => c.reign === r.key), have = items.filter(i => st.owned.has(i.id)).length;
-    page.append(el('div', { class: 'reign' }, [
-      el('div', { class: 'reign-head' }, [el('h3', { text: r.name }), el('small', { text: r.years + ' · ' + have + '/' + items.length })]),
+    tray.append(el('div', { class: 'reign' }, [
+      el('div', { class: 'reign-head' }, [
+        el('span', { class: 'cypher', 'aria-hidden': 'true', text: r.cypher }),
+        el('div', {}, [el('h3', { text: r.name }), el('small', { text: r.years + ' · ' + have + '/' + items.length })]),
+        el('span', { class: 'mini-bar', 'aria-hidden': 'true' }, [el('i', { style: 'width:' + Math.round(have / items.length * 100) + '%' })]),
+      ]),
       el('div', { class: 'slots' }, items.map(slotEl)),
     ]));
   }
-  view.append(page);
+  view.append(tray);
 }
 
 function renderMandate(view) {
-  const page = el('div', { class: 'page' });
+  const tray = el('div', { class: 'tray' }, [trayHead('מטבעות המנדט', 'כל ערך בכל שנת הטבעה. גלול לצדדים לראות את כל השנים.',
+    el('span', { class: 'tri', text: 'פלשתינה (א"י) · PALESTINE · فلسطين' }))]);
   const table = el('table', { class: 'matrix' });
   table.append(el('thead', {}, [el('tr', {}, [el('th', { text: '' }), ...MANDATE_YEARS.map(y => el('th', { scope: 'col', text: String(y) }))])]));
   const tb = el('tbody');
@@ -97,14 +120,14 @@ function renderMandate(view) {
     tb.append(tr);
   }
   table.append(tb);
-  page.append(el('div', { class: 'matrix-wrap' }, [table]));
-  view.append(page);
+  tray.append(el('div', { class: 'matrix-wrap' }, [table]));
+  view.append(tray);
 }
 
 function renderExtras(view) {
   const extra = allItems(st.tab).filter(i => i.custom);
   if (!extra.length) return;
-  view.append(el('div', { class: 'page extras' }, [
+  view.append(el('div', { class: 'tray extras' }, [
     el('h3', { text: 'מטבעות שהוספת מחוץ לרשימה' }),
     el('p', { text: 'וריאנטים, פרופים או מטבעות שלא מופיעים בקטלוג.' }),
     el('div', { class: 'slots' }, extra.map(slotEl)),
@@ -112,11 +135,19 @@ function renderExtras(view) {
 }
 
 function render() {
-  renderTabs(); renderLegend();
+  document.body.dataset.series = st.tab;
+  renderStats(); renderTabs(); renderLegend();
   document.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.f === st.filter)));
   const view = $('#view'); view.textContent = '';
   if (st.tab === 'crowns') renderCrowns(view); else renderMandate(view);
   renderExtras(view);
+  st.justAdded = null;
+}
+
+let toastTimer = 0;
+function toast(text) {
+  const t = $('#toast'); t.textContent = text; t.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 2400);
 }
 
 /* ---------- detail sheet ---------- */
@@ -132,27 +163,32 @@ function openSheet(id, msg) {
   const add = (k, v) => { if (v) facts.append(el('dt', { text: k }), el('dd', { text: v })); };
   add('מתכת', item.metalName); add('עיצוב', item.design);
   body.append(facts);
-  if (item.rare) body.append(el('div', { class: 'rare-note', text: item.rare }));
-  body.append(el('div', { class: 'status ' + (rec ? 'yes' : 'no'), text: rec ? '● באוסף' : '○ עוד לא באוסף' }));
+  body.append(el('div', { class: 'status ' + (rec ? 'yes' : 'no'), text: rec ? '✓ באלבום' : 'עוד לא באלבום' }));
+  if (item.rare) body.append(el('div', { class: 'rare-note' }, [el('span', { 'aria-hidden': 'true', text: '◆' }), item.rare]));
 
   const f = el('form', { class: 'fields' });
-  const gradeSel = el('select', { id: 'f-grade' }, GRADES.map(g => el('option', { value: g, text: g || 'לא ידוע' })));
-  gradeSel.value = rec?.grade || '';
+  let grade = rec?.grade || '';
+  const gradeBox = el('div', { class: 'grades', role: 'group', 'aria-labelledby': 'f-grade-l' });
+  for (const g of GRADES) {
+    const gb = el('button', { type: 'button', 'aria-pressed': String(g === grade), text: g || '?', title: g || 'לא ידוע' });
+    gb.addEventListener('click', () => { grade = g; gradeBox.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === gb))); });
+    gradeBox.append(gb);
+  }
   const paid = el('input', { id: 'f-paid', type: 'number', min: '0', step: 'any', inputmode: 'decimal', placeholder: 'למשל 180' });
   if (typeof rec?.paid === 'number') paid.value = rec.paid;
   const date = el('input', { id: 'f-date', type: 'date' }); if (rec?.acquired) date.value = rec.acquired;
   const note = el('textarea', { id: 'f-note', rows: '2', placeholder: 'מאיפה, וריאנט, פגמים...' }); note.value = rec?.note || '';
   f.append(
+    el('div', { class: 'field' }, [el('label', { id: 'f-grade-l', text: 'מצב המטבע' }), gradeBox]),
     el('div', { class: 'row2' }, [
-      el('div', { class: 'field' }, [el('label', { for: 'f-grade', text: 'מצב' }), gradeSel]),
       el('div', { class: 'field' }, [el('label', { for: 'f-paid', text: 'כמה שילמתי (₪)' }), paid]),
+      el('div', { class: 'field' }, [el('label', { for: 'f-date', text: 'תאריך רכישה' }), date]),
     ]),
-    el('div', { class: 'field' }, [el('label', { for: 'f-date', text: 'תאריך רכישה' }), date]),
     el('div', { class: 'field' }, [el('label', { for: 'f-note', text: 'הערות' }), note]),
-    el('div', { class: 'photo-slot', text: 'תמונה: אפשרות לצלם ולשמור תמונה תתווסף בשלב הבא.' }),
+    el('div', { class: 'photo-slot' }, [el('i', { 'aria-hidden': 'true', text: '📷' }), 'צילום המטבע יתווסף בשלב הבא.']),
   );
   const msgEl = el('div', { class: 'msg' + (msg ? ' ok' : ''), text: msg || '' });
-  const save = el('button', { class: 'btn primary', type: 'submit', text: rec ? 'שמור שינויים' : 'סמן שיש לי' });
+  const save = el('button', { class: 'btn ' + (rec ? 'primary' : 'accent'), type: 'submit', text: rec ? 'שמור שינויים' : '+ הכנס לאלבום' });
   const close = el('button', { class: 'btn', type: 'button', text: 'סגור', onclick: () => $('#sheet').close() });
   const left = el('div', { class: 'confirm' });
   if (rec) {
@@ -168,7 +204,7 @@ function openSheet(id, msg) {
   f.append(el('div', { class: 'actions' }, [el('div', { class: 'confirm' }, [save, close]), left]), msgEl);
   f.addEventListener('submit', e => {
     e.preventDefault();
-    saveOwned(item, { grade: gradeSel.value, paid: paid.value, acquired: date.value, note: note.value.trim() }, msgEl, save);
+    saveOwned(item, { grade, paid: paid.value, acquired: date.value, note: note.value.trim() }, msgEl, save);
   });
   body.append(f);
   const dlg = $('#sheet'); if (!dlg.open) dlg.showModal();
@@ -180,8 +216,11 @@ async function saveOwned(item, v, msgEl, btn) {
   const rec = { series: item.series, grade: v.grade, paid: n, acquired: v.acquired, note: v.note, updatedAt: nowIso() };
   btn.disabled = true;
   try {
+    const isNew = !st.owned.has(item.id);
     await Store.put('owned', item.id, rec);
-    st.owned.set(item.id, rec); render(); openSheet(item.id, 'נשמר באוסף.');
+    st.owned.set(item.id, rec);
+    if (isNew) { st.justAdded = item.id; $('#sheet').close(); render(); toast(item.title + ' נכנס לאלבום ✓'); }
+    else { render(); openSheet(item.id, 'השינויים נשמרו.'); }
   } catch (e) {
     btn.disabled = false; msgEl.className = 'msg err'; msgEl.textContent = 'השמירה נכשלה. ייתכן שהזיכרון בטלפון מלא.';
   }
