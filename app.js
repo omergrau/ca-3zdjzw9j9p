@@ -19,6 +19,12 @@ const el = (tag, attrs = {}, kids = []) => {
 const nowIso = () => new Date().toISOString();
 const newId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
 
+const ALBUM_COLORS = ['burgundy', 'blue', 'purple', 'green'];
+const CATALOG_COLOR = { crowns: 'purple', mandate: 'green', pruta: 'blue' };
+function albumColor(col) {
+  if (!col) return 'burgundy';
+  return ALBUM_COLORS.includes(col.color) ? col.color : (CATALOG_COLOR[col.id] || (col.kind === 'own' ? 'blue' : 'burgundy'));
+}
 function colById(id) { return st.collections.find(c => c.id === id); }
 function curCol() { return colById(st.tab) || st.collections[0]; }
 function themeOf(col) { return col && col.kind === 'catalog' ? CATALOGS[col.id].theme : 'own'; }
@@ -79,7 +85,7 @@ function renderTabs() {
   for (const s of st.collections) {
     const key = s.id, x = seriesStats(key);
     const ring = el('span', { class: 'ring', style: '--p:' + x.pct }, [el('span', { text: x.pct + '%' })]);
-    host.append(el('button', { class: 'tab ' + themeOf(s), role: 'tab', type: 'button', 'aria-selected': String(st.tab === key),
+    host.append(el('button', { class: 'tab ' + themeOf(s) + ' album-' + albumColor(s), role: 'tab', type: 'button', 'aria-selected': String(st.tab === key),
       onclick: () => { st.tab = key; try { localStorage.setItem('album.tab', key); } catch (e) {} render(); } }, [
       ring,
       el('span', { class: 't-name', text: s.name }),
@@ -377,7 +383,7 @@ function renderAlbum(view, inReader) {
   const singlePage = inReader && reader.portrait;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const book = el('div', { class: 'book' + (isOpen ? ' open' : '') + (singlePage ? ' single-page' : ''), role: 'region', 'aria-label': 'אלבום ' + curCol().name });
+  const book = el('div', { class: 'book album-' + albumColor(curCol()) + (isOpen ? ' open' : '') + (singlePage ? ' single-page' : ''), role: 'region', 'aria-label': 'אלבום ' + curCol().name });
   const right = el('div', { class: 'side right' }), left = el('div', { class: 'side left' });
   const ind = el('span', { class: 'pg-ind' });
   let busy = false;
@@ -1388,13 +1394,14 @@ async function ensureCatalog(key) {
 }
 async function addCatalog(key) {
   await ensureCatalog(key);
-  if (!colById(key)) { st.collections.push({ id: key, kind: 'catalog', name: CATALOGS[key].name, sub: CATALOGS[key].sub }); await saveCollections(); }
+  if (!colById(key)) { st.collections.push({ id: key, kind: 'catalog', name: CATALOGS[key].name, sub: CATALOGS[key].sub, color: CATALOG_COLOR[key] || 'burgundy' }); await saveCollections(); }
   st.tab = key; try { localStorage.setItem('album.tab', key); } catch (e) {}
   render(); toast('"' + CATALOGS[key].name + '" נוסף לאלבום');
 }
 async function addOwnCollection(name, sub) {
   const id = 'u-' + newId().slice(0, 8);
-  st.collections.push({ id, kind: 'own', name, sub }); await saveCollections();
+  const used = st.collections.filter(c => c.kind === 'own').length;
+  st.collections.push({ id, kind: 'own', name, sub, color: ALBUM_COLORS[used % ALBUM_COLORS.length] }); await saveCollections();
   st.tab = id; try { localStorage.setItem('album.tab', id); } catch (e) {}
   render(); toast('האוסף "' + name + '" נוצר');
 }
@@ -1495,6 +1502,14 @@ async function loadCollections() {
     await Store.put('meta', 'collections', cols);
   }
   st.collections = cols.filter(c => c.kind === 'own' || CATALOGS[c.id]);
+  let colorsChanged = false;
+  st.collections.forEach((c, i) => {
+    if (!ALBUM_COLORS.includes(c.color)) {
+      c.color = CATALOG_COLOR[c.id] || (c.kind === 'own' ? ALBUM_COLORS[i % ALBUM_COLORS.length] : 'burgundy');
+      colorsChanged = true;
+    }
+  });
+  if (colorsChanged) await saveCollections();
 }
 
 /* ---------- boot ---------- */
