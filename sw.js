@@ -1,10 +1,10 @@
 // Offline support: app files are cached; fonts are cached the first time they load.
-const CACHE = 'coin-album-v3';
+const CACHE = 'coin-album-v4';
 const APP_FILES = ['./', 'index.html', 'styles.css', 'catalog.js', 'store.js', 'photo.js', 'app.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(APP_FILES)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(APP_FILES.map(f => new Request(f, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
@@ -18,8 +18,8 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin === location.origin) {
-    // Network first so updates arrive; fall back to the cache offline.
-    e.respondWith(fetch(req).then(res => {
+    // Network first (revalidating past the HTTP cache) so updates arrive; fall back to the cache offline.
+    e.respondWith(fetch(req, { cache: 'no-cache' }).then(res => {
       const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); return res;
     }).catch(() => caches.match(req).then(r => r || caches.match('index.html'))));
   } else if (url.hostname.endsWith('fonts.googleapis.com') || url.hostname.endsWith('fonts.gstatic.com')) {

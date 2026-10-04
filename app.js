@@ -420,5 +420,13 @@ render();
 load().then(() => { st.ready = true; render(); maybeOfferStarter(); Store.persist(); })
   .catch(() => notice(el('span', { text: 'לא הצלחתי לפתוח את האחסון בטלפון. אם הדפדפן במצב גלישה בסתר, פתח אותו במצב רגיל.' })));
 
-if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+if ('serviceWorker' in navigator) {
+  // When a new version takes over, reload once so the screen shows it straight away.
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController && !reloaded) { reloaded = true; location.reload(); } });
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+    .then(reg => { document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); }); })
+    .catch(() => {}));
+}
 })();
