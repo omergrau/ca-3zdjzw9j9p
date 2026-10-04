@@ -411,6 +411,9 @@ body.reading { overflow: hidden; }
 }
 #reader .book.single-page .side.left { left: 0; width: 100%; }
 #reader .book.single-page .side.right { display: none; }
+/* Portrait is gesture-driven: no arrow buttons and no invisible edge-turn zones. */
+#reader .book.single-page ~ .page-edges { display: none !important; }
+#reader .desk:has(.book.single-page) .pg-nav > .btn { display: none !important; }
 #reader .book.single-page.open::after { display: none; }
 #reader .book.single-page.open::before { inset: -8px; }
 #reader .book.single-page .side.left .pg { border-radius: 4px; }
