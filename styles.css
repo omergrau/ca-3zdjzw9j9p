@@ -467,3 +467,18 @@ dialog#lightbox::backdrop { background: #000; }
 .rot-fine { font-size: 12px; color: var(--muted); }
 .rot-deg { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--muted); min-width: 40px; }
 #crop-rot { width: 100%; accent-color: var(--cr-accent); }
+
+/* ---------- customize ---------- */
+.btn.customize { border-radius: 99px; padding: 6px 14px; font-size: 14px; }
+.cz-list { display: grid; gap: 6px; max-height: 52dvh; overflow: auto; padding-inline-end: 4px; }
+.cz-group { border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
+.cz-group summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; cursor: pointer; list-style: none; }
+.cz-group summary::-webkit-details-marker { display: none; }
+.cz-group summary::after { content: "▾"; color: var(--muted); }
+.cz-group[open] summary::after { content: "▴"; }
+.cz-g { display: inline-flex; align-items: center; gap: 8px; }
+.cz-g b { font-size: 14px; }
+.cz-n { margin-inline-start: auto; font-size: 12px; color: var(--muted); }
+.cz-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 10px; padding: 4px 12px 10px; }
+.cz-item { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+.cz-list input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); }

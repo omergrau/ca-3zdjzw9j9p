@@ -29,8 +29,12 @@ function extraToItem(id, x) {
     metalName: METAL_NAME[x.metal] || '', title: x.label || 'מטבע נוסף', sub: col ? col.name + (own ? '' : ', תוספת') : '',
     design: x.note || '', holed: false, custom: true, own };
 }
+// A collector can trim a catalog: hide whole groups (a reign, a denomination, a country) or single coins.
+// Hidden coins keep their data; they just leave the album, the counts and the lists.
+function hiddenOf(series) { const c = colById(series); return { groups: new Set(c?.hidden?.groups || []), items: new Set(c?.hidden?.items || []) }; }
+function visibleIn(series) { const h = hiddenOf(series); return it => !h.groups.has(it.group) && !h.items.has(it.id); }
 function allItems(series) {
-  const base = CATALOGS[series] && colById(series) ? CATALOGS[series].list : [];
+  const base = CATALOGS[series] && colById(series) ? CATALOGS[series].list.filter(visibleIn(series)) : [];
   const extra = [...st.extras.values()].filter(x => x.series === series);
   if (!base.length) extra.sort((a, b) => (Number(a.y) || 0) - (Number(b.y) || 0) || a.title.localeCompare(b.title, 'he'));
   return base.concat(extra);
@@ -104,8 +108,10 @@ function trayHead(title, sub, extra) {
 
 function renderCrowns(view) {
   const tray = el('div', { class: 'tray' }, [trayHead('קראונים בריטיים', 'חמישה שילינג. לכל מלך המונוגרמה המלכותית שלו.')]);
+  const vis = visibleIn('crowns');
   for (const r of CROWN_REIGNS) {
-    const items = CROWNS.filter(c => c.reign === r.key), have = items.filter(i => st.owned.has(i.id)).length;
+    const items = CROWNS.filter(c => c.reign === r.key && vis(c)), have = items.filter(i => st.owned.has(i.id)).length;
+    if (!items.length) continue;
     tray.append(el('div', { class: 'reign' }, [
       el('div', { class: 'reign-head' }, [
         el('span', { class: 'cypher', 'aria-hidden': 'true', text: r.cypher }),
@@ -122,12 +128,15 @@ function renderMandate(view) {
   const tray = el('div', { class: 'tray' }, [trayHead('מטבעות המנדט', 'כל ערך בכל שנת הטבעה. גלול לצדדים לראות את כל השנים.',
     el('span', { class: 'tri', text: 'פלשתינה (א"י) · PALESTINE · فلسطين' }))]);
   const table = el('table', { class: 'matrix' });
-  table.append(el('thead', {}, [el('tr', {}, [el('th', { text: '' }), ...MANDATE_YEARS.map(y => el('th', { scope: 'col', text: String(y) }))])]));
+  const vis = visibleIn('mandate'), shown = MANDATE.filter(vis);
+  const years = MANDATE_YEARS.filter(y => shown.some(c => c.y === y));
+  table.append(el('thead', {}, [el('tr', {}, [el('th', { text: '' }), ...years.map(y => el('th', { scope: 'col', text: String(y) }))])]));
   const tb = el('tbody');
   for (const den of MANDATE_DENOMS) {
-    const items = MANDATE.filter(c => c.d === den.d), have = items.filter(i => st.owned.has(i.id)).length;
+    const items = shown.filter(c => c.d === den.d), have = items.filter(i => st.owned.has(i.id)).length;
+    if (!items.length) continue;
     const tr = el('tr', {}, [el('th', { scope: 'row' }, [den.d + (den.d === 1 ? ' מיל' : ' מילים'), el('small', { text: have + '/' + items.length + ' · ' + den.metalName.split(',')[0] })])]);
-    for (const y of MANDATE_YEARS) {
+    for (const y of years) {
       const cell = items.filter(c => c.y === y);
       tr.append(el('td', {}, cell.length
         ? (cell.length > 1 ? el('div', { class: 'cell-pair' }, cell.map(slotEl)) : slotEl(cell[0]))
@@ -168,6 +177,7 @@ function render() {
   if (!st.collections.length) { $('#view').textContent = ''; return; }
   document.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.f === st.filter)));
   document.querySelectorAll('.vt').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.v === st.view)));
+  $('#customizeBtn').hidden = !(curCol() && curCol().kind === 'catalog');
   $('.chips').hidden = st.view === 'album';
   const view = $('#view'); view.textContent = '';
   if (st.view === 'album') {
@@ -181,7 +191,7 @@ function render() {
 }
 
 /* ---------- album pages (sheets of pockets with coin holders) ---------- */
-// The sheet for a page: the setting, or (auto) the smallest sheet whose holder window fits the page's largest coin.
+// The sheet for a page: the smallest layout whose holder window fits the page's largest coin.
 function sheetFor(maxDiam) {
   return maxDiam <= SHEET_TYPES.P20.maxWindow ? SHEET_TYPES.P20 : SHEET_TYPES.P12;
 }
@@ -195,10 +205,11 @@ function albumSections(series) {
   const out = [];
   const col = colById(series);
   if (col && col.kind === 'own') return extras.length ? [{ title: col.name, items: extras }] : [];
-  if (series === 'crowns') out.push({ title: 'קראונים בריטיים', items: CROWNS });
-  else for (const den of MANDATE_DENOMS) out.push({ title: den.d + (den.d === 1 ? ' מיל' : ' מילים') + ' · ' + den.metalName.split(',')[0] + ' · ' + den.diam + ' מ"מ', items: MANDATE.filter(c => c.d === den.d) });
+  const vis = visibleIn(series);
+  if (series === 'crowns') out.push({ title: 'קראונים בריטיים', items: CROWNS.filter(vis) });
+  else for (const den of MANDATE_DENOMS) out.push({ title: den.d + (den.d === 1 ? ' מיל' : ' מילים') + ' · ' + den.metalName.split(',')[0] + ' · ' + den.diam + ' מ"מ', items: MANDATE.filter(c => c.d === den.d && vis(c)) });
   if (extras.length) out.push({ title: 'מטבעות שהוספת', items: extras });
-  return out;
+  return out.filter(s => s.items.length);
 }
 // Fill pages in order; a new section starts a new page. Each page is sized by its own largest coin.
 function albumPages(series) {
@@ -654,6 +665,56 @@ function openLightbox(item, side) {
   dlg.showModal();
 }
 
+/* ---------- customize a catalog album ---------- */
+function openCustomize(col) {
+  if (!col || col.kind !== 'catalog') return;
+  const cat = CATALOGS[col.id], h = hiddenOf(col.id);
+  const groupsHidden = new Set(h.groups), itemsHidden = new Set(h.items);
+  const body = $('#adderBody'); body.textContent = '';
+  const count = el('p', { class: 'muted' });
+  const refreshCount = () => {
+    const n = cat.list.filter(it => !groupsHidden.has(it.group) && !itemsHidden.has(it.id)).length;
+    count.textContent = 'באלבום יופיעו ' + n + ' מתוך ' + cat.list.length + ' מטבעות.';
+  };
+  const list = el('div', { class: 'cz-list' });
+  for (const g of cat.groups) {
+    const items = cat.list.filter(it => it.group === g.key);
+    const gBox = el('input', { type: 'checkbox', id: 'cz-' + g.key });
+    gBox.checked = !groupsHidden.has(g.key);
+    const itemBoxes = items.map(it => {
+      const b = el('input', { type: 'checkbox', id: 'czi-' + it.id }); b.checked = !itemsHidden.has(it.id); b.disabled = !gBox.checked;
+      b.addEventListener('change', () => { b.checked ? itemsHidden.delete(it.id) : itemsHidden.add(it.id); refreshCount(); });
+      return el('label', { class: 'cz-item', for: 'czi-' + it.id }, [b, el('span', { text: it.title + (st.owned.has(it.id) ? ' ✓' : '') })]);
+    });
+    gBox.addEventListener('change', () => {
+      gBox.checked ? groupsHidden.delete(g.key) : groupsHidden.add(g.key);
+      itemBoxes.forEach(lb => { lb.querySelector('input').disabled = !gBox.checked; });
+      refreshCount();
+    });
+    list.append(el('details', { class: 'cz-group' }, [
+      el('summary', {}, [el('label', { class: 'cz-g', for: 'cz-' + g.key, onclick: e => e.stopPropagation() }, [gBox, el('b', { text: g.name })]), el('span', { class: 'cz-n', text: items.length + ' מטבעות' })]),
+      el('div', { class: 'cz-items' }, itemBoxes),
+    ]));
+  }
+  const setAll = on => { list.querySelectorAll('.cz-g input').forEach(b => { if (b.checked !== on) { b.checked = on; b.dispatchEvent(new Event('change')); } }); };
+  const save = el('button', { class: 'btn accent', type: 'button', text: 'שמור', onclick: async () => {
+    col.hidden = { groups: [...groupsHidden], items: [...itemsHidden] };
+    await saveCollections(); $('#adder').close(); render(); toast('האלבום עודכן');
+  } });
+  body.append(
+    el('h2', { text: 'התאמת האלבום: ' + col.name }),
+    el('p', { class: 'muted', text: 'סמן רק את מה שאתה אוסף. אפשר להוריד ' + cat.groupLabel + ' שלם, או לפתוח אותו ולבחור מטבעות בודדים. מטבעות שמוסתרים לא נמחקים, והם יחזרו אם תסמן אותם שוב.' }),
+    el('div', { class: 'confirm' }, [
+      el('button', { class: 'btn', type: 'button', text: 'סמן הכול', onclick: () => setAll(true) }),
+      el('button', { class: 'btn', type: 'button', text: 'נקה הכול', onclick: () => setAll(false) }),
+    ]),
+    list, count,
+    el('div', { class: 'confirm' }, [save, el('button', { class: 'btn', type: 'button', text: 'ביטול', onclick: () => $('#adder').close() })]),
+  );
+  refreshCount();
+  $('#adder').showModal();
+}
+
 /* ---------- add dialog ---------- */
 function openAdder() {
   const body = $('#adderBody'); body.textContent = '';
@@ -867,6 +928,7 @@ async function load() {
 }
 
 $('#addBtn').addEventListener('click', openAdder);
+$('#customizeBtn').addEventListener('click', () => openCustomize(curCol()));
 $('#readerClose').addEventListener('click', () => exitReader(false));
 $('#menuBtn').addEventListener('click', () => openMenu());
 document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => { st.filter = c.dataset.f; render(); }));

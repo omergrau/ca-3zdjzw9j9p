@@ -41,7 +41,7 @@ const CROWN_DIAM = 38.6;   // mm
 const CROWNS = [];
 for (const r of CROWN_REIGNS) for (const c of r.coins) {
   const m = c.m || r.m;
-  CROWNS.push({ id: c.id || ('c-' + c.y), series: 'crowns', reign: r.key, cypher: r.cypher, y: c.y, tag: c.tag || '', diam: CROWN_DIAM,
+  CROWNS.push({ id: c.id || ('c-' + c.y), series: 'crowns', group: r.key, reign: r.key, cypher: r.cypher, y: c.y, tag: c.tag || '', diam: CROWN_DIAM,
     rare: c.rare || '', metal: m.metal, metalName: m.metalName,
     title: 'קראון ' + c.y + (c.tag ? ' (' + c.tag + ')' : ''), sub: r.name, design: c.design || r.design });
 }
@@ -68,7 +68,7 @@ for (const den of MANDATE_DENOMS) for (const y of den.years) {
     if (y === 1947) rare = den.d === 1 ? 'רוב ההנפקה הותכה, ידועים כ-5 עותקים' : 'רוב ההנפקה הותכה, נדיר מאוד';
     if (den.d === 1 && y === 1945) rare = 'שנה שלא מופיעה בכל הקטלוגים, לאמת';
     const metalName = metal === den.metal ? den.metalName : (METAL_NAME[metal] + (den.holed ? ', מחורר (הנפקת מלחמה)' : ''));
-    MANDATE.push({ id: 'm-' + den.d + '-' + y + (isAlt ? 'b' : ''), series: 'mandate', d: den.d, y, metal, metalName, diam: den.diam,
+    MANDATE.push({ id: 'm-' + den.d + '-' + y + (isAlt ? 'b' : ''), series: 'mandate', group: 'd' + den.d, d: den.d, y, metal, metalName, diam: den.diam,
       holed: den.holed, tag: variants.length > 1 ? METAL_NAME[metal] : '', rare,
       title: den.d + (den.d === 1 ? ' מיל ' : ' מילים ') + y + (variants.length > 1 ? ' (' + METAL_NAME[metal] + ')' : ''),
       sub: 'מנדט בריטי, פלשתינה (א"י)' });
@@ -79,9 +79,11 @@ const MANDATE_YEARS = [...new Set(MANDATE.map(c => c.y))].sort((a, b) => a - b);
 // The catalog library: ready-made checklists anyone can add to their album. Which catalogs a person
 // collects, and what they own, is personal and lives only on their device (see store.js), never here.
 const CATALOGS = {
-  crowns: { name: 'קראונים בריטיים', sub: '1818–1965, חמישה שילינג', list: CROWNS, theme: 'crowns',
+  crowns: { name: 'קראונים בריטיים', sub: '1818–1965, חמישה שילינג', list: CROWNS, theme: 'crowns', groupLabel: 'מלך',
+    groups: CROWN_REIGNS.map(r => ({ key: r.key, name: r.name + ' (' + r.years + ')' })),
     about: '43 קראונים מג\'ורג\' השלישי ועד אליזבת השנייה, כולל פרופים ושנים נדירות.' },
-  mandate: { name: 'מטבעות המנדט', sub: '1927–1947, כל הערכים והשנים', list: MANDATE, theme: 'mandate',
+  mandate: { name: 'מטבעות המנדט', sub: '1927–1947, כל הערכים והשנים', list: MANDATE, theme: 'mandate', groupLabel: 'ערך',
+    groups: MANDATE_DENOMS.map(d => ({ key: 'd' + d.d, name: d.d + (d.d === 1 ? ' מיל' : ' מילים') + ' · ' + d.metalName.split(',')[0] })),
     about: '64 מטבעות: 1, 2, 5, 10, 20, 50 ו-100 מיל בכל שנות ההטבעה.' },
 };
 const GRADES = ['', 'G', 'VG', 'F', 'VF', 'XF', 'AU', 'UNC', 'פרוף'];
