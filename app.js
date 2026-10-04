@@ -383,7 +383,7 @@ function renderAlbum(view, inReader) {
   const singlePage = inReader && reader.portrait;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const book = el('div', { class: 'book album-' + albumColor(curCol()) + (isOpen ? ' open' : '') + (singlePage ? ' single-page' : ''), role: 'region', 'aria-label': 'אלבום ' + curCol().name });
+  const book = el('div', { class: 'book' + (isOpen ? ' open' : '') + (singlePage ? ' single-page' : ''), role: 'region', 'aria-label': 'אלבום ' + curCol().name });
   const right = el('div', { class: 'side right' }), left = el('div', { class: 'side left' });
   const ind = el('span', { class: 'pg-ind' });
   let busy = false;
