@@ -430,6 +430,18 @@ body.reading { overflow: hidden; }
 #reader .book.single-page .single-turn-back {
   transform-origin: right center; backface-visibility: hidden; will-change: transform, opacity;
 }
+#reader .book.single-page .single-turn::before,
+#reader .book.single-page .single-turn-back::before {
+  content: ""; position: absolute; inset: 0; z-index: 20; pointer-events: none; border-radius: inherit;
+  background: linear-gradient(90deg, rgba(255,255,255,.10), transparent 28%, transparent 68%, rgba(0,0,0,.28));
+  opacity: .55;
+}
+#reader .book.single-page .single-turn {
+  box-shadow: 18px 8px 30px rgba(0,0,0,.42), 5px 0 10px rgba(0,0,0,.28);
+}
+#reader .book.single-page .side.left {
+  filter: drop-shadow(0 8px 12px rgba(0,0,0,.30));
+}
 #reader .desk.zoomed .pg-nav { opacity: .35; }
 
 /* Pinch performance mode: keep the live DOM, but strip expensive paint effects while it moves. */
