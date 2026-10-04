@@ -647,7 +647,10 @@ function layoutReader() {
 }
 window.addEventListener('resize', layoutReader);
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && st.reader) exitReader(false); });
-window.addEventListener('popstate', () => { if (st.reader) { reader.pushed = false; exitReader(true); } });
+window.addEventListener('popstate', () => {
+  if (sheetHistoryPushed) { closeSheet(true); return; }
+  if (st.reader) { reader.pushed = false; exitReader(true); }
+});
 
 let toastTimer = 0;
 function toast(text) {
@@ -656,10 +659,20 @@ function toast(text) {
 }
 
 /* ---------- detail sheet ---------- */
+let sheetHistoryPushed = false;
+function closeSheet(fromHistory = false) {
+  const dlg = $('#sheet');
+  if (dlg.open) dlg.close();
+  if (sheetHistoryPushed && !fromHistory) {
+    sheetHistoryPushed = false;
+    history.back();
+  } else if (fromHistory) sheetHistoryPushed = false;
+}
 function openSheet(id, msg) {
   const item = findItem(id); if (!item) return;
   const rec = st.owned.get(id);
   const body = $('#sheetBody'); body.textContent = '';
+  body.append(el('button', { class: 'sheet-x', type: 'button', 'aria-label': 'סגור', text: '✕', onclick: () => closeSheet() }));
   const hasPhoto = rec && (st.photos.get(id) || st.photos.get(id + REV));
   body.append(el('div', { class: 'sheet-head' }, [
     hasPhoto ? el('button', { class: 'slot own m-' + item.metal + ' head-photo', type: 'button', 'aria-label': 'הצג את התמונה בגדול', onclick: () => openLightbox(item, st.photos.get(id) ? 'front' : 'back') }, [coinEl(item)])
@@ -696,7 +709,7 @@ function openSheet(id, msg) {
   );
   const msgEl = el('div', { class: 'msg' + (msg ? ' ok' : ''), text: msg || '' });
   const save = el('button', { class: 'btn ' + (rec ? 'primary' : 'accent'), type: 'submit', text: rec ? 'שמור שינויים' : '+ הכנס לאלבום' });
-  const close = el('button', { class: 'btn', type: 'button', text: 'סגור', onclick: () => $('#sheet').close() });
+
   const left = el('div', { class: 'confirm' });
   if (rec) {
     const rm = el('button', { class: 'btn danger', type: 'button', text: 'הסר מהאוסף' });
@@ -708,13 +721,19 @@ function openSheet(id, msg) {
     });
     left.append(rm);
   }
-  f.append(el('div', { class: 'actions' }, [el('div', { class: 'confirm' }, [save, close]), left]), msgEl);
+  f.append(el('div', { class: 'actions' }, [el('div', { class: 'confirm' }, [save]), left]), msgEl);
   f.addEventListener('submit', e => {
     e.preventDefault();
     saveOwned(item, { grade, paid: paid.value, acquired: date.value, note: note.value.trim() }, msgEl, save);
   });
   body.append(f);
-  const dlg = $('#sheet'); if (!dlg.open) dlg.showModal();
+  const dlg = $('#sheet');
+  if (!dlg.open) {
+    dlg.showModal();
+    if (st.reader && !sheetHistoryPushed) {
+      try { history.pushState({ reader: 1, sheet: id }, ''); sheetHistoryPushed = true; } catch (e) {}
+    }
+  }
 }
 
 async function saveOwned(item, v, msgEl, btn) {
