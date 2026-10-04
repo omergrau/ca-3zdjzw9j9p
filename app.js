@@ -634,7 +634,6 @@ async function deletePhotos(id) {
 function photoSection(item) {
   const own = st.owned.has(item.id);
   const front = own && st.photos.get(item.id), back = own && st.photos.get(item.id + REV);
-  // two ways in: the camera, or a photo already in the gallery
   const camIn = el('input', { type: 'file', accept: 'image/*', capture: 'environment', hidden: true });
   const galIn = el('input', { type: 'file', accept: 'image/*', hidden: true });
   let mode = 'both';
@@ -647,29 +646,34 @@ function photoSection(item) {
     el('button', { class: 'btn ' + cls, type: 'button', text: '📷 מצלמה', onclick: () => pick(m, 'camera') }),
     el('button', { class: 'btn ' + cls, type: 'button', text: '🖼 מהגלריה', onclick: () => pick(m, 'gallery') }),
   ];
+  const sideTools = (m, label) => el('div', { class: 'ph-src ph-side-tools' }, [
+    el('span', { class: 'muted', text: label + ':' }), ...sourceBtns(m, ''),
+  ]);
   const kids = [camIn, galIn];
   if (front || back) {
     const thumb = (url, t, side) => el('figure', { class: 'ph' }, [url
       ? el('button', { class: 'ph-open', type: 'button', 'aria-label': 'הצג את ה' + t + ' בגדול', onclick: () => openLightbox(item, side) }, [el('img', { src: url, alt: t })])
       : el('span', { class: 'ph-missing', text: '?' }), el('figcaption', { text: t })]);
     kids.push(el('div', { class: 'ph-pair' }, [thumb(front, 'צד קדמי', 'front'), thumb(back, 'צד אחורי', 'back')]));
-    if (!back) kids.push(el('div', { class: 'ph-src' }, [el('span', { class: 'muted', text: 'הוסף צד אחורי:' }), ...sourceBtns('back', 'accent')]));
-    kids.push(el('div', { class: 'ph-src' }, [el('span', { class: 'muted', text: 'החלף את שני הצדדים:' }), ...sourceBtns('both', '')]));
-    const row = [];
-    row.push(el('button', { class: 'btn danger', type: 'button', text: 'מחק תמונות', onclick: async () => {
+    kids.push(sideTools('front', front ? 'צלם/העלה מחדש צד קדמי' : 'הוסף צד קדמי'));
+    kids.push(sideTools('back', back ? 'צלם/העלה מחדש צד אחורי' : 'הוסף צד אחורי'));
+    if (front && back) kids.push(el('button', { class: 'btn swap-photos', type: 'button', text: '⇄ החלף בין קדמי לאחורי', onclick: async () => {
+      await swapCoinPhotos(item); openSheet(item.id, 'הצדדים הוחלפו.');
+    }}));
+    kids.push(el('div', { class: 'ph-src' }, [el('span', { class: 'muted', text: 'צלם מחדש את שני הצדדים:' }), ...sourceBtns('both', '')]));
+    kids.push(el('div', { class: 'confirm' }, [el('button', { class: 'btn danger', type: 'button', text: 'מחק תמונות', onclick: async () => {
       await deletePhotos(item.id); render(); openSheet(item.id, 'התמונות נמחקו.');
-    } }));
-    kids.push(el('div', { class: 'confirm' }, row));
+    } })]));
   } else {
     kids.push(el('div', { class: 'photo-cta' }, [
       el('b', { text: 'תמונות המטבע (2 צדדים)' }),
       el('div', { class: 'confirm' }, sourceBtns('both', 'accent')),
-      el('span', { class: 'muted', text: 'קודם הצד הקדמי, אחר כך הצד האחורי. אפשר לצלם עכשיו או לבחור תמונה מהגלריה. המטבע יזוהה ויחתך אוטומטית.' }),
+      el('span', { class: 'muted', text: 'צלם קודם את הצד הקדמי ומיד אחריו את האחורי. רק אחרי ששתי התמונות צולמו תעבור לעריכה שלהן.' }),
     ]));
   }
   return el('div', { class: 'photo-slot' }, kids);
 }
-// Step 2 needs its own tap to open the camera, so ask for it in the cropper dialog.
+
 function askForSecondSide() {
   return new Promise(resolve => {
     const dlg = $('#cropper'), body = $('#cropperBody');
@@ -681,9 +685,9 @@ function askForSecondSide() {
     gallery.addEventListener('change', () => finish(gallery.files && gallery.files[0] || null));
     body.textContent = '';
     body.append(
-      el('span', { class: 'step', text: 'שלב 2 מתוך 2' }),
+      el('span', { class: 'step', text: 'צילום 2 מתוך 2' }),
       el('h2', { text: 'עכשיו הצד האחורי' }),
-      el('p', { class: 'muted', text: 'הפוך את המטבע וצלם את הצד השני. התמונה שלו תופיע בגב הדף באלבום.' }),
+      el('p', { class: 'muted', text: 'הפוך את המטבע וצלם מיד את הצד השני. אחרי זה נערוך את שתי התמונות ברצף.' }),
       input, gallery,
       el('div', { class: 'confirm' }, [
         el('button', { class: 'btn accent', type: 'button', text: '📷 מצלמה', onclick: () => input.click() }),
@@ -695,31 +699,48 @@ function askForSecondSide() {
     dlg.showModal();
   });
 }
+
+async function saveCoinPhoto(item, side, blob) {
+  const key = side === 'back' ? item.id + REV : item.id;
+  await Store.put('photos', key, blob); setPhotoUrl(key, blob);
+}
+async function ensureOwnedForPhoto(item) {
+  if (st.owned.has(item.id)) return false;
+  const rec = { series: item.series, grade: '', paid: null, acquired: '', note: '', updatedAt: nowIso() };
+  await Store.put('owned', item.id, rec); st.owned.set(item.id, rec); st.justAdded = item.id; return true;
+}
+async function swapCoinPhotos(item) {
+  const entries = new Map(await Store.all('photos'));
+  const frontBlob = entries.get(item.id), backBlob = entries.get(item.id + REV);
+  if (!frontBlob || !backBlob) return;
+  await Store.put('photos', item.id, backBlob);
+  await Store.put('photos', item.id + REV, frontBlob);
+  setPhotoUrl(item.id, backBlob); setPhotoUrl(item.id + REV, frontBlob); render();
+}
 async function takePhotos(item, firstFile, mode) {
   const dlg = $('#cropper'), body = $('#cropperBody');
-  let front = null, back = null;
+  let front = null, back = null, second = null;
   try {
-    if (mode === 'back') {
-      back = await Photo.crop(firstFile, dlg, body, el, 'הצד האחורי');
-      if (!back) return;
-    } else {
-      front = await Photo.crop(firstFile, dlg, body, el, 'שלב 1 מתוך 2: הצד הקדמי');
-      if (!front) return;
-      const second = await askForSecondSide();
+    if (mode === 'both') {
+      // Capture both originals first; editing starts only after both sides are available.
+      second = await askForSecondSide();
       if (!second) { toast('לא נשמר. צריך לצלם את שני הצדדים.'); return; }
-      back = await Photo.crop(second, dlg, body, el, 'שלב 2 מתוך 2: הצד האחורי');
-      if (!back) { toast('לא נשמר. צריך לצלם את שני הצדדים.'); return; }
+      front = await Photo.crop(firstFile, dlg, body, el, 'עריכה 1 מתוך 2: הצד הקדמי');
+      if (!front) return;
+      back = await Photo.crop(second, dlg, body, el, 'עריכה 2 מתוך 2: הצד האחורי');
+      if (!back) { toast('לא נשמר. צריך לאשר את שתי התמונות.'); return; }
+    } else {
+      const label = mode === 'front' ? 'עריכת הצד הקדמי' : 'עריכת הצד האחורי';
+      const edited = await Photo.crop(firstFile, dlg, body, el, label);
+      if (!edited) return;
+      if (mode === 'front') front = edited; else back = edited;
     }
   } catch (e) { toast('לא הצלחתי לפתוח את התמונה. נסה תמונה אחרת.'); return; }
   try {
-    if (front) { await Store.put('photos', item.id, front); setPhotoUrl(item.id, front); }
-    await Store.put('photos', item.id + REV, back); setPhotoUrl(item.id + REV, back);
-    const isNew = !st.owned.has(item.id);
-    if (isNew) {
-      const rec = { series: item.series, grade: '', paid: null, acquired: '', note: '', updatedAt: nowIso() };
-      await Store.put('owned', item.id, rec); st.owned.set(item.id, rec); st.justAdded = item.id;
-    }
-    render(); openSheet(item.id, isNew ? 'שני הצדדים נשמרו והמטבע נכנס לאלבום.' : 'התמונות נשמרו.');
+    if (front) await saveCoinPhoto(item, 'front', front);
+    if (back) await saveCoinPhoto(item, 'back', back);
+    const isNew = await ensureOwnedForPhoto(item);
+    render(); openSheet(item.id, isNew ? 'התמונות נשמרו והמטבע נכנס לאלבום.' : 'התמונה נשמרה.');
   } catch (e) { toast('שמירת התמונות נכשלה. ייתכן שהזיכרון בטלפון מלא.'); }
 }
 
