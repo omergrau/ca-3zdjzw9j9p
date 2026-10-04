@@ -661,3 +661,24 @@ body[data-series="file"] { --velvet: var(--file-velvet); --velvet-2: var(--file-
 .so[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
 .so-country { border: 1px solid var(--line); background: var(--paper-2); border-radius: 99px; padding: 6px 12px; font-size: 14px; font-weight: 700; color: var(--muted); }
 .so-country[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+
+/* reader: side index and zoom buttons */
+#reader .pg-rail { position: absolute; z-index: 6; right: max(4px, env(safe-area-inset-right, 0px));
+  /* between the page picker (top right) and the bottom edge, centred in that space */
+  top: calc(64px + env(safe-area-inset-top, 0px)); bottom: 48px; height: fit-content; margin-block: auto;
+  display: flex; flex-direction: column; gap: 3px; max-height: calc(100% - 112px); overflow-y: auto; scrollbar-width: none;
+  padding: 4px; border-radius: 12px; background: rgba(12, 8, 6, .55); }
+#reader .pg-rail::-webkit-scrollbar { display: none; }
+#reader .pg-rail button { flex: none; max-width: 64px; padding: 5px 6px; border: 0; border-radius: 8px; background: transparent;
+  color: rgba(246, 231, 220, .8); font: inherit; font-size: 11px; font-weight: 700; line-height: 1.15; white-space: normal; overflow-wrap: anywhere; }
+#reader .pg-rail button[aria-current] { background: #e2b648; color: #2a1606; }
+#reader .desk.zoomed .pg-rail { opacity: .45; }
+/* with an index on the right, the turn arrows sit low so the two don't overlap */
+#reader .desk.has-rail .pg-nav { align-items: flex-end; padding-bottom: 46px; }
+#reader .desk.has-rail .pg-nav > .btn:first-child { margin-right: 0; }
+#reader .zoom-ctl { position: absolute; z-index: 6; top: calc(62px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 6px; }
+#reader .zoom-ctl button { width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .25); background: rgba(0, 0, 0, .45);
+  color: #f6e7dc; font-size: 20px; line-height: 1; padding: 0; }
+@media (orientation: portrait) {
+  #reader .pg-rail { top: calc(112px + env(safe-area-inset-top, 0px)); max-height: calc(100% - 160px); }
+}

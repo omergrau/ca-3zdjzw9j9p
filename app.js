@@ -393,6 +393,12 @@ function renderAlbum(view, inReader) {
       left.replaceChildren(leftFor(bk.p));
     }
     ind.textContent = bk.p < pages.length ? 'דף ' + (bk.p + 1) + ' מתוך ' + pages.length : 'סוף האלבום';
+    if (rail) {
+      let cur = null;
+      for (const b of rail.children) if (Number(b.dataset.p) <= bk.p) cur = b;
+      for (const b of rail.children) b.toggleAttribute('aria-current', b === cur);
+      if (cur && cur.scrollIntoView && rail.scrollHeight > rail.clientHeight) cur.scrollIntoView({ block: 'nearest' });
+    }
     if (jump) jump.value = String(bk.p);
     prev.disabled = false; next.disabled = bk.p >= pages.length;
   }
@@ -508,6 +514,8 @@ function renderAlbum(view, inReader) {
       }
       bk.open = true; paint(); busy = false;
       nav.hidden = false; edges.hidden = false;
+      if (rail) rail.hidden = false;
+      if (zoomCtl) zoomCtl.hidden = false;
     });
   } else { book.append(right, left); }
 
@@ -536,6 +544,20 @@ function renderAlbum(view, inReader) {
   const nav = el('div', { class: 'pg-nav' }, [prev, el('div', { class: 'pg-center' }, [jump, ind]), next]);
   nav.hidden = !isOpen;
 
+  // Side index: jump straight to a value / year / country without turning every page on the way.
+  const marks = inReader ? railMarks(pages) : [];
+  const rail = marks.length > 1 ? el('nav', { class: 'pg-rail', 'aria-label': 'מפתח האלבום' }, marks.map(m => el('button', {
+    type: 'button', 'data-p': String(m.p), text: m.label, title: m.label + ' (דף ' + (m.p + 1) + ')',
+    onclick: e => { e.stopPropagation(); if (busy || !bk.open) return; resetReaderZoom(); bk.p = m.p; paint(); },
+  }))) : null;
+  if (rail) rail.hidden = !isOpen;
+  // Zoom buttons, for when two fingers are busy (and on a computer).
+  const zoomCtl = inReader ? el('div', { class: 'zoom-ctl' }, [
+    el('button', { type: 'button', text: '+', 'aria-label': 'הגדל', onclick: e => { e.stopPropagation(); zoomAt(null, reader.zoom * 1.6); } }),
+    el('button', { type: 'button', text: '−', 'aria-label': 'הקטן', onclick: e => { e.stopPropagation(); zoomAt(null, reader.zoom / 1.6); } }),
+  ]) : null;
+  if (zoomCtl) zoomCtl.hidden = !isOpen;
+
   // Tap the outer page edges to turn: left edge = forward, right edge = back.
   // These narrow zones sit over the margins only, so coin buttons in the page body stay clickable.
   const edgePrev = el('button', {
@@ -551,8 +573,22 @@ function renderAlbum(view, inReader) {
   const edges = el('div', { class: 'page-edges', 'aria-hidden': isOpen ? 'false' : 'true' }, [edgeNext, edgePrev]);
   edges.hidden = !isOpen;
 
-  view.append(el('div', { class: 'desk' }, [book, edges, nav]));
+  view.append(el('div', { class: 'desk' + (rail ? ' has-rail' : '') }, [book, edges, nav, rail, zoomCtl]));
   if (isOpen) paint();
+}
+
+// Index marks for the side rail: where each section starts (a value, a reign, a country),
+// or, in a year-ordered album, the first year on each page.
+function railMarks(pages) {
+  const s = sortOf(st.tab), out = [];
+  pages.forEach((p, i) => {
+    const extra = p.items[0] && p.items[0].custom && p.sec.title === 'מטבעות שהוספת';
+    const label = extra ? 'תוספות'
+      : p.sec.years && !s.country ? String(yearSpan(p.items)).split('–')[0]
+      : p.sec.title.split(' · ')[0].replace(/\s*\(.*\)\s*$/, '');
+    if (label && (!out.length || out[out.length - 1].label !== label)) out.push({ label, p: i });
+  });
+  return out;
 }
 
 /* ---------- full-screen reading mode ---------- */
@@ -581,10 +617,53 @@ function applyReaderZoom(immediate = false) {
   }
   if (!readerZoomFrame) readerZoomFrame = requestAnimationFrame(paint);
 }
+const MAX_ZOOM = 5;
+// The book scales around its own centre, so to keep the point under a finger in place the pan moves too:
+// a page point that sits d away from the centre (in page units) shows at centre + pan + zoom * d.
+function bookCentre() {
+  const book = $('#readerStage .book'); if (!book) return null;
+  const host = book.offsetParent; if (!host) return null;
+  const r = host.getBoundingClientRect();   // offsets ignore the transform, so this is the unzoomed centre
+  return { x: r.left + book.offsetLeft + book.offsetWidth / 2, y: r.top + book.offsetTop + book.offsetHeight / 2, w: book.offsetWidth, h: book.offsetHeight };
+}
+function clampPan() {
+  const c = bookCentre(); if (!c) return;
+  const mx = c.w * reader.zoom / 2, my = c.h * reader.zoom / 2;   // the screen centre always stays over the book
+  reader.panX = Math.max(-mx, Math.min(mx, reader.panX));
+  reader.panY = Math.max(-my, Math.min(my, reader.panY));
+}
+// Zoom to z keeping the screen point (x, y) still; with no point, around the middle of the screen.
+function zoomAt(pt, z) {
+  const c = bookCentre(); if (!c) return;
+  z = Math.max(1, Math.min(MAX_ZOOM, z));
+  if (z <= 1.01) { resetReaderZoom(); return; }
+  const p = pt || { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+  const dx = (p.x - c.x - reader.panX) / reader.zoom, dy = (p.y - c.y - reader.panY) / reader.zoom;
+  reader.zoom = z; reader.panX = p.x - c.x - z * dx; reader.panY = p.y - c.y - z * dy;
+  clampPan(); applyReaderZoom();
+}
+// Taps in the reader: one tap on a coin opens its card, two quick taps zoom in there (or back out).
+// The single tap waits a moment so it can tell the two apart.
+const readerTaps = { last: null, timer: 0, passing: false };
+function readerTap(x, y, target) {
+  const now = performance.now(), last = readerTaps.last;
+  if (last && now - last.t < 320 && Math.hypot(x - last.x, y - last.y) < 40) {
+    clearTimeout(readerTaps.timer); readerTaps.last = null;
+    if (reader.zoom > 1.01) resetReaderZoom(); else zoomAt({ x, y }, 2.5);
+    return true;
+  }
+  readerTaps.last = { t: now, x, y };
+  const pocket = target && target.closest && target.closest('.book .pocket.slot');
+  if (!pocket) return false;
+  clearTimeout(readerTaps.timer);
+  readerTaps.timer = setTimeout(() => { readerTaps.last = null; readerTaps.passing = true; pocket.click(); readerTaps.passing = false; }, 320);
+  return true;
+}
+const READER_CONTROLS = '.pg-nav, .reader-x, .pg-rail, .zoom-ctl, .page-edges, .cover';
 function installReaderZoom() {
   const stage = $('#readerStage'); if (!stage || stage.dataset.zoomReady) return;
   stage.dataset.zoomReady = '1';
-  let touches = new Map(), pinch = false, startDist = 0, startZoom = 1, startPanX = 0, startPanY = 0, startMid = null;
+  let touches = new Map(), pinch = false, startDist = 0, startZoom = 1, startPanX = 0, startPanY = 0, startMid = null, anchor = null, centre = null;
   let swipeStart = null, panStart = null, gestureMoved = false, suppressClickUntil = 0;
   const TAP_SLOP = 8;
 
@@ -598,7 +677,8 @@ function installReaderZoom() {
     for (const t of e.touches) touches.set(t.identifier,{x:t.clientX,y:t.clientY});
     if (e.touches.length === 1) {
       pinch = false; gestureMoved = false;
-      const p = { x:e.touches[0].clientX, y:e.touches[0].clientY };
+      const p = { x:e.touches[0].clientX, y:e.touches[0].clientY, t: performance.now() };
+      if (e.target.closest(READER_CONTROLS)) { swipeStart = null; panStart = null; return; }   // let buttons work while zoomed
       if (reader.zoom > 1.01) {
         swipeStart = null;
         panStart = { ...p, panX: reader.panX, panY: reader.panY };
@@ -611,6 +691,9 @@ function installReaderZoom() {
       pinch = true; gestureMoved = true; swipeStart = null; panStart = null;
       stage.classList.add('pinching');
       startDist=dist(); startZoom=reader.zoom; startPanX=reader.panX; startPanY=reader.panY; startMid=mid();
+      // the page point between the two fingers stays between them
+      centre = bookCentre();
+      anchor = centre ? { x: (startMid.x - centre.x - startPanX) / startZoom, y: (startMid.y - centre.y - startPanY) / startZoom } : null;
       e.preventDefault();
     }
   }, {passive:false});
@@ -620,22 +703,28 @@ function installReaderZoom() {
     for (const t of e.touches) touches.set(t.identifier,{x:t.clientX,y:t.clientY});
     if (pinch && e.touches.length >= 2 && startDist) {
       gestureMoved = true;
-      const m=mid(); reader.zoom=Math.max(1,Math.min(3.5,startZoom*dist()/startDist));
-      reader.panX=startPanX+(m.x-startMid.x); reader.panY=startPanY+(m.y-startMid.y);
-      if (reader.zoom<=1.01) { reader.zoom=1; reader.panX=reader.panY=0; }
+      const m=mid(); reader.zoom=Math.max(1,Math.min(MAX_ZOOM,startZoom*dist()/startDist));
+      if (anchor) { reader.panX = m.x - centre.x - reader.zoom * anchor.x; reader.panY = m.y - centre.y - reader.zoom * anchor.y; }
+      else { reader.panX=startPanX+(m.x-startMid.x); reader.panY=startPanY+(m.y-startMid.y); }
+      if (reader.zoom<=1.01) { reader.zoom=1; reader.panX=reader.panY=0; } else clampPan();
       applyReaderZoom(); e.preventDefault();
     } else if (!pinch && panStart && e.touches.length === 1 && reader.zoom > 1.01) {
       const dx = e.touches[0].clientX - panStart.x, dy = e.touches[0].clientY - panStart.y;
       if (Math.hypot(dx, dy) > TAP_SLOP) gestureMoved = true;
       reader.panX = panStart.panX + dx;
       reader.panY = panStart.panY + dy;
-      applyReaderZoom(); e.preventDefault();
+      clampPan(); applyReaderZoom(); e.preventDefault();
     }
   }, {passive:false});
 
   stage.addEventListener('touchend', e => {
     if (!st.reader) return;
     if (gestureMoved || pinch) suppressClickUntil = performance.now() + 450;
+    // zoomed in, the touches don't make clicks (they pan), so a short still touch counts as a tap here
+    else if (panStart && e.changedTouches.length === 1 && !e.touches.length) {
+      const t = e.changedTouches[0];
+      if (performance.now() - panStart.t < 350) readerTap(t.clientX, t.clientY, document.elementFromPoint(t.clientX, t.clientY));
+    }
     if (!pinch && reader.zoom <= 1.01 && swipeStart && e.changedTouches.length === 1) {
       let dx=e.changedTouches[0].clientX-swipeStart.x, dy=e.changedTouches[0].clientY-swipeStart.y;
       if (reader.rotated) [dx,dy]=[dy,-dx];
@@ -662,16 +751,14 @@ function installReaderZoom() {
     }
   }, true);
 
-  stage.addEventListener('dblclick', e => {
-    if (!st.reader || e.target.closest('.pg-nav,.reader-x')) return;
-    if (reader.zoom>1.01) resetReaderZoom();
-    else { reader.zoom=2; reader.panX=reader.panY=0; applyReaderZoom(); }
-  });
+  stage.addEventListener('click', e => {
+    if (!st.reader || readerTaps.passing || e.target.closest(READER_CONTROLS)) return;
+    if (readerTap(e.clientX, e.clientY, e.target)) { e.stopPropagation(); e.preventDefault(); }
+  }, true);
   stage.addEventListener('wheel', e => {
     if (!st.reader || (!e.ctrlKey && Math.abs(e.deltaY)<1)) return;
-    reader.zoom=Math.max(1,Math.min(3.5,reader.zoom*(e.deltaY<0?1.12:.89)));
-    if (reader.zoom<=1.01) { reader.zoom=1; reader.panX=reader.panY=0; }
-    applyReaderZoom(); e.preventDefault();
+    zoomAt({ x: e.clientX, y: e.clientY }, reader.zoom * (e.deltaY < 0 ? 1.12 : .89));
+    e.preventDefault();
   }, {passive:false});
 }
 function enterReader() {
@@ -731,6 +818,7 @@ function layoutReader() {
 window.addEventListener('resize', layoutReader);
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && st.reader) exitReader(false); });
 window.addEventListener('popstate', () => {
+  if (sheetPopping) { sheetPopping = false; return; }   // our own step back after closing the card, not "leave the album"
   if (sheetHistoryPushed) { closeSheet(true); return; }
   if (st.reader) { reader.pushed = false; exitReader(true); }
 });
@@ -742,12 +830,12 @@ function toast(text) {
 }
 
 /* ---------- detail sheet ---------- */
-let sheetHistoryPushed = false;
+let sheetHistoryPushed = false, sheetPopping = false;
 function closeSheet(fromHistory = false) {
   const dlg = $('#sheet');
   if (dlg.open) dlg.close();
   if (sheetHistoryPushed && !fromHistory) {
-    sheetHistoryPushed = false;
+    sheetHistoryPushed = false; sheetPopping = true;
     history.back();
   } else if (fromHistory) sheetHistoryPushed = false;
 }
