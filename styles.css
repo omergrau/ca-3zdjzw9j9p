@@ -441,3 +441,20 @@ body.no-collections .toolbar, body.no-collections .hero-stats { display: none; }
 .lib-own { border: 1px dashed var(--line); border-radius: 16px; padding: 14px; background: var(--paper-2); }
 .lib-own b { font-family: var(--f-display); font-size: 18px; }
 .col-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+
+/* ---------- full-screen photo ---------- */
+dialog#lightbox { width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border-radius: 0; background: #050608; color: #f3f4f6; }
+dialog#lightbox::backdrop { background: #000; }
+#lightboxBody { position: relative; width: 100%; height: 100%; display: grid; grid-template-rows: 1fr auto auto; place-items: center; gap: 10px;
+  padding: calc(56px + env(safe-area-inset-top, 0px)) 12px calc(20px + env(safe-area-inset-bottom, 0px)); }
+.lb-img { width: min(96vw, 82dvh); aspect-ratio: 1; object-fit: contain; border-radius: 50%; box-shadow: 0 0 0 1px rgba(255, 255, 255, .08), 0 20px 60px rgba(0, 0, 0, .6); touch-action: pan-y; user-select: none; }
+.lb-cap { display: grid; gap: 2px; text-align: center; }
+.lb-cap b { font-family: var(--f-display); font-size: 20px; }
+.lb-cap span { font-size: 13px; color: rgba(243, 244, 246, .65); }
+.lb-tabs { display: inline-flex; gap: 4px; padding: 4px; border-radius: 99px; background: rgba(255, 255, 255, .08); }
+.lb-tabs button { border: 0; background: transparent; color: rgba(243, 244, 246, .75); border-radius: 99px; padding: 6px 18px; font-weight: 700; }
+.lb-tabs button[aria-pressed="true"] { background: #f3f4f6; color: #0b0d10; }
+.lb-x { position: absolute; top: calc(10px + env(safe-area-inset-top, 0px)); inset-inline-end: 12px; width: 42px; height: 42px; border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, .25); background: rgba(255, 255, 255, .06); color: #f3f4f6; font-size: 18px; }
+.ph-open { border: 0; padding: 0; background: none; cursor: zoom-in; border-radius: 50%; }
+.head-photo { border: 0; padding: 0; background: none; cursor: zoom-in; width: auto; }

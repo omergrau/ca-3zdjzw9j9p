@@ -457,8 +457,10 @@ function openSheet(id, msg) {
   const item = findItem(id); if (!item) return;
   const rec = st.owned.get(id);
   const body = $('#sheetBody'); body.textContent = '';
+  const hasPhoto = rec && (st.photos.get(id) || st.photos.get(id + REV));
   body.append(el('div', { class: 'sheet-head' }, [
-    el('span', { class: 'slot m-' + item.metal + (rec ? ' own' : '') }, [coinEl(item)]),
+    hasPhoto ? el('button', { class: 'slot own m-' + item.metal + ' head-photo', type: 'button', 'aria-label': 'הצג את התמונה בגדול', onclick: () => openLightbox(item, st.photos.get(id) ? 'front' : 'back') }, [coinEl(item)])
+      : el('span', { class: 'slot m-' + item.metal + (rec ? ' own' : '') }, [coinEl(item)]),
     el('div', {}, [el('h2', { text: item.title }), el('p', { text: item.sub })]),
   ]));
   const facts = el('dl', { class: 'facts' });
@@ -557,8 +559,10 @@ function photoSection(item) {
   const pick = m => { mode = m; input.click(); };
   const kids = [input];
   if (front || back) {
-    const thumb = (url, t) => el('figure', { class: 'ph' }, [url ? el('img', { src: url, alt: t }) : el('span', { class: 'ph-missing', text: '?' }), el('figcaption', { text: t })]);
-    kids.push(el('div', { class: 'ph-pair' }, [thumb(front, 'צד קדמי'), thumb(back, 'צד אחורי')]));
+    const thumb = (url, t, side) => el('figure', { class: 'ph' }, [url
+      ? el('button', { class: 'ph-open', type: 'button', 'aria-label': 'הצג את ה' + t + ' בגדול', onclick: () => openLightbox(item, side) }, [el('img', { src: url, alt: t })])
+      : el('span', { class: 'ph-missing', text: '?' }), el('figcaption', { text: t })]);
+    kids.push(el('div', { class: 'ph-pair' }, [thumb(front, 'צד קדמי', 'front'), thumb(back, 'צד אחורי', 'back')]));
     const row = [el('button', { class: 'btn', type: 'button', text: 'צלם מחדש את שני הצדדים', onclick: () => pick('both') })];
     if (!back) row.unshift(el('button', { class: 'btn accent', type: 'button', text: '📷 הוסף צד אחורי', onclick: () => pick('back') }));
     row.push(el('button', { class: 'btn danger', type: 'button', text: 'מחק תמונות', onclick: async () => {
@@ -622,6 +626,32 @@ async function takePhotos(item, firstFile, mode) {
     }
     render(); openSheet(item.id, isNew ? 'שני הצדדים נשמרו והמטבע נכנס לאלבום.' : 'התמונות נשמרו.');
   } catch (e) { toast('שמירת התמונות נכשלה. ייתכן שהזיכרון בטלפון מלא.'); }
+}
+
+/* ---------- full-screen photo ---------- */
+function openLightbox(item, side) {
+  const dlg = $('#lightbox'), body = $('#lightboxBody');
+  const urls = { front: st.photos.get(item.id), back: st.photos.get(item.id + REV) };
+  let cur = urls[side] ? side : (urls.front ? 'front' : 'back');
+  const img = el('img', { class: 'lb-img', alt: '' });
+  const cap = el('div', { class: 'lb-cap' });
+  const tabs = el('div', { class: 'lb-tabs', role: 'group', 'aria-label': 'צד' });
+  const show = s => {
+    if (!urls[s]) return; cur = s; img.src = urls[s]; img.alt = item.title + ', ' + (s === 'front' ? 'צד קדמי' : 'צד אחורי');
+    tabs.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.s === s)));
+  };
+  for (const [s, t] of [['front', 'קדמי'], ['back', 'אחורי']]) if (urls[s]) tabs.append(el('button', { type: 'button', 'data-s': s, text: t, onclick: e => { e.stopPropagation(); show(s); } }));
+  cap.append(el('b', { text: item.title }), el('span', { text: item.sub || '' }));
+  body.replaceChildren(
+    el('button', { class: 'lb-x', type: 'button', 'aria-label': 'סגור', text: '✕', onclick: () => dlg.close() }),
+    img, cap, tabs.children.length > 1 ? tabs : null);
+  // swipe between the two sides; a tap on the dark background closes
+  let sx = null;
+  img.onpointerdown = e => { sx = e.clientX; };
+  img.onpointerup = e => { if (sx !== null && Math.abs(e.clientX - sx) > 40) show(cur === 'front' ? 'back' : 'front'); sx = null; };
+  body.onclick = e => { if (e.target === body) dlg.close(); };
+  show(cur);
+  dlg.showModal();
 }
 
 /* ---------- add dialog ---------- */
