@@ -460,6 +460,16 @@ body.reading { overflow: hidden; }
   border: 1px solid rgba(255,255,255,.22); border-radius: 10px;
   background: rgba(20,20,24,.82); color: #f6e7dc; font: inherit; font-size: 12px;
 }
+#reader .page-edges { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
+#reader .page-edge {
+  position: absolute; top: 10%; bottom: 10%; width: clamp(24px, 5.5%, 42px);
+  border: 0; padding: 0; background: transparent; opacity: 0;
+  pointer-events: auto; touch-action: manipulation; cursor: pointer;
+}
+#reader .page-edge-left { left: 60px; }
+#reader .page-edge-right { right: 60px; }
+#readerStage.pinching .page-edges { pointer-events: none; }
+#readerStage.pinching .page-edge { pointer-events: none; }
 
 /* ---------- own collections, library, welcome ---------- */
 :root { --own-velvet: #23314a; --own-velvet-2: #34507a; --own-accent: #9cc8ff; --own-accent-ink: #0b1a2e; }
