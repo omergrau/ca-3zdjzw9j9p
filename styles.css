@@ -405,6 +405,31 @@ body.reading { overflow: hidden; }
 #reader .book.single-page.open::after { display: none; }
 #reader .book.single-page.open::before { inset: -8px; }
 #reader .book.single-page .side.left .pg { border-radius: 4px; }
+#reader .book.single-page { perspective: 1800px; }
+#reader .book.single-page::after {
+  content: ""; display: block; position: absolute; top: 2%; bottom: 2%; right: -10px; width: 18px;
+  border-radius: 9px; z-index: 7; pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 8%, #ddd 0 3px, #777 3.5px 5px, transparent 5.5px),
+    radial-gradient(circle at 50% 25%, #ddd 0 3px, #777 3.5px 5px, transparent 5.5px),
+    radial-gradient(circle at 50% 42%, #ddd 0 3px, #777 3.5px 5px, transparent 5.5px),
+    radial-gradient(circle at 50% 59%, #ddd 0 3px, #777 3.5px 5px, transparent 5.5px),
+    radial-gradient(circle at 50% 76%, #ddd 0 3px, #777 3.5px 5px, transparent 5.5px),
+    radial-gradient(circle at 50% 93%, #ddd 0 3px, #777 3.5px 5px, transparent 5.5px);
+  filter: drop-shadow(-2px 2px 2px rgba(0,0,0,.45));
+}
+#reader .book.single-page .side.left::after {
+  content: ""; position: absolute; top: 0; bottom: 0; right: 0; width: 18px; z-index: 2; pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,.28));
+}
+#reader .book.single-page .single-turn {
+  position: absolute; inset: 0; width: 100%; height: 100%; z-index: 6;
+  transform-origin: right center; backface-visibility: hidden; will-change: transform, opacity;
+  border-radius: 4px;
+}
+#reader .book.single-page .single-turn-back {
+  transform-origin: right center; backface-visibility: hidden; will-change: transform, opacity;
+}
 #reader .desk.zoomed .pg-nav { opacity: .35; }
 
 /* Pinch performance mode: keep the live DOM, but strip expensive paint effects while it moves. */
