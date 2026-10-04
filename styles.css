@@ -39,10 +39,12 @@
   color-scheme: dark } }
 body[data-series="mandate"] { --velvet: var(--md-velvet); --velvet-2: var(--md-velvet-2); --accent: var(--md-accent); --accent-ink: var(--md-accent-ink); }
 /* album cover palette — shared by collection tabs and the physical book */
-.album-burgundy { --album-a:#7a2430; --album-b:#5b1620; --album-c:#3e0d14; --album-gold:#e3c06a; }
-.album-blue     { --album-a:#315f8f; --album-b:#1f4168; --album-c:#122943; --album-gold:#d8e6f6; }
-.album-purple   { --album-a:#60469a; --album-b:#3f2d72; --album-c:#271c4d; --album-gold:#e0c8ff; }
-.album-green    { --album-a:#267264; --album-b:#185247; --album-c:#0e352f; --album-gold:#c7ead7; }
+.album-burgundy { --album-a:#7a2430; --album-b:#5b1620; --album-c:#3e0d14; }
+.album-blue     { --album-a:#315f8f; --album-b:#1f4168; --album-c:#122943; }
+.album-purple   { --album-a:#60469a; --album-b:#3f2d72; --album-c:#271c4d; }
+.album-green    { --album-a:#267264; --album-b:#185247; --album-c:#0e352f; }
+/* Cover decoration is intentionally constant: only the binder material changes color. */
+.book.album-burgundy, .book.album-blue, .book.album-purple, .book.album-green { --album-gold:#e3c06a; }
 
 * { box-sizing: border-box }
 [hidden] { display: none !important; }
