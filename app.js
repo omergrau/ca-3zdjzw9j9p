@@ -1450,10 +1450,18 @@ async function removeCollection(c) {
 function libraryContent(onDone) {
   const cards = Object.entries(CATALOGS).map(([key, c]) => {
     const has = !!colById(key);
-    return el('div', { class: 'lib-card ' + c.theme }, [
-      el('b', { text: c.name }), el('span', { class: 'lib-sub', text: c.sub }), el('p', { text: c.about }),
-      has ? null : el('button', { class: 'btn gold', type: 'button', text: '+ הוסף לאלבום שלי',
-        onclick: async () => { await addCatalog(key); onDone && onDone(); } }),
+    const col = colById(key) || { id: key, kind: 'catalog', color: CATALOG_COLOR[key] || 'burgundy' };
+    return el('div', { class: 'lib-card catalog-row album-' + albumColor(col) }, [
+      el('span', { class: 'catalog-swatch', 'aria-hidden': 'true' }),
+      el('span', { class: 'catalog-copy' }, [
+        el('b', { text: c.name }),
+        el('span', { class: 'lib-sub', text: c.sub }),
+        el('small', { text: c.about })
+      ]),
+      has
+        ? el('span', { class: 'catalog-owned', text: 'נוסף' })
+        : el('button', { class: 'catalog-add', type: 'button', 'aria-label': 'הוסף ' + c.name, text: '+',
+            onclick: async () => { await addCatalog(key); onDone && onDone(); } }),
     ]);
   });
   const name = el('input', { id: 'l-name', placeholder: 'למשל: שטרות שואה, מטבעות ירושלים' });
@@ -1471,7 +1479,7 @@ function libraryContent(onDone) {
     if (!name.value.trim()) { msg.className = 'msg err'; msg.textContent = 'כתוב שם לאוסף.'; name.focus(); return; }
     await addOwnCollection(name.value.trim(), sub.value.trim()); onDone && onDone();
   });
-  return [el('div', { class: 'lib-grid' }, cards), own];
+  return [el('div', { class: 'lib-grid catalog-list' }, cards), own];
 }
 function openLibrary() {
   const body = $('#adderBody');
