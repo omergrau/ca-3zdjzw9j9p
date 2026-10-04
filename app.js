@@ -414,13 +414,22 @@ function renderAlbum(view, inReader) {
 
   // Swipe: in a Hebrew book you pull the left page to the right to go forward.
   let sx = null, sy = 0;
-  book.addEventListener('pointerdown', e => { if (bk.open) { sx = e.clientX; sy = e.clientY; } });
+  let swipePointer = null, swipeBlocked = false;
+  book.addEventListener('pointerdown', e => {
+    if (!bk.open) return;
+    // One finger owns page turning. A second finger cancels the pending swipe so pinch-zoom can take over.
+    if (swipePointer !== null && swipePointer !== e.pointerId) { swipeBlocked = true; sx = null; return; }
+    swipePointer = e.pointerId; swipeBlocked = false; sx = e.clientX; sy = e.clientY;
+  });
   book.addEventListener('pointerup', e => {
-    if (sx === null) return;
+    if (e.pointerId !== swipePointer) return;
+    const blocked = swipeBlocked; swipePointer = null; swipeBlocked = false;
+    if (sx === null || blocked) { sx = null; return; }
     let dx = e.clientX - sx, dy = e.clientY - sy; sx = null;
     if (inReader && reader.rotated) [dx, dy] = [dy, -dx];   // the book is turned 90 degrees on screen
     if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.3) { dx > 0 ? forward() : backward(); }
   });
+  book.addEventListener('pointercancel', e => { if (e.pointerId === swipePointer) { swipePointer = null; swipeBlocked = false; sx = null; } });
 
   const nav = el('div', { class: 'pg-nav' }, [prev, ind, next]);
   nav.hidden = !isOpen;
@@ -455,8 +464,13 @@ function installReaderZoom() {
   const mid = () => { const p=[...pts.values()]; return p.length<2 ? null : {x:(p[0].x+p[1].x)/2,y:(p[0].y+p[1].y)/2}; };
   stage.addEventListener('pointerdown', e => {
     if (!st.reader) return;
-    pts.set(e.pointerId,{x:e.clientX,y:e.clientY}); stage.setPointerCapture?.(e.pointerId);
-    if (pts.size===2) { startDist=dist(); startZoom=reader.zoom; startPanX=reader.panX; startPanY=reader.panY; startMid=mid(); }
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    // Do not capture a single pointer: the book must receive pointerup for its normal swipe/page-turn gesture.
+    // Capture only once a genuine two-finger pinch begins.
+    if (pts.size===2) {
+      for (const id of pts.keys()) stage.setPointerCapture?.(id);
+      startDist=dist(); startZoom=reader.zoom; startPanX=reader.panX; startPanY=reader.panY; startMid=mid();
+    }
   });
   stage.addEventListener('pointermove', e => {
     if (!pts.has(e.pointerId)) return;
