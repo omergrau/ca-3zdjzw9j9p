@@ -483,6 +483,7 @@ function installReaderZoom() {
       swipeStart = { x:e.touches[0].clientX, y:e.touches[0].clientY };
     } else if (e.touches.length >= 2) {
       pinch = true; swipeStart = null;
+      stage.classList.add('pinching');
       startDist=dist(); startZoom=reader.zoom; startPanX=reader.panX; startPanY=reader.panY; startMid=mid();
       e.preventDefault();
     }
@@ -514,10 +515,10 @@ function installReaderZoom() {
         }
       }
     }
-    if (e.touches.length < 2) { pinch=false; startDist=0; }
+    if (e.touches.length < 2) { pinch=false; startDist=0; stage.classList.remove('pinching'); applyReaderZoom(true); }
     if (!e.touches.length) { touches.clear(); swipeStart=null; }
   }, {passive:false});
-  stage.addEventListener('touchcancel', () => { touches.clear(); pinch=false; startDist=0; swipeStart=null; });
+  stage.addEventListener('touchcancel', () => { touches.clear(); pinch=false; startDist=0; swipeStart=null; stage.classList.remove('pinching'); applyReaderZoom(true); });
 
   stage.addEventListener('dblclick', e => {
     if (!st.reader || e.target.closest('.pg-nav,.reader-x')) return;
