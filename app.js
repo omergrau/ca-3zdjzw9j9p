@@ -378,29 +378,10 @@ function renderAlbum(view, inReader) {
     if (busy || bk.p >= pages.length) return;
     busy = true;
     if (singlePage) {
-      const oldPage = left.firstElementChild;
-      const turn = oldPage ? oldPage.cloneNode(true) : null;
       bk.p++;
       left.replaceChildren(leftFor(bk.p));
-      if (turn && !reduce) {
-        turn.classList.add('single-turn', 'single-turn-forward');
-        const shade = el('span', { class: 'single-turn-shade', 'aria-hidden': 'true' });
-        turn.append(shade);
-        book.append(turn);
-        const pageAnim = turn.animate(
-          [
-            {transform:'rotateY(0deg) translateZ(0)',offset:0},
-            {transform:'rotateY(12deg) translateZ(14px)',offset:.18},
-            {transform:'rotateY(52deg) translateZ(32px)',offset:.48},
-            {transform:'rotateY(108deg) translateZ(38px)',offset:.76},
-            {transform:'rotateY(178deg) translateZ(2px)',offset:1}
-          ],
-          {duration:760,easing:'cubic-bezier(.32,.02,.16,1)',fill:'forwards'}
-        );
-        shade.animate([{opacity:.04},{opacity:.58,offset:.5},{opacity:.18}], {duration:760,fill:'forwards'});
-        await pageAnim.finished;
-        turn.remove();
-      }
+      if (!reduce) await left.animate([{opacity:.25,transform:'translateX(-10%)'},{opacity:1,transform:'translateX(0)'}],
+        {duration:220,easing:'ease-out'}).finished;
       paint(); busy = false; return;
     }
     const lf = leaf(pageFront(pages[bk.p], bk.p), pageBack(pages[bk.p], bk.p), 'left');
@@ -414,23 +395,9 @@ function renderAlbum(view, inReader) {
     busy = true;
     if (singlePage && bk.p > 0) {
       bk.p--;
-      const incoming = leftFor(bk.p);
-      left.replaceChildren(incoming);
-      if (!reduce) {
-        incoming.classList.add('single-turn-back');
-        const a = incoming.animate(
-          [
-            {transform:'rotateY(178deg) translateZ(2px)',offset:0},
-            {transform:'rotateY(112deg) translateZ(38px)',offset:.25},
-            {transform:'rotateY(54deg) translateZ(32px)',offset:.55},
-            {transform:'rotateY(12deg) translateZ(14px)',offset:.84},
-            {transform:'rotateY(0deg) translateZ(0)',offset:1}
-          ],
-          {duration:760,easing:'cubic-bezier(.22,.72,.18,1)',fill:'forwards'}
-        );
-        await a.finished;
-        incoming.classList.remove('single-turn-back');
-      }
+      left.replaceChildren(leftFor(bk.p));
+      if (!reduce) await left.animate([{opacity:.25,transform:'translateX(10%)'},{opacity:1,transform:'translateX(0)'}],
+        {duration:220,easing:'ease-out'}).finished;
       paint(); busy = false; return;
     }
     if (bk.p === 0) {
