@@ -1340,67 +1340,84 @@ async function snapshot() {
   for (const [k, blob] of await Store.all('photos')) photos[k] = await Photo.toDataURL(blob);
   return { app: 'coin-album', version: 3, exportedAt: nowIso(), collections: st.collections, owned, extras, photos };
 }
-function openMenu(msg) {
-  const body = $('#menuBody'); body.textContent = '';
-  const have = st.owned.size;
-  const msgEl = el('div', { class: 'msg' + (msg ? ' ok' : ''), text: msg || '' });
-  const exportBtn = el('button', { class: 'btn primary', type: 'button', text: 'שמור גיבוי לקובץ', onclick: async () => {
-    const blob = new Blob([JSON.stringify(await snapshot())], { type: 'application/json' });
-    const a = el('a', { href: URL.createObjectURL(blob), download: 'coin-album-' + new Date().toISOString().slice(0, 10) + '.json' });
-    document.body.append(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-    try { localStorage.setItem('album.lastBackup', nowIso()); } catch (e) {}
-    msgEl.className = 'msg ok'; msgEl.textContent = 'הקובץ נשמר בתיקיית ההורדות.';
-  } });
-  const file = el('input', { type: 'file', accept: 'application/json,.json', id: 'm-file', hidden: true });
-  const importBtn = el('button', { class: 'btn', type: 'button', text: 'שחזר מגיבוי', onclick: () => file.click() });
-  const confirmBox = el('div', { class: 'confirm' });
-  file.addEventListener('change', async () => {
-    const f = file.files && file.files[0]; if (!f) return;
-    let data;
-    try { data = JSON.parse(await f.text()); } catch (e) { data = null; }
-    if (!data || data.app !== 'coin-album' || typeof data.owned !== 'object') {
-      msgEl.className = 'msg err'; msgEl.textContent = 'הקובץ הזה לא גיבוי של האלבום.'; file.value = ''; return;
-    }
-    const n = Object.keys(data.owned).length;
-    confirmBox.textContent = '';
-    confirmBox.append(el('span', { text: 'הגיבוי מכיל ' + n + ' מטבעות ויחליף את מה שיש עכשיו באפליקציה (' + have + '). להמשיך?' }),
-      el('button', { class: 'btn danger', type: 'button', text: 'כן, שחזר', onclick: async () => {
-        try {
-          const photos = {};
-          for (const [k, url] of Object.entries(data.photos || {})) photos[k] = await Photo.fromDataURL(url);
-          await Store.replaceAll(data.owned, data.extras || {}, photos);
-          if (Array.isArray(data.collections)) await Store.put('meta', 'collections', data.collections);
-          else await Store.del('meta', 'collections');   // older backups: work the collections out from the coins
-          await load(); render(); openMenu('השחזור הושלם: ' + n + ' מטבעות.');
-        }
-        catch (e) { msgEl.className = 'msg err'; msgEl.textContent = 'השחזור נכשל.'; }
-      } }),
-      el('button', { class: 'btn', type: 'button', text: 'ביטול', onclick: () => openMenu() }));
-    file.value = '';
-  });
-  let last = ''; try { last = localStorage.getItem('album.lastBackup') || ''; } catch (e) {}
-  const colRows = st.collections.map(c => {
-    const row = el('div', { class: 'col-row' }, [el('span', { text: c.name + (c.kind === 'own' ? ' (אוסף משלך)' : '') })]);
-    const rm = el('button', { class: 'btn danger', type: 'button', text: 'הסר', onclick: () => {
-      row.replaceChildren(el('span', { text: c.kind === 'own' ? 'להסיר את "' + c.name + '" ואת כל המטבעות שבו?' : 'להסיר את "' + c.name + '" מהאלבום? המטבעות שסימנת יישמרו אם תוסיף אותו שוב.' }),
-        el('button', { class: 'btn danger', type: 'button', text: 'כן, הסר', onclick: async () => { await removeCollection(c); openMenu('האוסף הוסר.'); } }),
-        el('button', { class: 'btn', type: 'button', text: 'ביטול', onclick: () => openMenu() }));
+function openMenu(msg, section) {
+  const dlg = $('#menu'), body = $('#menuBody');
+  const close = () => dlg.close();
+  const home = () => openMenu(msg);
+  body.textContent = '';
+
+  const head = (title, back = true) => el('div', { class: 'menu-head' }, [
+    back ? el('button', { class: 'menu-back', type: 'button', text: '→', 'aria-label': 'חזרה', onclick: home }) : null,
+    el('b', { text: title }),
+    el('button', { class: 'menu-close', type: 'button', text: '✕', 'aria-label': 'סגור', onclick: close }),
+  ]);
+
+  if (!section) {
+    const item = (icon, title, sub, key) => el('button', { class: 'menu-category', type: 'button', onclick: () => openMenu('', key) }, [
+      el('span', { class: 'menu-category-icon', text: icon, 'aria-hidden': 'true' }),
+      el('span', { class: 'menu-category-copy' }, [el('b', { text: title }), el('small', { text: sub })]),
+      el('span', { class: 'menu-chevron', text: '‹', 'aria-hidden': 'true' }),
+    ]);
+    body.append(
+      head('תפריט', false),
+      el('div', { class: 'menu-categories' }, [
+        item('▦', 'האוספים שלי', 'הוספה, ניהול והסרת אוספים', 'collections'),
+        item('↥', 'גיבוי ונתונים', 'שמירה ושחזור של האוסף והתמונות', 'backup'),
+        item('⚙', 'אפליקציה', 'מידע והגדרות כלליות', 'app'),
+      ])
+    );
+  } else if (section === 'collections') {
+    const colRows = st.collections.map(c => {
+      const row = el('div', { class: 'col-row' }, [el('span', { text: c.name + (c.kind === 'own' ? ' (אוסף משלך)' : '') })]);
+      const rm = el('button', { class: 'btn danger', type: 'button', text: 'הסר', onclick: () => {
+        row.replaceChildren(el('span', { text: c.kind === 'own' ? 'להסיר את "' + c.name + '" ואת כל המטבעות שבו?' : 'להסיר את "' + c.name + '" מהאלבום?' }),
+          el('button', { class: 'btn danger', type: 'button', text: 'כן, הסר', onclick: async () => { await removeCollection(c); openMenu('האוסף הוסר.', 'collections'); } }),
+          el('button', { class: 'btn', type: 'button', text: 'ביטול', onclick: () => openMenu('', 'collections') }));
+      } });
+      row.append(rm); return row;
+    });
+    body.append(head('האוספים שלי'), ...(colRows.length ? colRows : [el('p', { class: 'muted', text: 'עוד אין אוספים.' })]),
+      el('button', { class: 'btn primary menu-wide', type: 'button', text: '+ אוסף חדש', onclick: () => { close(); openLibrary(); } }));
+  } else if (section === 'backup') {
+    const have = st.owned.size;
+    const msgEl = el('div', { class: 'msg' + (msg ? ' ok' : ''), text: msg || '' });
+    const file = el('input', { type: 'file', accept: 'application/json,.json', hidden: true });
+    const confirmBox = el('div', { class: 'confirm' });
+    const exportBtn = el('button', { class: 'btn primary menu-wide', type: 'button', text: 'שמור גיבוי לקובץ', onclick: async () => {
+      const blob = new Blob([JSON.stringify(await snapshot())], { type: 'application/json' });
+      const a = el('a', { href: URL.createObjectURL(blob), download: 'coin-album-' + new Date().toISOString().slice(0,10) + '.json' });
+      document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      try { localStorage.setItem('album.lastBackup', nowIso()); } catch (e) {}
+      msgEl.className = 'msg ok'; msgEl.textContent = 'הגיבוי נשמר.';
     } });
-    row.append(rm); return row;
-  });
-  body.append(
-    el('h2', { text: 'האוספים שלי' }),
-    ...(colRows.length ? colRows : [el('p', { class: 'muted', text: 'עוד אין אוספים.' })]),
-    el('button', { class: 'btn', type: 'button', text: '+ אוסף חדש', onclick: () => { $('#menu').close(); openLibrary(); } }),
-    el('hr', { class: 'sep' }),
-    el('h2', { text: 'גיבוי' }),
-    el('p', { class: 'muted', text: 'האוסף והתמונות שמורים רק בטלפון הזה. כדאי לשמור גיבוי מדי פעם ולשלוח אותו לעצמך (למשל במייל או בדרייב). התמונות נכללות בגיבוי.' }),
-    el('p', { class: 'muted', text: 'באוסף: ' + have + ' מטבעות. ' + (last ? 'גיבוי אחרון: ' + new Date(last).toLocaleDateString('he-IL') + '.' : 'עדיין לא נשמר גיבוי.') }),
-    el('div', { class: 'confirm' }, [exportBtn, importBtn]), file, confirmBox, msgEl,
-    el('div', { class: 'confirm' }, [el('button', { class: 'btn', type: 'button', text: 'סגור', onclick: () => $('#menu').close() })]),
-  );
-  if (!$('#menu').open) $('#menu').showModal();
+    file.addEventListener('change', async () => {
+      const f=file.files&&file.files[0]; if(!f) return; let data;
+      try { data=JSON.parse(await f.text()); } catch(e) { data=null; }
+      if(!data||data.app!=='coin-album'||typeof data.owned!=='object') { msgEl.className='msg err'; msgEl.textContent='הקובץ הזה אינו גיבוי תקין.'; return; }
+      const n=Object.keys(data.owned).length; confirmBox.textContent='';
+      confirmBox.append(el('span',{text:'לשחזר '+n+' מטבעות ולהחליף את הנתונים הנוכחיים?'}),
+        el('button',{class:'btn danger',type:'button',text:'כן, שחזר',onclick:async()=>{ try {
+          const photos={}; for(const [k,url] of Object.entries(data.photos||{})) photos[k]=await Photo.fromDataURL(url);
+          await Store.replaceAll(data.owned,data.extras||{},photos);
+          if(Array.isArray(data.collections)) await Store.put('meta','collections',data.collections); else await Store.del('meta','collections');
+          await load(); render(); openMenu('השחזור הושלם: '+n+' מטבעות.','backup');
+        } catch(e) { msgEl.className='msg err'; msgEl.textContent='השחזור נכשל.'; }}}),
+        el('button',{class:'btn',type:'button',text:'ביטול',onclick:()=>openMenu('','backup')}));
+    });
+    let last=''; try { last=localStorage.getItem('album.lastBackup')||''; } catch(e) {}
+    body.append(head('גיבוי ונתונים'),
+      el('p',{class:'muted',text:'האוסף והתמונות נשמרים במכשיר. גיבוי מאפשר להעביר או לשחזר אותם.'}),
+      el('div',{class:'menu-info',text:'באוסף: '+have+' מטבעות'+(last?' · גיבוי אחרון: '+new Date(last).toLocaleDateString('he-IL'):' · עדיין לא נשמר גיבוי')}),
+      exportBtn, el('button',{class:'btn menu-wide',type:'button',text:'שחזר מגיבוי',onclick:()=>file.click()}), file, confirmBox, msgEl);
+  } else {
+    body.append(head('אפליקציה'),
+      el('div',{class:'menu-info'},[
+        el('b',{text:'Coin Collector'}),
+        el('span',{text:'ניהול אוסף המטבעות שלך'}),
+      ]),
+      el('p',{class:'muted',text:'האפליקציה פועלת מקומית ושומרת את נתוני האוסף במכשיר.'}));
+  }
+  if (!dlg.open) dlg.showModal();
 }
 
 /* ---------- collections: library, own collections, first launch ---------- */
