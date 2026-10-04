@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f3b5c">
+<meta name="description" content="אלבום מעקב לסדרת הקראונים הבריטיים ומטבעות המנדט">
+<title>אלבום מטבעות</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Assistant:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>אלבום קראונים ומנדט</h1>
+      <p>מה כבר באלבום, מה עוד חסר. לחיצה על מטבע פותחת את הכרטיס שלו.</p>
+    </div>
+    <div class="top-actions">
+      <button class="btn primary" id="addBtn" type="button">+ הוסף מטבע</button>
+      <button class="btn" id="menuBtn" type="button" aria-label="גיבוי והגדרות">⋯</button>
+    </div>
+  </header>
+
+  <div class="notice" id="notice" hidden></div>
+
+  <div class="tabs" role="tablist" id="tabs"></div>
+
+  <div class="toolbar">
+    <div class="chips" role="group" aria-label="סינון">
+      <button class="chip" data-f="all" aria-pressed="true" type="button">הכול</button>
+      <button class="chip" data-f="own" aria-pressed="false" type="button">יש לי</button>
+      <button class="chip" data-f="miss" aria-pressed="false" type="button">חסר לי</button>
+    </div>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <section id="view" aria-live="polite"></section>
+</div>
+
+<dialog id="sheet"><div class="sheet" id="sheetBody"></div></dialog>
+<dialog id="adder"><div class="sheet" id="adderBody"></div></dialog>
+<dialog id="menu"><div class="sheet" id="menuBody"></div></dialog>
+
+<script src="catalog.js"></script>
+<script src="store.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

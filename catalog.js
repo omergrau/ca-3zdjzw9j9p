@@ -1,0 +1,85 @@
+// Reference data: which coins exist in each series (not what is owned).
+'use strict';
+
+const S925 = { metal: 'silver', metalName: 'כסף 925' };
+const S500 = { metal: 'silver', metalName: 'כסף 500' };
+const CUNI = { metal: 'cuni', metalName: 'קופרו-ניקל' };
+const METAL_NAME = { bronze: 'ברונזה', cuni: 'קופרו-ניקל', silver: 'כסף' };
+
+const CROWN_REIGNS = [
+  { key: 'g3', name: "ג'ורג' השלישי", years: '1818–1820', design: "ג'ורג' הקדוש והדרקון (פיסטרוצ'י)", m: S925,
+    coins: [{ y: 1818 }, { y: 1819 }, { y: 1820 }] },
+  { key: 'g4', name: "ג'ורג' הרביעי", years: '1821–1826', design: "ג'ורג' הקדוש והדרקון / סמל ממלכתי", m: S925,
+    coins: [{ y: 1821 }, { y: 1822 }, { y: 1826, id: 'c-1826p', tag: 'פרוף', rare: 'הוטבע כפרוף בלבד' }] },
+  { key: 'w4', name: 'ויליאם הרביעי', years: '1831', design: 'מגן ממלכתי', m: S925,
+    coins: [{ y: 1831, id: 'c-1831p', tag: 'פרוף', rare: 'הוטבע כפרוף בלבד, נדיר מאוד' }] },
+  { key: 'vyh', name: 'ויקטוריה, ראש צעיר', years: '1839–1847', design: 'מגן מוכתר', m: S925,
+    coins: [{ y: 1839, id: 'c-1839p', tag: 'פרוף', rare: 'הוטבע כפרוף בלבד' }, { y: 1844 }, { y: 1845 }, { y: 1847 }] },
+  { key: 'vgo', name: 'ויקטוריה, הקראון הגותי', years: '1847–1853', design: 'עיצוב גותי, מהיפים בסדרה', m: S925,
+    coins: [{ y: 1847, id: 'c-1847g', tag: 'גותי' }, { y: 1853, id: 'c-1853p', tag: 'פרוף', rare: 'הוטבע כפרוף בלבד' }] },
+  { key: 'vjh', name: 'ויקטוריה, ראש היובל', years: '1887–1892', design: "ג'ורג' הקדוש והדרקון", m: S925,
+    coins: [{ y: 1887 }, { y: 1888 }, { y: 1889 }, { y: 1890 }, { y: 1891 }, { y: 1892 }] },
+  { key: 'voh', name: 'ויקטוריה, ראש זקן', years: '1893–1900', design: "ג'ורג' הקדוש והדרקון, שנת שלטון על השפה", m: S925,
+    coins: [{ y: 1893 }, { y: 1894 }, { y: 1895 }, { y: 1896 }, { y: 1897 }, { y: 1898 }, { y: 1899 }, { y: 1900 }] },
+  { key: 'e7', name: 'אדוארד השביעי', years: '1902', design: "ג'ורג' הקדוש והדרקון", m: S925,
+    coins: [{ y: 1902 }] },
+  { key: 'g5', name: "ג'ורג' החמישי", years: '1927–1936', design: 'קראון הזר (Wreath), יובל 1935', m: S500,
+    coins: [
+      { y: 1927, id: 'c-1927p', tag: 'פרוף', rare: 'פרוף בלבד, כ-15,000' },
+      { y: 1928, rare: '9,034 הוטבעו' }, { y: 1929, rare: '4,994 הוטבעו' }, { y: 1930, rare: '4,847 הוטבעו' },
+      { y: 1931, rare: '4,056 הוטבעו' }, { y: 1932, rare: '2,395 הוטבעו' }, { y: 1933, rare: '7,132 הוטבעו' },
+      { y: 1934, rare: '932 הוטבעו, מהנדירים בסדרה' },
+      { y: 1935, tag: 'יובל', design: "יובל הכסף, ג'ורג' הקדוש בסגנון ארט דקו" },
+      { y: 1936, rare: '2,473 הוטבעו' }] },
+  { key: 'g6', name: "ג'ורג' השישי", years: '1937–1951', design: 'הכתרה 1937, פסטיבל בריטניה 1951', m: S500,
+    coins: [{ y: 1937, tag: 'הכתרה' }, { y: 1951, tag: 'פסטיבל', m: CUNI }] },
+  { key: 'e2', name: 'אליזבת השנייה', years: '1953–1965', design: "הכתרה, תערוכה, צ'רצ'יל", m: CUNI,
+    coins: [{ y: 1953, tag: 'הכתרה' }, { y: 1960, tag: 'תערוכה' }, { y: 1965, tag: "צ'רצ'יל" }] },
+];
+
+const CROWNS = [];
+for (const r of CROWN_REIGNS) for (const c of r.coins) {
+  const m = c.m || r.m;
+  CROWNS.push({ id: c.id || ('c-' + c.y), series: 'crowns', reign: r.key, y: c.y, tag: c.tag || '',
+    rare: c.rare || '', metal: m.metal, metalName: m.metalName,
+    title: 'קראון ' + c.y + (c.tag ? ' (' + c.tag + ')' : ''), sub: r.name, design: c.design || r.design });
+}
+
+const MANDATE_DENOMS = [
+  { d: 1, metal: 'bronze', metalName: 'ברונזה', holed: false, years: [1927, 1935, 1937, 1939, 1940, 1941, 1942, 1943, 1944, 1945, 1946, 1947] },
+  { d: 2, metal: 'bronze', metalName: 'ברונזה', holed: false, years: [1927, 1941, 1942, 1945, 1946, 1947] },
+  { d: 5, metal: 'cuni', metalName: 'קופרו-ניקל, מחורר', holed: true, years: [1927, 1934, 1935, 1939, 1941, 1942, 1944, 1946, 1947],
+    war: { 1942: 'bronze', 1944: 'bronze' } },
+  { d: 10, metal: 'cuni', metalName: 'קופרו-ניקל, מחורר', holed: true, years: [1927, 1933, 1934, 1935, 1937, 1939, 1940, 1941, 1942, 1943, 1946, 1947],
+    war: { 1943: 'bronze' }, both: [1942] },
+  { d: 20, metal: 'cuni', metalName: 'קופרו-ניקל, מחורר', holed: true, years: [1927, 1933, 1934, 1935, 1940, 1941, 1942, 1944],
+    war: { 1942: 'bronze', 1944: 'bronze' } },
+  { d: 50, metal: 'silver', metalName: 'כסף 720', holed: false, years: [1927, 1931, 1933, 1934, 1935, 1939, 1940, 1942] },
+  { d: 100, metal: 'silver', metalName: 'כסף 720', holed: false, years: [1927, 1931, 1933, 1934, 1935, 1939, 1940, 1942] },
+];
+
+const MANDATE = [];
+for (const den of MANDATE_DENOMS) for (const y of den.years) {
+  const variants = (den.both || []).includes(y) ? ['cuni', 'bronze'] : [(den.war && den.war[y]) || den.metal];
+  for (const metal of variants) {
+    const isAlt = variants.length > 1 && metal === 'bronze';
+    let rare = '';
+    if (y === 1947) rare = den.d === 1 ? 'רוב ההנפקה הותכה, ידועים כ-5 עותקים' : 'רוב ההנפקה הותכה, נדיר מאוד';
+    if (den.d === 1 && y === 1945) rare = 'שנה שלא מופיעה בכל הקטלוגים, לאמת';
+    const metalName = metal === den.metal ? den.metalName : (METAL_NAME[metal] + (den.holed ? ', מחורר (הנפקת מלחמה)' : ''));
+    MANDATE.push({ id: 'm-' + den.d + '-' + y + (isAlt ? 'b' : ''), series: 'mandate', d: den.d, y, metal, metalName,
+      holed: den.holed, tag: variants.length > 1 ? METAL_NAME[metal] : '', rare,
+      title: den.d + (den.d === 1 ? ' מיל ' : ' מילים ') + y + (variants.length > 1 ? ' (' + METAL_NAME[metal] + ')' : ''),
+      sub: 'מנדט בריטי, פלשתינה (א"י)' });
+  }
+}
+const MANDATE_YEARS = [...new Set(MANDATE.map(c => c.y))].sort((a, b) => a - b);
+
+const SERIES = {
+  crowns: { name: 'קראונים בריטיים', sub: '1818–1965, חמישה שילינג', list: CROWNS },
+  mandate: { name: 'מטבעות המנדט', sub: '1927–1947, כל הערכים והשנים', list: MANDATE },
+};
+const GRADES = ['', 'G', 'VG', 'F', 'VF', 'XF', 'AU', 'UNC', 'פרוף'];
+
+// Crown years already in the collection (from the silver sheet) — offered once on first launch.
+const STARTER_OWNED = ['c-1822', 'c-1887', 'c-1889', 'c-1891', 'c-1894', 'c-1897', 'c-1935'];
