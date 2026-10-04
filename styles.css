@@ -65,10 +65,10 @@ button { cursor: pointer; }
 /* ---------- hero ---------- */
 .hero { position: relative; overflow: hidden; border-radius: 22px; padding: 20px 18px 18px; color: var(--on-velvet);
   background:
-    radial-gradient(120% 140% at 100% 0%, rgba(226, 182, 72, .30), transparent 45%),
-    radial-gradient(90% 120% at 0% 100%, rgba(232, 148, 90, .32), transparent 50%),
-    linear-gradient(135deg, var(--cr-velvet) 0%, #352668 45%, var(--md-velvet) 100%);
-  box-shadow: var(--shadow-2); display: grid; gap: 16px; }
+    radial-gradient(120% 140% at 100% 0%, rgba(227, 192, 106, .22), transparent 45%),
+    repeating-radial-gradient(circle at 20% 30%, rgba(0, 0, 0, .05) 0 1px, transparent 1px 3px),
+    linear-gradient(150deg, #7a2430 0%, #5b1620 55%, #3e0d14 100%);
+  box-shadow: inset 0 0 0 6px #5b1620, inset 0 0 0 7px rgba(227, 192, 106, .35), var(--shadow-2); display: grid; gap: 16px; }
 .hero::after { content: ""; position: absolute; inset-inline-start: -40px; top: -50px; width: 190px; height: 190px; border-radius: 50%;
   border: 2px dashed rgba(245, 239, 225, .14); box-shadow: 0 0 0 18px rgba(245, 239, 225, .04), 0 0 0 40px rgba(245, 239, 225, .03); pointer-events: none; }
 .hero-top { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 12px; position: relative; z-index: 1; }
@@ -250,3 +250,58 @@ hr.sep { border: 0; border-top: 1px solid var(--line); margin-block: 0; }
 .crop-stage { display: block; margin-inline: auto; border-radius: 14px; touch-action: none; cursor: grab; background: #111; max-width: 100%; }
 .crop-stage:active { cursor: grabbing; }
 #crop-size { width: 100%; accent-color: var(--cr-accent); }
+
+/* ---------- view toggle ---------- */
+.viewtoggle { display: inline-flex; gap: 4px; padding: 4px; background: var(--paper-2); border: 1px solid var(--line); border-radius: 99px; }
+.vt { border: 0; background: transparent; border-radius: 99px; padding: 5px 16px; font-size: 14px; font-weight: 700; color: var(--muted); }
+.vt[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+
+/* ---------- album: burgundy binder cover, GRANDE black coin sheets, white coin holders ---------- */
+.binder { --leather: #5b1620; --leather-2: #7a2430; --foil: #e3c06a;
+  border-radius: 18px; padding: 18px 14px 14px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; color: #f6e7dc; min-width: 0;
+  background:
+    radial-gradient(120% 80% at 30% 0%, rgba(255, 255, 255, .10), transparent 55%),
+    repeating-radial-gradient(circle at 20% 30%, rgba(0, 0, 0, .05) 0 1px, transparent 1px 3px),
+    linear-gradient(160deg, var(--leather-2), var(--leather) 60%, #3e0d14);
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, .25), inset 0 0 0 7px var(--leather), inset 0 0 0 8px rgba(227, 192, 106, .35), var(--shadow-2); }
+.binder-title { text-align: center; display: grid; gap: 2px; padding-bottom: 2px; }
+.binder-title span { font-family: var(--f-display); font-weight: 900; font-size: clamp(20px, 5.5vw, 28px); letter-spacing: .02em;
+  color: var(--foil); text-shadow: 0 1px 0 rgba(0, 0, 0, .55), 0 -1px 0 rgba(255, 240, 200, .25); }
+.binder-title small { font-size: 12px; color: rgba(246, 231, 220, .7); }
+.binder .btn.ghost { color: #f6e7dc; }
+
+.album { display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding-block: 2px 6px; min-width: 0; }
+.album::-webkit-scrollbar { display: none; }
+.pg { flex: 0 0 100%; max-width: 560px; margin-inline: auto; scroll-snap-align: start; aspect-ratio: 242 / 312; position: relative;
+  border-radius: 4px; color: #e9edf3; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 1.4%; padding-block: 4% 2.5%; padding-inline: 8% 4.5%;
+  background: linear-gradient(180deg, #23262c, #17191d); box-shadow: 0 2px 0 rgba(0, 0, 0, .35), 0 10px 26px rgba(0, 0, 0, .45); }
+@media (min-width: 620px) { .pg { flex-basis: 560px; } }
+.pg::before { content: ""; position: absolute; inset-block: 9%; inset-inline-start: 2.2%; width: 2.4%; pointer-events: none;
+  background: radial-gradient(circle, #0c0d10 42%, rgba(255, 255, 255, .08) 46%, transparent 52%) center / 100% 25.5% repeat-y; }   /* 4-ring holes */
+.pg-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 10px; padding-bottom: 4px; border-bottom: 1px solid rgba(255, 255, 255, .12); }
+.pg-title { font-family: var(--f-display); font-weight: 700; font-size: clamp(13px, 3.5vw, 18px); }
+.pg-meta, .pg-foot { font-size: clamp(9px, 2.4vw, 12px); color: rgba(233, 237, 243, .6); font-variant-numeric: tabular-nums; }
+.pg-foot { display: flex; justify-content: space-between; }
+.pg-grid { display: grid; gap: 1.2%; min-height: 0; }
+
+/* clear pocket on the black sheet */
+.pocket { position: relative; display: grid; place-items: center; padding: 3%; margin: 0; width: auto; height: 100%; min-height: 0; gap: 0;
+  border: 1px solid rgba(255, 255, 255, .10); border-radius: 2px; background: linear-gradient(160deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .02) 40%); }
+.pocket.empty { opacity: .6; }
+/* cardboard coin holder (square) with a round film window */
+.holder { position: relative; height: 100%; max-width: 100%; aspect-ratio: 1; display: grid; place-items: center; border-radius: 2px;
+  background: linear-gradient(160deg, #fbfaf6, #e9e6dd); box-shadow: 0 1px 2px rgba(0, 0, 0, .5); }
+.window { position: relative; width: var(--w); aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; margin-bottom: 10%;
+  background: radial-gradient(circle at 40% 35%, #e9eef3, #c9d1d9); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .18), inset 0 2px 4px rgba(0, 0, 0, .15); }
+.window .coin { font-size: clamp(7px, 2.2vw, 13px); }
+.pocket:not(.own) .window .coin { background: radial-gradient(circle at 50% 40%, #555c66, #2a2e34); color: rgba(255, 255, 255, .45);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, .55); }
+.window .coin.holed { padding-top: 6%; }
+.window .coin.holed::after { width: 18%; height: 18%; background: #d5dbe1; box-shadow: inset 0 1px 2px rgba(0, 0, 0, .4); }
+.window .rare-dot { width: clamp(6px, 1.6vw, 10px); height: clamp(6px, 1.6vw, 10px); top: -4%; inset-inline-end: -4%; box-shadow: 0 0 0 1px #fff; }
+.hl-lbl { position: absolute; bottom: 4%; inset-inline: 4%; text-align: center; font-size: clamp(7px, 2vw, 11px); line-height: 1.15;
+  color: #2a3340; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--f-body); }
+.pocket.own .hl-lbl { color: #1f5d39; }
+.hl-mm { position: absolute; top: 3%; inset-inline-start: 5%; font-size: clamp(6px, 1.5vw, 9px); color: #8a8f96; font-variant-numeric: tabular-nums; }
+.pg-nav { display: flex; justify-content: center; align-items: center; gap: 12px; }
+.pg-ind { font-size: 14px; font-weight: 700; color: rgba(246, 231, 220, .85); font-variant-numeric: tabular-nums; min-width: 96px; text-align: center; }

@@ -1,7 +1,7 @@
 'use strict';
 (() => {
-const st = { tab: 'crowns', filter: 'all', owned: new Map(), extras: new Map(), photos: new Map(), ready: false };
-try { const t = localStorage.getItem('album.tab'); if (t && SERIES[t]) st.tab = t; } catch (e) {}
+const st = { tab: 'crowns', view: 'album', filter: 'all', owned: new Map(), extras: new Map(), photos: new Map(), ready: false };
+try { const t = localStorage.getItem('album.tab'); if (t && SERIES[t]) st.tab = t; const v = localStorage.getItem('album.view'); if (v === 'list' || v === 'album') st.view = v; } catch (e) {}
 
 const $ = s => document.querySelector(s);
 const el = (tag, attrs = {}, kids = []) => {
@@ -19,6 +19,7 @@ const newId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toStri
 
 function extraToItem(id, x) {
   return { id: 'x-' + id, extraId: id, series: x.series, y: x.year || '', tag: 'תוספת', rare: '', metal: x.metal || 'silver',
+    diam: Number(x.diam) || (x.series === 'crowns' ? CROWN_DIAM : 25),
     metalName: METAL_NAME[x.metal] || '', title: x.label || 'מטבע נוסף', sub: x.series === 'crowns' ? 'קראון, תוספת' : 'מנדט, תוספת',
     design: '', holed: false, custom: true };
 }
@@ -140,10 +141,112 @@ function render() {
   document.body.dataset.series = st.tab;
   renderStats(); renderTabs(); renderLegend();
   document.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.f === st.filter)));
+  document.querySelectorAll('.vt').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.v === st.view)));
+  $('.chips').hidden = st.view === 'album';
   const view = $('#view'); view.textContent = '';
-  if (st.tab === 'crowns') renderCrowns(view); else renderMandate(view);
-  renderExtras(view);
+  if (st.view === 'album') renderAlbum(view);
+  else { if (st.tab === 'crowns') renderCrowns(view); else renderMandate(view); renderExtras(view); }
   st.justAdded = null;
+}
+
+/* ---------- album pages (LEUCHTTURM GRANDE coin sheets with coin holders) ---------- */
+function sheetSetting() { try { return localStorage.getItem('album.sheet') || 'auto'; } catch (e) { return 'auto'; } }
+// The sheet for a page: the setting, or (auto) the smallest sheet whose holder window fits the page's largest coin.
+function sheetFor(maxDiam) {
+  const pick = sheetSetting();
+  if (SHEET_TYPES[pick]) return SHEET_TYPES[pick];
+  return maxDiam <= SHEET_TYPES.M20K.maxWindow ? SHEET_TYPES.M20K : SHEET_TYPES.M12K;
+}
+// Smallest standard holder window the coin fits through (XL holders: coin size + 1 mm).
+function windowFor(diam, sheet) {
+  if (sheet.key === 'M20K') return HOLDER_WINDOWS.find(w => w >= diam) || HOLDER_WINDOWS[HOLDER_WINDOWS.length - 1];
+  return Math.ceil(diam + 1);
+}
+function albumSections(series) {
+  const extras = allItems(series).filter(i => i.custom);
+  const out = [];
+  if (series === 'crowns') out.push({ title: 'קראונים בריטיים', items: CROWNS });
+  else for (const den of MANDATE_DENOMS) out.push({ title: den.d + (den.d === 1 ? ' מיל' : ' מילים') + ' · ' + den.metalName.split(',')[0] + ' · ' + den.diam + ' מ"מ', items: MANDATE.filter(c => c.d === den.d) });
+  if (extras.length) out.push({ title: 'מטבעות שהוספת', items: extras });
+  return out;
+}
+// Fill pages in order; a new section starts a new page. Each page is sized by its own largest coin.
+function albumPages(series) {
+  const pages = [];
+  for (const sec of albumSections(series)) {
+    let i = 0, part = 0;
+    const parts = [];
+    while (i < sec.items.length) {
+      let sheet = sheetFor(Math.max(...sec.items.slice(i, i + SHEET_TYPES.M20K.pockets).map(c => c.diam || 25)));
+      let chunk = sec.items.slice(i, i + sheet.pockets);
+      const fit = sheetFor(Math.max(...chunk.map(c => c.diam || 25)));   // a smaller chunk may fit a smaller sheet
+      if (fit.pockets !== sheet.pockets) { sheet = fit; chunk = sec.items.slice(i, i + sheet.pockets); }
+      parts.push({ sheet, items: chunk }); i += chunk.length;
+    }
+    for (const pp of parts) pages.push({ sec, sheet: pp.sheet, items: pp.items, part: ++part, parts: parts.length });
+  }
+  return pages;
+}
+function holderEl(item, sheet) {
+  const own = st.owned.has(item.id);
+  const win = windowFor(item.diam || 25, sheet);
+  const coin = coinEl(item);
+  coin.style.width = coin.style.height = ((item.diam || 25) / win * 100) + '%';
+  const label = String(item.y || '') + (item.tag && item.series === 'crowns' ? ' ' + item.tag : '') + (item.series === 'mandate' ? ' · ' + item.d + ' מיל' : '');
+  return el('button', {
+    type: 'button', class: 'pocket slot m-' + item.metal + (own ? ' own' : '') + (st.justAdded === item.id ? ' pop' : ''),
+    'aria-label': item.title + (own ? ', יש באוסף' : ', חסר') + (item.rare ? ', ' + item.rare : ''),
+    title: item.title, onclick: () => openSheet(item.id),
+  }, [el('span', { class: 'holder' }, [
+    el('span', { class: 'window', style: '--w:' + (win / sheet.holder * 100) + '%' }, [coin]),
+    el('span', { class: 'hl-lbl', text: label }),
+    el('span', { class: 'hl-mm', text: String(win).replace('.', ',') }),
+  ])]);
+}
+function reignSpan(items) {
+  const names = [...new Set(items.map(i => (CROWN_REIGNS.find(r => r.key === i.reign) || {}).name).filter(Boolean))];
+  return names.length > 1 ? names[0] + ' – ' + names[names.length - 1] : (names[0] || '');
+}
+function renderAlbum(view) {
+  const pages = albumPages(st.tab);
+  const strip = el('div', { class: 'album', role: 'region', 'aria-label': 'דפי האלבום. החלק לצדדים לדף הבא.' });
+  pages.forEach((p, i) => {
+    const have = p.items.filter(it => st.owned.has(it.id)).length;
+    const meta = (st.tab === 'crowns' && !p.items[0].custom ? reignSpan(p.items) + ' · ' : '') + have + '/' + p.items.length + ' באוסף';
+    const grid = el('div', { class: 'pg-grid', style: 'grid-template-columns:repeat(' + p.sheet.cols + ',minmax(0,1fr));grid-template-rows:repeat(' + p.sheet.rows + ',minmax(0,1fr))' },
+      p.items.map(it => holderEl(it, p.sheet)));
+    for (let k = p.items.length; k < p.sheet.pockets; k++) grid.append(el('span', { class: 'pocket empty', 'aria-hidden': 'true' }));
+    strip.append(el('section', { class: 'pg', 'aria-label': 'דף ' + (i + 1) }, [
+      el('div', { class: 'pg-head' }, [
+        el('span', { class: 'pg-title', text: p.sec.title + (p.parts > 1 ? ' (' + p.part + '/' + p.parts + ')' : '') }),
+        el('span', { class: 'pg-meta', text: meta }),
+      ]),
+      grid,
+      el('div', { class: 'pg-foot' }, [el('span', { text: p.sheet.name + ' · ' + p.sheet.pockets + ' כיסים' }), el('span', { text: String(i + 1) })]),
+    ]));
+  });
+  const ind = el('span', { class: 'pg-ind', text: 'דף 1 מתוך ' + pages.length });
+  const cur = () => Math.round(Math.abs(strip.scrollLeft) / Math.max(1, strip.clientWidth));
+  const go = d => {
+    const t = strip.children[Math.min(pages.length - 1, Math.max(0, cur() + d))];
+    if (t) t.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+  };
+  strip.addEventListener('scroll', () => {
+    const c = cur();
+    ind.textContent = 'דף ' + (c + 1) + ' מתוך ' + pages.length;
+    st.pageByTab = Object.assign(st.pageByTab || {}, { [st.tab]: c });
+  }, { passive: true });
+  const binder = el('div', { class: 'binder' }, [
+    el('div', { class: 'binder-title' }, [el('span', { text: SERIES[st.tab].name }), el('small', { text: SERIES[st.tab].sub })]),
+    strip,
+    el('div', { class: 'pg-nav' }, [
+      el('button', { class: 'btn ghost', type: 'button', text: '→ הקודם', onclick: () => go(-1) }), ind,
+      el('button', { class: 'btn ghost', type: 'button', text: 'הבא ←', onclick: () => go(1) }),
+    ]),
+  ]);
+  view.append(binder);
+  const keep = (st.pageByTab || {})[st.tab];
+  if (keep) requestAnimationFrame(() => { const t = strip.children[keep]; if (t) t.scrollIntoView({ inline: 'start', block: 'nearest' }); });
 }
 
 let toastTimer = 0;
@@ -373,7 +476,18 @@ function openMenu(msg) {
     file.value = '';
   });
   let last = ''; try { last = localStorage.getItem('album.lastBackup') || ''; } catch (e) {}
+  const sheetSel = el('select', { id: 'm-sheet' }, [
+    ['auto', 'אוטומטי לפי המטבע הגדול בדף'],
+    ['M20K', 'GRANDE M20K · 20 כיסים · עד 39.5 מ"מ'],
+    ['M12K', 'GRANDE M12K (XL) · 12 כיסים'],
+  ].map(([v, t]) => el('option', { value: v, text: t })));
+  sheetSel.value = sheetSetting();
+  sheetSel.addEventListener('change', () => { try { localStorage.setItem('album.sheet', sheetSel.value); } catch (e) {} render(); });
   body.append(
+    el('h2', { text: 'דפי האלבום' }),
+    el('div', { class: 'field' }, [el('label', { for: 'm-sheet', text: 'סוג דף GRANDE' }), sheetSel]),
+    el('p', { class: 'muted', text: 'במצב אוטומטי, כל דף מקבל את הדף הקטן ביותר שמסגרת המטבע שלו מתאימה למטבע הגדול ביותר באותו דף. בכל מסגרת יש חור בקוטר הסטנדרטי הקרוב (17.5 עד 39.5 מ"מ).' }),
+    el('hr', { class: 'sep' }),
     el('h2', { text: 'גיבוי' }),
     el('p', { class: 'muted', text: 'האוסף והתמונות שמורים רק בטלפון הזה. כדאי לשמור גיבוי מדי פעם ולשלוח אותו לעצמך (למשל במייל או בדרייב). התמונות נכללות בגיבוי.' }),
     el('p', { class: 'muted', text: 'באוסף: ' + have + ' מטבעות. ' + (last ? 'גיבוי אחרון: ' + new Date(last).toLocaleDateString('he-IL') + '.' : 'עדיין לא נשמר גיבוי.') }),
@@ -414,6 +528,7 @@ async function load() {
 $('#addBtn').addEventListener('click', openAdder);
 $('#menuBtn').addEventListener('click', () => openMenu());
 document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => { st.filter = c.dataset.f; render(); }));
+document.querySelectorAll('.vt').forEach(c => c.addEventListener('click', () => { st.view = c.dataset.v; try { localStorage.setItem('album.view', st.view); } catch (e) {} render(); }));
 for (const d of [$('#sheet'), $('#adder'), $('#menu')]) d.addEventListener('click', e => { if (e.target === d) d.close(); });
 
 render();

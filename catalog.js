@@ -37,25 +37,26 @@ const CROWN_REIGNS = [
     coins: [{ y: 1953, tag: 'הכתרה' }, { y: 1960, tag: 'תערוכה' }, { y: 1965, tag: "צ'רצ'יל" }] },
 ];
 
+const CROWN_DIAM = 38.6;   // mm
 const CROWNS = [];
 for (const r of CROWN_REIGNS) for (const c of r.coins) {
   const m = c.m || r.m;
-  CROWNS.push({ id: c.id || ('c-' + c.y), series: 'crowns', reign: r.key, y: c.y, tag: c.tag || '',
+  CROWNS.push({ id: c.id || ('c-' + c.y), series: 'crowns', reign: r.key, cypher: r.cypher, y: c.y, tag: c.tag || '', diam: CROWN_DIAM,
     rare: c.rare || '', metal: m.metal, metalName: m.metalName,
     title: 'קראון ' + c.y + (c.tag ? ' (' + c.tag + ')' : ''), sub: r.name, design: c.design || r.design });
 }
 
 const MANDATE_DENOMS = [
-  { d: 1, metal: 'bronze', metalName: 'ברונזה', holed: false, years: [1927, 1935, 1937, 1939, 1940, 1941, 1942, 1943, 1944, 1945, 1946, 1947] },
-  { d: 2, metal: 'bronze', metalName: 'ברונזה', holed: false, years: [1927, 1941, 1942, 1945, 1946, 1947] },
-  { d: 5, metal: 'cuni', metalName: 'קופרו-ניקל, מחורר', holed: true, years: [1927, 1934, 1935, 1939, 1941, 1942, 1944, 1946, 1947],
+  { d: 1, diam: 21, metal: 'bronze', metalName: 'ברונזה', holed: false, years: [1927, 1935, 1937, 1939, 1940, 1941, 1942, 1943, 1944, 1945, 1946, 1947] },
+  { d: 2, diam: 28, metal: 'bronze', metalName: 'ברונזה', holed: false, years: [1927, 1941, 1942, 1945, 1946, 1947] },
+  { d: 5, diam: 20, metal: 'cuni', metalName: 'קופרו-ניקל, מחורר', holed: true, years: [1927, 1934, 1935, 1939, 1941, 1942, 1944, 1946, 1947],
     war: { 1942: 'bronze', 1944: 'bronze' } },
-  { d: 10, metal: 'cuni', metalName: 'קופרו-ניקל, מחורר', holed: true, years: [1927, 1933, 1934, 1935, 1937, 1939, 1940, 1941, 1942, 1943, 1946, 1947],
+  { d: 10, diam: 27, metal: 'cuni', metalName: 'קופרו-ניקל, מחורר', holed: true, years: [1927, 1933, 1934, 1935, 1937, 1939, 1940, 1941, 1942, 1943, 1946, 1947],
     war: { 1943: 'bronze' }, both: [1942] },
-  { d: 20, metal: 'cuni', metalName: 'קופרו-ניקל, מחורר', holed: true, years: [1927, 1933, 1934, 1935, 1940, 1941, 1942, 1944],
+  { d: 20, diam: 30.5, metal: 'cuni', metalName: 'קופרו-ניקל, מחורר', holed: true, years: [1927, 1933, 1934, 1935, 1940, 1941, 1942, 1944],
     war: { 1942: 'bronze', 1944: 'bronze' } },
-  { d: 50, metal: 'silver', metalName: 'כסף 720', holed: false, years: [1927, 1931, 1933, 1934, 1935, 1939, 1940, 1942] },
-  { d: 100, metal: 'silver', metalName: 'כסף 720', holed: false, years: [1927, 1931, 1933, 1934, 1935, 1939, 1940, 1942] },
+  { d: 50, diam: 23.6, metal: 'silver', metalName: 'כסף 720', holed: false, years: [1927, 1931, 1933, 1934, 1935, 1939, 1940, 1942] },
+  { d: 100, diam: 29, metal: 'silver', metalName: 'כסף 720', holed: false, years: [1927, 1931, 1933, 1934, 1935, 1939, 1940, 1942] },
 ];
 
 const MANDATE = [];
@@ -67,7 +68,7 @@ for (const den of MANDATE_DENOMS) for (const y of den.years) {
     if (y === 1947) rare = den.d === 1 ? 'רוב ההנפקה הותכה, ידועים כ-5 עותקים' : 'רוב ההנפקה הותכה, נדיר מאוד';
     if (den.d === 1 && y === 1945) rare = 'שנה שלא מופיעה בכל הקטלוגים, לאמת';
     const metalName = metal === den.metal ? den.metalName : (METAL_NAME[metal] + (den.holed ? ', מחורר (הנפקת מלחמה)' : ''));
-    MANDATE.push({ id: 'm-' + den.d + '-' + y + (isAlt ? 'b' : ''), series: 'mandate', d: den.d, y, metal, metalName,
+    MANDATE.push({ id: 'm-' + den.d + '-' + y + (isAlt ? 'b' : ''), series: 'mandate', d: den.d, y, metal, metalName, diam: den.diam,
       holed: den.holed, tag: variants.length > 1 ? METAL_NAME[metal] : '', rare,
       title: den.d + (den.d === 1 ? ' מיל ' : ' מילים ') + y + (variants.length > 1 ? ' (' + METAL_NAME[metal] + ')' : ''),
       sub: 'מנדט בריטי, פלשתינה (א"י)' });
@@ -83,3 +84,14 @@ const GRADES = ['', 'G', 'VG', 'F', 'VF', 'XF', 'AU', 'UNC', 'פרוף'];
 
 // Crown years already in the collection (from the silver sheet) — offered once on first launch.
 const STARTER_OWNED = ['c-1822', 'c-1887', 'c-1889', 'c-1891', 'c-1894', 'c-1897', 'c-1935'];
+
+// Album pages follow the LEUCHTTURM GRANDE coin system (sheet 242 x 312 mm): coins sit in cardboard
+// coin holders, and the sheet's pockets hold the holders. Two coin sheets exist:
+//   M20K: 20 pockets for 50 x 50 mm holders (window 17.5 - 39.5 mm)
+//   M12K: 12 pockets for XL holders (67 x 67 mm), for coins too big for a 39.5 mm window.
+const ALBUM_PAGE = { w: 242, h: 312 };
+const SHEET_TYPES = {
+  M20K: { key: 'M20K', name: 'GRANDE M20K', pockets: 20, cols: 4, rows: 5, holder: 50, maxWindow: 39.5 },
+  M12K: { key: 'M12K', name: 'GRANDE M12K (XL)', pockets: 12, cols: 3, rows: 4, holder: 67, maxWindow: 60 },
+};
+const HOLDER_WINDOWS = [17.5, 20, 22.5, 25, 27.5, 30, 32.5, 35, 37.5, 39.5];   // 50 x 50 mm holders
