@@ -145,7 +145,7 @@ const Photo = (() => {
   }
 
   /** Opens the crop dialog for `file`. Resolves a Blob (round crop) or null if cancelled. */
-  async function crop(file, dlg, body, el) {
+  async function crop(file, dlg, body, el, heading) {
     const bmp = await loadBitmap(file);
     let c = detect(bmp);
     const auto = { ...c };
@@ -160,7 +160,7 @@ const Photo = (() => {
       const done = v => { dlg.close(); resolve(v); };
       const saveBtn = el('button', { class: 'btn accent', type: 'button', text: 'שמור תמונה' });
       body.append(
-        el('h2', { text: 'חיתוך המטבע' }),
+        el('h2', { text: heading || 'חיתוך המטבע' }),
         el('p', { class: 'muted', text: 'העיגול הזהוב סומן אוטומטית סביב המטבע. גרור אותו או שנה את הגודל אם צריך.' }),
         stage,
         el('div', { class: 'field' }, [el('label', { for: 'crop-size', text: 'גודל העיגול' }), size]),

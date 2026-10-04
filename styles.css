@@ -369,3 +369,51 @@ hr.sep { border: 0; border-top: 1px solid var(--line); margin-block: 0; }
 .cover-hint { font-size: 12px; color: rgba(246, 231, 220, .65); }
 .desk .pg-nav .btn.ghost { color: var(--ink); border-color: var(--line); background: var(--paper-2); }
 .desk .pg-ind { color: var(--muted); }
+
+/* two-sided photos in the coin card */
+.ph-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ph { margin: 0; display: grid; justify-items: center; gap: 4px; }
+.ph img, .ph-missing { width: min(120px, 100%); aspect-ratio: 1; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 8px rgba(0, 0, 0, .25); }
+.ph-missing { display: grid; place-items: center; background: var(--line); color: var(--muted); font-weight: 700; font-size: 22px; box-shadow: none; }
+.ph figcaption { font-size: 12px; color: var(--muted); font-weight: 700; }
+.step { font-size: 12px; font-weight: 700; color: var(--accent); letter-spacing: .04em; }
+#cropperBody > h2:first-child, #cropperBody > .step:first-child { margin-top: 20px; }
+
+/* ---------- full-screen reading mode ---------- */
+#reader { position: fixed; inset: 0; z-index: 40; overflow: hidden; touch-action: none;
+  background: radial-gradient(120% 90% at 50% 40%, #3a2418, #1a0f0a 70%, #0d0705); }
+body.reading { overflow: hidden; }
+.reader-stage { position: absolute; left: 50%; top: 50%; display: grid; place-items: center; transform-origin: center; }
+.reader-stage .desk { gap: 10px; }
+.reader-x { position: absolute; top: calc(10px + env(safe-area-inset-top, 0px)); inset-inline-end: 12px; z-index: 2; width: 42px; height: 42px; border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, .25); background: rgba(0, 0, 0, .45); color: #f6e7dc; font-size: 18px; }
+#reader .pg-nav .btn.ghost { background: rgba(255, 255, 255, .08); color: #f6e7dc; border-color: rgba(255, 255, 255, .22); }
+#reader .pg-ind { color: rgba(246, 231, 220, .85); }
+
+/* sizes inside the book follow the page, not the screen */
+.book .pg, .cover { container-type: inline-size; }
+.book .pg-title { font-size: 5.6cqw; }
+.book .pg-meta, .book .pg-foot { font-size: 3.6cqw; }
+.book .hl-lbl { font-size: 3cqw; }
+.book .hl-mm { font-size: 2.2cqw; }
+.book .window .coin { font-size: 3.4cqw; }
+.book .lining-inner b { font-size: 7cqw; }
+.book .lining-inner span { font-size: 4cqw; }
+.cover-kicker { font-size: 4cqw; }
+.cover-name { font-size: 11cqw; }
+.cover-sub { font-size: 4.4cqw; }
+.cover-count { font-size: 7cqw; }
+.cover-hint { font-size: 3.8cqw; }
+#reader .desk { gap: 6px; }
+#reader .pg-nav { gap: 8px; }
+#reader .pg-nav .btn { padding: 5px 12px; font-size: 13px; }
+#reader .pg-ind { font-size: 13px; min-width: 80px; }
+/* reading mode: turn arrows at the sides, page number under the book, book takes the rest */
+#reader .desk { position: relative; width: 100%; height: 100%; display: grid; place-items: center; padding-bottom: 22px; }
+#reader .pg-nav { position: absolute; inset: 0; display: flex; justify-content: space-between; align-items: center; padding-inline: 8px; pointer-events: none; }
+#reader .pg-nav > * { pointer-events: auto; }
+#reader .pg-nav .btn { width: 52px; height: 52px; padding: 0; border-radius: 50%; font-size: 0; position: relative; }
+#reader .pg-nav .btn::before { font-size: 26px; line-height: 52px; }
+#reader .pg-nav .btn:first-child::before { content: "›"; }   /* back: toward the right (Hebrew book) */
+#reader .pg-nav .btn:last-child::before { content: "‹"; }    /* forward: toward the left */
+#reader .pg-ind { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); }

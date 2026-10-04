@@ -144,7 +144,10 @@ function render() {
   document.querySelectorAll('.vt').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.v === st.view)));
   $('.chips').hidden = st.view === 'album';
   const view = $('#view'); view.textContent = '';
-  if (st.view === 'album') renderAlbum(view);
+  if (st.view === 'album') {
+    renderAlbum(view, false);
+    if (st.reader) { const stg = $('#readerStage'); stg.textContent = ''; renderAlbum(stg, true); layoutReader(); }
+  }
   else { if (st.tab === 'crowns') renderCrowns(view); else renderMandate(view); renderExtras(view); }
   st.justAdded = null;
 }
@@ -232,7 +235,8 @@ function pageBack(p, i) {
     const it = p.items[r * p.sheet.cols + c];
     if (it && st.owned.has(it.id)) {
       const win = windowFor(it.diam || 25, p.sheet);
-      const coin = el('span', { class: 'coin' + (it.holed ? ' holed' : '') });
+      const rev = st.photos.get(it.id + REV);
+      const coin = el('span', { class: 'coin' + (it.holed ? ' holed' : '') + (rev ? ' has-photo' : '') }, rev ? [el('img', { src: rev, alt: '' })] : []);
       coin.style.width = coin.style.height = ((it.diam || 25) / win * 100) + '%';
       cells.push(el('span', { class: 'pocket own back-holder slot m-' + it.metal }, [el('span', { class: 'holder' }, [
         el('span', { class: 'window', style: '--w:' + (win / p.sheet.holder * 100) + '%' }, [coin]),
@@ -255,14 +259,15 @@ function coverInside() {
   ])]);
 }
 
-function renderAlbum(view) {
+function renderAlbum(view, inReader) {
   const pages = albumPages(st.tab);
   st.book = st.book || {};
   const bk = st.book[st.tab] = st.book[st.tab] || { open: false, p: 0 };
   bk.p = Math.min(bk.p, pages.length - 1);
+  const isOpen = inReader && bk.open;   // outside reading mode the album shows its closed cover
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const book = el('div', { class: 'book' + (bk.open ? ' open' : ''), role: 'region', 'aria-label': 'אלבום ' + SERIES[st.tab].name });
+  const book = el('div', { class: 'book' + (isOpen ? ' open' : ''), role: 'region', 'aria-label': 'אלבום ' + SERIES[st.tab].name });
   const right = el('div', { class: 'side right' }), left = el('div', { class: 'side left' });
   const ind = el('span', { class: 'pg-ind' });
   let busy = false;
@@ -334,9 +339,10 @@ function renderAlbum(view) {
   const prev = el('button', { class: 'btn ghost', type: 'button', text: '→ אחורה', onclick: backward });
   const next = el('button', { class: 'btn ghost', type: 'button', text: 'קדימה ←', onclick: forward });
 
-  if (!bk.open) {
+  if (!isOpen) {
     book.append(cover);
     cover.addEventListener('click', async () => {
+      if (!inReader) { enterReader(); return; }
       if (busy) return; busy = true;
       book.classList.add('open');
       cover.remove();
@@ -355,15 +361,62 @@ function renderAlbum(view) {
   book.addEventListener('pointerdown', e => { if (bk.open) { sx = e.clientX; sy = e.clientY; } });
   book.addEventListener('pointerup', e => {
     if (sx === null) return;
-    const dx = e.clientX - sx, dy = e.clientY - sy; sx = null;
+    let dx = e.clientX - sx, dy = e.clientY - sy; sx = null;
+    if (inReader && reader.rotated) [dx, dy] = [dy, -dx];   // the book is turned 90 degrees on screen
     if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.3) { dx > 0 ? forward() : backward(); }
   });
 
   const nav = el('div', { class: 'pg-nav' }, [prev, ind, next]);
-  nav.hidden = !bk.open;
+  nav.hidden = !isOpen;
   view.append(el('div', { class: 'desk' }, [book, nav]));
-  if (bk.open) paint();
+  if (isOpen) paint();
+  if (inReader && !isOpen && bk.autoOpen) { bk.autoOpen = false; setTimeout(() => cover.click(), 60); }
 }
+
+/* ---------- full-screen reading mode ---------- */
+// The open book is wider than tall (two sheets side by side), so a phone held upright is the wrong shape.
+// Reading mode goes full screen and asks for landscape; where the phone can't lock orientation,
+// the book itself is turned 90 degrees and the reader turns the phone.
+const reader = { rotated: false, pushed: false };
+function enterReader() {
+  const bk = st.book[st.tab];
+  st.reader = true; bk.autoOpen = true;
+  $('#reader').hidden = false; document.body.classList.add('reading');
+  const de = document.documentElement;
+  if (de.requestFullscreen && !document.fullscreenElement) {
+    de.requestFullscreen({ navigationUI: 'hide' })
+      .then(() => screen.orientation && screen.orientation.lock ? screen.orientation.lock('landscape') : null)
+      .catch(() => {}).finally(layoutReader);
+  }
+  try { history.pushState({ reader: 1 }, ''); reader.pushed = true; } catch (e) {}
+  render();
+}
+function exitReader(fromHistory) {
+  if (!st.reader) return;
+  st.reader = false;
+  const bk = st.book[st.tab]; if (bk) bk.open = false;
+  $('#reader').hidden = true; $('#readerStage').textContent = ''; document.body.classList.remove('reading');
+  try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {}
+  if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+  if (reader.pushed && !fromHistory) { reader.pushed = false; history.back(); } else reader.pushed = false;
+  render();
+}
+function layoutReader() {
+  if (!st.reader) return;
+  const stage = $('#readerStage'), W = window.innerWidth, H = window.innerHeight;
+  reader.rotated = H > W * 1.05;
+  const sw = reader.rotated ? H : W, sh = reader.rotated ? W : H;
+  stage.style.width = sw + 'px'; stage.style.height = sh + 'px';
+  stage.style.transform = 'translate(-50%, -50%)' + (reader.rotated ? ' rotate(90deg)' : '');
+  const book = stage.querySelector('.book');
+  if (book) {
+    const pw = Math.max(80, Math.min((sw - 132) / 2, (sh - 34) * 242 / 312));   // side arrows + page number below
+    book.style.setProperty('--pw', pw + 'px');
+  }
+}
+window.addEventListener('resize', layoutReader);
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && st.reader) exitReader(false); });
+window.addEventListener('popstate', () => { if (st.reader) { reader.pushed = false; exitReader(true); } });
 
 let toastTimer = 0;
 function toast(text) {
@@ -449,50 +502,98 @@ async function saveOwned(item, v, msgEl, btn) {
 async function removeOwned(item, msgEl) {
   try {
     await Store.del('owned', item.id); st.owned.delete(item.id);
-    await Store.del('photos', item.id); setPhotoUrl(item.id, null);
+    await deletePhotos(item.id);
     if (item.custom) { await Store.del('extras', item.extraId); st.extras.delete(item.extraId); $('#sheet').close(); render(); return; }
     render(); openSheet(item.id, 'הוסר מהאוסף.');
   } catch (e) { msgEl.className = 'msg err'; msgEl.textContent = 'ההסרה נכשלה. נסה שוב.'; }
 }
 
-/* ---------- photos ---------- */
-function setPhotoUrl(id, blob) {
-  const old = st.photos.get(id); if (old) URL.revokeObjectURL(old);
-  if (blob) st.photos.set(id, URL.createObjectURL(blob)); else st.photos.delete(id);
+/* ---------- photos (obverse + reverse) ---------- */
+const REV = ':r';                       // photos store key suffix for the reverse side
+function setPhotoUrl(key, blob) {
+  const old = st.photos.get(key); if (old) URL.revokeObjectURL(old);
+  if (blob) st.photos.set(key, URL.createObjectURL(blob)); else st.photos.delete(key);
+}
+async function deletePhotos(id) {
+  for (const k of [id, id + REV]) { await Store.del('photos', k); setPhotoUrl(k, null); }
 }
 function photoSection(item) {
-  const has = st.owned.has(item.id) && st.photos.has(item.id);
+  const own = st.owned.has(item.id);
+  const front = own && st.photos.get(item.id), back = own && st.photos.get(item.id + REV);
   const input = el('input', { type: 'file', accept: 'image/*', hidden: true });
+  let mode = 'both';
   input.addEventListener('change', async () => {
     const f = input.files && input.files[0]; input.value = '';
-    if (f) await takePhoto(item, f);
+    if (f) await takePhotos(item, f, mode);
   });
-  const pick = el('button', { class: 'btn ' + (has ? '' : 'accent'), type: 'button', text: has ? 'החלף תמונה' : '📷 צלם או בחר תמונה', onclick: () => input.click() });
+  const pick = m => { mode = m; input.click(); };
   const kids = [input];
-  if (has) {
-    const del = el('button', { class: 'btn danger', type: 'button', text: 'מחק תמונה', onclick: async () => {
-      await Store.del('photos', item.id); setPhotoUrl(item.id, null); render(); openSheet(item.id, 'התמונה נמחקה.');
-    } });
-    kids.push(el('div', { class: 'confirm' }, [pick, del]));
+  if (front || back) {
+    const thumb = (url, t) => el('figure', { class: 'ph' }, [url ? el('img', { src: url, alt: t }) : el('span', { class: 'ph-missing', text: '?' }), el('figcaption', { text: t })]);
+    kids.push(el('div', { class: 'ph-pair' }, [thumb(front, 'צד קדמי'), thumb(back, 'צד אחורי')]));
+    const row = [el('button', { class: 'btn', type: 'button', text: 'צלם מחדש את שני הצדדים', onclick: () => pick('both') })];
+    if (!back) row.unshift(el('button', { class: 'btn accent', type: 'button', text: '📷 הוסף צד אחורי', onclick: () => pick('back') }));
+    row.push(el('button', { class: 'btn danger', type: 'button', text: 'מחק תמונות', onclick: async () => {
+      await deletePhotos(item.id); render(); openSheet(item.id, 'התמונות נמחקו.');
+    } }));
+    kids.push(el('div', { class: 'confirm' }, row));
   } else {
-    kids.push(el('div', { class: 'photo-cta' }, [pick, el('span', { class: 'muted', text: 'המטבע יזוהה ויחתך אוטומטית. רק העיגול שלו נשמר.' })]));
+    kids.push(el('div', { class: 'photo-cta' }, [
+      el('button', { class: 'btn accent', type: 'button', text: '📷 צלם את המטבע (2 צדדים)', onclick: () => pick('both') }),
+      el('span', { class: 'muted', text: 'קודם הצד הקדמי, אחר כך הצד האחורי. המטבע יזוהה ויחתך אוטומטית.' }),
+    ]));
   }
   return el('div', { class: 'photo-slot' }, kids);
 }
-async function takePhoto(item, file) {
-  let blob;
-  try { blob = await Photo.crop(file, $('#cropper'), $('#cropperBody'), el); }
-  catch (e) { toast('לא הצלחתי לפתוח את התמונה. נסה תמונה אחרת.'); return; }
-  if (!blob) return;
+// Step 2 needs its own tap to open the camera, so ask for it in the cropper dialog.
+function askForSecondSide() {
+  return new Promise(resolve => {
+    const dlg = $('#cropper'), body = $('#cropperBody');
+    const input = el('input', { type: 'file', accept: 'image/*', hidden: true });
+    let done = false;
+    const finish = v => { if (done) return; done = true; if (dlg.open) dlg.close(); resolve(v); };
+    input.addEventListener('change', () => finish(input.files && input.files[0] || null));
+    body.textContent = '';
+    body.append(
+      el('span', { class: 'step', text: 'שלב 2 מתוך 2' }),
+      el('h2', { text: 'עכשיו הצד האחורי' }),
+      el('p', { class: 'muted', text: 'הפוך את המטבע וצלם את הצד השני. התמונה שלו תופיע בגב הדף באלבום.' }),
+      input,
+      el('div', { class: 'confirm' }, [
+        el('button', { class: 'btn accent', type: 'button', text: '📷 צלם או בחר את הצד האחורי', onclick: () => input.click() }),
+        el('button', { class: 'btn', type: 'button', text: 'ביטול', onclick: () => finish(null) }),
+      ]),
+    );
+    dlg.addEventListener('cancel', () => finish(null), { once: true });
+    dlg.showModal();
+  });
+}
+async function takePhotos(item, firstFile, mode) {
+  const dlg = $('#cropper'), body = $('#cropperBody');
+  let front = null, back = null;
   try {
-    await Store.put('photos', item.id, blob); setPhotoUrl(item.id, blob);
+    if (mode === 'back') {
+      back = await Photo.crop(firstFile, dlg, body, el, 'הצד האחורי');
+      if (!back) return;
+    } else {
+      front = await Photo.crop(firstFile, dlg, body, el, 'שלב 1 מתוך 2: הצד הקדמי');
+      if (!front) return;
+      const second = await askForSecondSide();
+      if (!second) { toast('לא נשמר. צריך לצלם את שני הצדדים.'); return; }
+      back = await Photo.crop(second, dlg, body, el, 'שלב 2 מתוך 2: הצד האחורי');
+      if (!back) { toast('לא נשמר. צריך לצלם את שני הצדדים.'); return; }
+    }
+  } catch (e) { toast('לא הצלחתי לפתוח את התמונה. נסה תמונה אחרת.'); return; }
+  try {
+    if (front) { await Store.put('photos', item.id, front); setPhotoUrl(item.id, front); }
+    await Store.put('photos', item.id + REV, back); setPhotoUrl(item.id + REV, back);
     const isNew = !st.owned.has(item.id);
     if (isNew) {
       const rec = { series: item.series, grade: '', paid: null, acquired: '', note: '', updatedAt: nowIso() };
       await Store.put('owned', item.id, rec); st.owned.set(item.id, rec); st.justAdded = item.id;
     }
-    render(); openSheet(item.id, isNew ? 'התמונה נשמרה והמטבע נכנס לאלבום.' : 'התמונה נשמרה.');
-  } catch (e) { toast('שמירת התמונה נכשלה. ייתכן שהזיכרון בטלפון מלא.'); }
+    render(); openSheet(item.id, isNew ? 'שני הצדדים נשמרו והמטבע נכנס לאלבום.' : 'התמונות נשמרו.');
+  } catch (e) { toast('שמירת התמונות נכשלה. ייתכן שהזיכרון בטלפון מלא.'); }
 }
 
 /* ---------- add dialog ---------- */
@@ -642,6 +743,7 @@ async function load() {
 }
 
 $('#addBtn').addEventListener('click', openAdder);
+$('#readerClose').addEventListener('click', () => exitReader(false));
 $('#menuBtn').addEventListener('click', () => openMenu());
 document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => { st.filter = c.dataset.f; render(); }));
 document.querySelectorAll('.vt').forEach(c => c.addEventListener('click', () => { st.view = c.dataset.v; try { localStorage.setItem('album.view', st.view); } catch (e) {} render(); }));
