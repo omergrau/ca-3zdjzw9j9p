@@ -429,10 +429,58 @@ function renderAlbum(view, inReader) {
 // The open book is wider than tall (two sheets side by side), so a phone held upright is the wrong shape.
 // Reading mode goes full screen and asks for landscape; where the phone can't lock orientation,
 // the book itself is turned 90 degrees and the reader turns the phone.
-const reader = { rotated: false, pushed: false };
+const reader = { rotated: false, pushed: false, zoom: 1, panX: 0, panY: 0 };
+
+function resetReaderZoom() {
+  reader.zoom = 1; reader.panX = 0; reader.panY = 0;
+  applyReaderZoom();
+}
+function applyReaderZoom() {
+  const desk = $('#readerStage .desk'); if (!desk) return;
+  desk.style.setProperty('--reader-zoom', String(reader.zoom));
+  desk.style.setProperty('--reader-pan-x', reader.panX + 'px');
+  desk.style.setProperty('--reader-pan-y', reader.panY + 'px');
+  desk.classList.toggle('zoomed', reader.zoom > 1.01);
+}
+function installReaderZoom() {
+  const stage = $('#readerStage'); if (!stage || stage.dataset.zoomReady) return;
+  stage.dataset.zoomReady = '1';
+  const pts = new Map();
+  let startDist = 0, startZoom = 1, startPanX = 0, startPanY = 0, startMid = null, lastTap = 0;
+  const dist = () => { const p=[...pts.values()]; return p.length<2 ? 0 : Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y); };
+  const mid = () => { const p=[...pts.values()]; return p.length<2 ? null : {x:(p[0].x+p[1].x)/2,y:(p[0].y+p[1].y)/2}; };
+  stage.addEventListener('pointerdown', e => {
+    if (!st.reader) return;
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY}); stage.setPointerCapture?.(e.pointerId);
+    if (pts.size===2) { startDist=dist(); startZoom=reader.zoom; startPanX=reader.panX; startPanY=reader.panY; startMid=mid(); }
+  });
+  stage.addEventListener('pointermove', e => {
+    if (!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if (pts.size===2 && startDist) {
+      const m=mid(); reader.zoom=Math.max(1,Math.min(3.5,startZoom*dist()/startDist));
+      reader.panX=startPanX+(m.x-startMid.x); reader.panY=startPanY+(m.y-startMid.y);
+      if (reader.zoom<=1.01) { reader.zoom=1; reader.panX=reader.panY=0; }
+      applyReaderZoom(); e.preventDefault();
+    }
+  }, {passive:false});
+  const end = e => { pts.delete(e.pointerId); if (pts.size<2) startDist=0; };
+  stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', end);
+  stage.addEventListener('dblclick', e => {
+    if (!st.reader || e.target.closest('.pg-nav,.reader-x')) return;
+    if (reader.zoom>1.01) resetReaderZoom();
+    else { reader.zoom=2; reader.panX=reader.panY=0; applyReaderZoom(); }
+  });
+  stage.addEventListener('wheel', e => {
+    if (!st.reader || (!e.ctrlKey && Math.abs(e.deltaY)<1)) return;
+    reader.zoom=Math.max(1,Math.min(3.5,reader.zoom*(e.deltaY<0?1.12:.89)));
+    if (reader.zoom<=1.01) { reader.zoom=1; reader.panX=reader.panY=0; }
+    applyReaderZoom(); e.preventDefault();
+  }, {passive:false});
+}
 function enterReader() {
   const bk = st.book[st.tab];
-  st.reader = true; bk.autoOpen = true;
+  st.reader = true; bk.autoOpen = true; resetReaderZoom(); installReaderZoom();
   $('#reader').hidden = false; document.body.classList.add('reading');
   const de = document.documentElement;
   if (de.requestFullscreen && !document.fullscreenElement) {
@@ -445,7 +493,7 @@ function enterReader() {
 }
 function exitReader(fromHistory) {
   if (!st.reader) return;
-  st.reader = false;
+  st.reader = false; resetReaderZoom();
   const bk = st.book[st.tab]; if (bk) bk.open = false;
   $('#reader').hidden = true; $('#readerStage').textContent = ''; document.body.classList.remove('reading');
   // turn the screen back upright first (a lock only works while still full screen), then leave full screen;
@@ -472,6 +520,7 @@ function layoutReader() {
     const pw = Math.max(80, Math.min((sw - 132) / 2, (sh - 34) * 242 / 312));   // side arrows + page number below
     book.style.setProperty('--pw', pw + 'px');
   }
+  applyReaderZoom();
 }
 window.addEventListener('resize', layoutReader);
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && st.reader) exitReader(false); });
