@@ -446,14 +446,23 @@ const reader = { rotated: false, pushed: false, zoom: 1, panX: 0, panY: 0 };
 
 function resetReaderZoom() {
   reader.zoom = 1; reader.panX = 0; reader.panY = 0;
-  applyReaderZoom();
+  applyReaderZoom(true);
 }
-function applyReaderZoom() {
-  const desk = $('#readerStage .desk'); if (!desk) return;
-  desk.style.setProperty('--reader-zoom', String(reader.zoom));
-  desk.style.setProperty('--reader-pan-x', reader.panX + 'px');
-  desk.style.setProperty('--reader-pan-y', reader.panY + 'px');
-  desk.classList.toggle('zoomed', reader.zoom > 1.01);
+let readerZoomFrame = 0;
+function applyReaderZoom(immediate = false) {
+  const paint = () => {
+    readerZoomFrame = 0;
+    const desk = $('#readerStage .desk'); if (!desk) return;
+    desk.style.setProperty('--reader-zoom', String(reader.zoom));
+    desk.style.setProperty('--reader-pan-x', reader.panX + 'px');
+    desk.style.setProperty('--reader-pan-y', reader.panY + 'px');
+    desk.classList.toggle('zoomed', reader.zoom > 1.01);
+  };
+  if (immediate) {
+    if (readerZoomFrame) cancelAnimationFrame(readerZoomFrame);
+    paint(); return;
+  }
+  if (!readerZoomFrame) readerZoomFrame = requestAnimationFrame(paint);
 }
 function installReaderZoom() {
   const stage = $('#readerStage'); if (!stage || stage.dataset.zoomReady) return;
