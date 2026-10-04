@@ -585,7 +585,8 @@ function installReaderZoom() {
   const stage = $('#readerStage'); if (!stage || stage.dataset.zoomReady) return;
   stage.dataset.zoomReady = '1';
   let touches = new Map(), pinch = false, startDist = 0, startZoom = 1, startPanX = 0, startPanY = 0, startMid = null;
-  let swipeStart = null, panStart = null;
+  let swipeStart = null, panStart = null, gestureMoved = false, suppressClickUntil = 0;
+  const TAP_SLOP = 8;
 
   const vals = () => [...touches.values()];
   const dist = () => { const p=vals(); return p.length<2 ? 0 : Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y); };
@@ -596,7 +597,7 @@ function installReaderZoom() {
     touches.clear();
     for (const t of e.touches) touches.set(t.identifier,{x:t.clientX,y:t.clientY});
     if (e.touches.length === 1) {
-      pinch = false;
+      pinch = false; gestureMoved = false;
       const p = { x:e.touches[0].clientX, y:e.touches[0].clientY };
       if (reader.zoom > 1.01) {
         swipeStart = null;
@@ -607,7 +608,7 @@ function installReaderZoom() {
         swipeStart = p;
       }
     } else if (e.touches.length >= 2) {
-      pinch = true; swipeStart = null;
+      pinch = true; gestureMoved = true; swipeStart = null; panStart = null;
       stage.classList.add('pinching');
       startDist=dist(); startZoom=reader.zoom; startPanX=reader.panX; startPanY=reader.panY; startMid=mid();
       e.preventDefault();
@@ -618,19 +619,23 @@ function installReaderZoom() {
     touches.clear();
     for (const t of e.touches) touches.set(t.identifier,{x:t.clientX,y:t.clientY});
     if (pinch && e.touches.length >= 2 && startDist) {
+      gestureMoved = true;
       const m=mid(); reader.zoom=Math.max(1,Math.min(3.5,startZoom*dist()/startDist));
       reader.panX=startPanX+(m.x-startMid.x); reader.panY=startPanY+(m.y-startMid.y);
       if (reader.zoom<=1.01) { reader.zoom=1; reader.panX=reader.panY=0; }
       applyReaderZoom(); e.preventDefault();
     } else if (!pinch && panStart && e.touches.length === 1 && reader.zoom > 1.01) {
-      reader.panX = panStart.panX + (e.touches[0].clientX - panStart.x);
-      reader.panY = panStart.panY + (e.touches[0].clientY - panStart.y);
+      const dx = e.touches[0].clientX - panStart.x, dy = e.touches[0].clientY - panStart.y;
+      if (Math.hypot(dx, dy) > TAP_SLOP) gestureMoved = true;
+      reader.panX = panStart.panX + dx;
+      reader.panY = panStart.panY + dy;
       applyReaderZoom(); e.preventDefault();
     }
   }, {passive:false});
 
   stage.addEventListener('touchend', e => {
     if (!st.reader) return;
+    if (gestureMoved || pinch) suppressClickUntil = performance.now() + 450;
     if (!pinch && reader.zoom <= 1.01 && swipeStart && e.changedTouches.length === 1) {
       let dx=e.changedTouches[0].clientX-swipeStart.x, dy=e.changedTouches[0].clientY-swipeStart.y;
       if (reader.rotated) [dx,dy]=[dy,-dx];
@@ -647,7 +652,15 @@ function installReaderZoom() {
     if (e.touches.length < 2) { pinch=false; startDist=0; stage.classList.remove('pinching'); applyReaderZoom(true); }
     if (!e.touches.length) { touches.clear(); swipeStart=null; panStart=null; }
   }, {passive:false});
-  stage.addEventListener('touchcancel', () => { touches.clear(); pinch=false; startDist=0; swipeStart=null; panStart=null; stage.classList.remove('pinching'); applyReaderZoom(true); });
+  stage.addEventListener('touchcancel', () => { touches.clear(); pinch=false; gestureMoved=false; startDist=0; swipeStart=null; panStart=null; stage.classList.remove('pinching'); applyReaderZoom(true); });
+
+  stage.addEventListener('click', e => {
+    if (performance.now() < suppressClickUntil) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+    }
+  }, true);
 
   stage.addEventListener('dblclick', e => {
     if (!st.reader || e.target.closest('.pg-nav,.reader-x')) return;
