@@ -1056,10 +1056,49 @@ function libraryContent(onDone) {
   return [el('div', { class: 'lib-grid' }, cards), own];
 }
 function openLibrary() {
-  const body = $('#adderBody'); body.textContent = '';
-  body.append(el('h2', { text: 'אוסף חדש' }), el('p', { class: 'muted', text: 'בחר קטלוג מוכן מהספרייה, או צור אוסף משלך.' }),
-    ...libraryContent(() => $('#adder').close()),
-    el('div', { class: 'confirm' }, [el('button', { class: 'btn', type: 'button', text: 'סגור', onclick: () => $('#adder').close() })]));
+  const body = $('#adderBody');
+  const close = () => $('#adder').close();
+
+  function shell(title, sub, content, back) {
+    body.textContent = '';
+    body.append(
+      el('h2', { text: title }),
+      el('p', { class: 'muted', text: sub }),
+      content,
+      el('div', { class: 'confirm' }, [
+        ...(back ? [el('button', { class: 'btn', type: 'button', text: '→ חזרה', onclick: back })] : []),
+        el('button', { class: 'btn', type: 'button', text: 'סגור', onclick: close }),
+      ])
+    );
+  }
+
+  function showCatalogs() {
+    const cards = libraryContent(close)[0];
+    shell('אוסף מהמאגר', 'בחר אחד מהקטלוגים המוכנים והוסף אותו לאלבומים שלך.', cards, choose);
+  }
+
+  function showOwn() {
+    const own = libraryContent(close)[1];
+    shell('אוסף בעיצוב אישי', 'צור אלבום משלך ותוסיף אליו את המטבעות שאתה רוצה.', own, choose);
+  }
+
+  function choose() {
+    const choices = el('div', { class: 'lib-grid collection-choices' }, [
+      el('button', { class: 'lib-choice', type: 'button', onclick: showOwn }, [
+        el('span', { class: 'lib-choice-icon', 'aria-hidden': 'true', text: '✦' }),
+        el('b', { text: 'אוסף בעיצוב אישי' }),
+        el('span', { text: 'צור אוסף משלך, עם שם ותוכן שאתה קובע.' }),
+      ]),
+      el('button', { class: 'lib-choice', type: 'button', onclick: showCatalogs }, [
+        el('span', { class: 'lib-choice-icon', 'aria-hidden': 'true', text: '▦' }),
+        el('b', { text: 'אוסף קיים מהמאגר' }),
+        el('span', { text: 'בחר מנדט, פרוטה, קראונים וקטלוגים מוכנים נוספים.' }),
+      ]),
+    ]);
+    shell('אוסף חדש', 'איך תרצה להתחיל את האוסף?', choices, null);
+  }
+
+  choose();
   if (!$('#adder').open) $('#adder').showModal();
 }
 function welcome() {
