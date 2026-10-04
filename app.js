@@ -460,7 +460,7 @@ function renderAlbum(view, inReader) {
   let sx = null, sy = 0;
   let swipePointer = null, swipeBlocked = false;
   book.addEventListener('pointerdown', e => {
-    if (!bk.open) return;
+    if ((!bk.open && !(singlePage && inReader)) || (inReader && reader.zoom > 1.01)) return;
     // One finger owns page turning. A second finger cancels the pending swipe so pinch-zoom can take over.
     if (swipePointer !== null && swipePointer !== e.pointerId) { swipeBlocked = true; sx = null; return; }
     swipePointer = e.pointerId; swipeBlocked = false; sx = e.clientX; sy = e.clientY;
@@ -468,10 +468,13 @@ function renderAlbum(view, inReader) {
   book.addEventListener('pointerup', e => {
     if (e.pointerId !== swipePointer) return;
     const blocked = swipeBlocked; swipePointer = null; swipeBlocked = false;
-    if (sx === null || blocked) { sx = null; return; }
+    if (sx === null || blocked || (inReader && reader.zoom > 1.01)) { sx = null; return; }
     let dx = e.clientX - sx, dy = e.clientY - sy; sx = null;
-    if (inReader && reader.rotated) [dx, dy] = [dy, -dx];   // the book is turned 90 degrees on screen
-    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.3) { dx > 0 ? forward() : backward(); }
+    if (inReader && reader.rotated) [dx, dy] = [dy, -dx];
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.3) {
+      if (!bk.open && singlePage && dx > 0) cover.click();
+      else if (bk.open) dx > 0 ? forward() : backward();
+    }
   });
   book.addEventListener('pointercancel', e => { if (e.pointerId === swipePointer) { swipePointer = null; swipeBlocked = false; sx = null; } });
 
@@ -495,7 +498,6 @@ function renderAlbum(view, inReader) {
 
   view.append(el('div', { class: 'desk' }, [book, edges, nav]));
   if (isOpen) paint();
-  if (inReader && !isOpen && bk.autoOpen) { bk.autoOpen = false; setTimeout(() => cover.click(), 60); }
 }
 
 /* ---------- full-screen reading mode ---------- */
@@ -608,7 +610,8 @@ function enterReader() {
   const bk = st.book[st.tab];
   reader.portrait = window.innerHeight > window.innerWidth * 1.05;
   reader.rotated = false;
-  st.reader = true; bk.autoOpen = true; resetReaderZoom(); installReaderZoom();
+  bk.open = false; bk.p = 0; bk.autoOpen = false;
+  st.reader = true; resetReaderZoom(); installReaderZoom();
   $('#reader').hidden = false; document.body.classList.add('reading');
   const de = document.documentElement;
   if (de.requestFullscreen && !document.fullscreenElement) {
