@@ -417,3 +417,27 @@ body.reading { overflow: hidden; }
 #reader .pg-nav .btn:first-child::before { content: "›"; }   /* back: toward the right (Hebrew book) */
 #reader .pg-nav .btn:last-child::before { content: "‹"; }    /* forward: toward the left */
 #reader .pg-ind { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); }
+
+/* ---------- own collections, library, welcome ---------- */
+:root { --own-velvet: #23314a; --own-velvet-2: #34507a; --own-accent: #9cc8ff; --own-accent-ink: #0b1a2e; }
+body[data-series="own"] { --velvet: var(--own-velvet); --velvet-2: var(--own-velvet-2); --accent: var(--own-accent); --accent-ink: var(--own-accent-ink); }
+.tab.own { --tv: var(--own-velvet); --tv2: var(--own-velvet-2); --ta: var(--own-accent); }
+.tab.add { --tv: var(--paper-2); --tv2: var(--paper-2); --ta: var(--muted); color: var(--ink); opacity: 1; border: 2px dashed var(--line); box-shadow: none; background: transparent; }
+.tab.add .ring { background: var(--line); }
+.tab.add .ring span { background: var(--paper); font-size: 24px; color: var(--muted); }
+.tab.add .t-sub { color: var(--muted); }
+.tabs { grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr)); }
+body.no-collections .toolbar, body.no-collections .hero-stats { display: none; }
+.welcome { display: grid; gap: 14px; }
+.welcome h2 { font-size: 24px; }
+.lib-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+.lib-card { --tv: var(--cr-velvet); --tv2: var(--cr-velvet-2); color: var(--on-velvet); border-radius: 16px; padding: 14px; display: grid; gap: 6px; align-content: start;
+  background: linear-gradient(150deg, var(--tv2), var(--tv)); box-shadow: var(--shadow-1); }
+.lib-card.mandate { --tv: var(--md-velvet); --tv2: var(--md-velvet-2); }
+.lib-card b { font-family: var(--f-display); font-size: 19px; }
+.lib-card .lib-sub { font-size: 12px; color: var(--on-velvet-dim); }
+.lib-card p { margin: 0 0 6px; font-size: 13px; color: var(--on-velvet-dim); }
+.lib-card .btn { justify-self: start; }
+.lib-own { border: 1px dashed var(--line); border-radius: 16px; padding: 14px; background: var(--paper-2); }
+.lib-own b { font-family: var(--f-display); font-size: 18px; }
+.col-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 14px; }

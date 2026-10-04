@@ -1,7 +1,9 @@
 'use strict';
 (() => {
-const st = { tab: 'crowns', view: 'album', filter: 'all', owned: new Map(), extras: new Map(), photos: new Map(), ready: false };
-try { const t = localStorage.getItem('album.tab'); if (t && SERIES[t]) st.tab = t; const v = localStorage.getItem('album.view'); if (v === 'list' || v === 'album') st.view = v; } catch (e) {}
+// collections: the albums this person keeps, in order: { id, kind: 'catalog' | 'own', name, sub }.
+// A catalog collection's id is the catalog key; an own collection's coins are all "extras".
+const st = { tab: '', view: 'album', filter: 'all', collections: [], owned: new Map(), extras: new Map(), photos: new Map(), ready: false };
+try { st.tab = localStorage.getItem('album.tab') || ''; const v = localStorage.getItem('album.view'); if (v === 'list' || v === 'album') st.view = v; } catch (e) {}
 
 const $ = s => document.querySelector(s);
 const el = (tag, attrs = {}, kids = []) => {
@@ -17,16 +19,23 @@ const el = (tag, attrs = {}, kids = []) => {
 const nowIso = () => new Date().toISOString();
 const newId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
 
+function colById(id) { return st.collections.find(c => c.id === id); }
+function curCol() { return colById(st.tab) || st.collections[0]; }
+function themeOf(col) { return col && col.kind === 'catalog' ? CATALOGS[col.id].theme : 'own'; }
 function extraToItem(id, x) {
-  return { id: 'x-' + id, extraId: id, series: x.series, y: x.year || '', tag: 'תוספת', rare: '', metal: x.metal || 'silver',
+  const col = colById(x.series), own = col && col.kind === 'own';
+  return { id: 'x-' + id, extraId: id, series: x.series, y: x.year || '', tag: own ? '' : 'תוספת', rare: '', metal: x.metal || 'silver',
     diam: Number(x.diam) || (x.series === 'crowns' ? CROWN_DIAM : 25),
-    metalName: METAL_NAME[x.metal] || '', title: x.label || 'מטבע נוסף', sub: x.series === 'crowns' ? 'קראון, תוספת' : 'מנדט, תוספת',
-    design: '', holed: false, custom: true };
+    metalName: METAL_NAME[x.metal] || '', title: x.label || 'מטבע נוסף', sub: col ? col.name + (own ? '' : ', תוספת') : '',
+    design: x.note || '', holed: false, custom: true, own };
 }
 function allItems(series) {
-  return SERIES[series].list.concat([...st.extras.values()].filter(x => x.series === series));
+  const base = CATALOGS[series] && colById(series) ? CATALOGS[series].list : [];
+  const extra = [...st.extras.values()].filter(x => x.series === series);
+  if (!base.length) extra.sort((a, b) => (Number(a.y) || 0) - (Number(b.y) || 0) || a.title.localeCompare(b.title, 'he'));
+  return base.concat(extra);
 }
-function findItem(id) { return allItems('crowns').concat(allItems('mandate')).find(i => i.id === id); }
+function findItem(id) { for (const c of st.collections) { const it = allItems(c.id).find(i => i.id === id); if (it) return it; } return null; }
 
 /* ---------- rendering ---------- */
 function coinEl(item) {
@@ -54,26 +63,30 @@ function seriesStats(key) {
 
 function renderStats() {
   const host = $('#stats'); host.textContent = '';
-  const c = seriesStats('crowns'), m = seriesStats('mandate');
-  const have = c.have + m.have, total = c.total + m.total;
-  const missingRare = allItems('crowns').concat(allItems('mandate')).filter(i => i.rare && !st.owned.has(i.id)).length;
+  let have = 0, total = 0;
+  for (const c of st.collections) { const x = seriesStats(c.id); have += x.have; total += x.total; }
   const stat = (cls, n, t) => el('div', { class: 'stat ' + cls }, [el('b', { text: String(n) }), el('span', { text: t })]);
   host.append(stat('gold', have, 'מטבעות באלבום'), stat('', (total ? Math.round(have / total * 100) : 0) + '%', 'מכל הסדרות'), stat('copper', total - have, 'עוד חסרים'));
 }
 
 function renderTabs() {
   const host = $('#tabs'); host.textContent = '';
-  for (const [key, s] of Object.entries(SERIES)) {
-    const x = seriesStats(key);
+  for (const s of st.collections) {
+    const key = s.id, x = seriesStats(key);
     const ring = el('span', { class: 'ring', style: '--p:' + x.pct }, [el('span', { text: x.pct + '%' })]);
-    host.append(el('button', { class: 'tab ' + key, role: 'tab', type: 'button', 'aria-selected': String(st.tab === key),
+    host.append(el('button', { class: 'tab ' + themeOf(s), role: 'tab', type: 'button', 'aria-selected': String(st.tab === key),
       onclick: () => { st.tab = key; try { localStorage.setItem('album.tab', key); } catch (e) {} render(); } }, [
       ring,
       el('span', { class: 't-name', text: s.name }),
-      el('span', { class: 't-sub', text: s.sub }),
+      el('span', { class: 't-sub', text: s.sub || '' }),
       el('span', { class: 't-count', text: x.have + ' מתוך ' + x.total }),
     ]));
   }
+  host.append(el('button', { class: 'tab add', type: 'button', onclick: () => openLibrary() }, [
+    el('span', { class: 'ring' }, [el('span', { text: '+' })]),
+    el('span', { class: 't-name', text: 'אוסף חדש' }),
+    el('span', { class: 't-sub', text: 'מהספרייה או משלך' }),
+  ]));
 }
 
 function renderLegend() {
@@ -81,7 +94,7 @@ function renderLegend() {
   const g = m => 'radial-gradient(circle at 32% 28%, var(--' + m + '-a), var(--' + m + '-b) 55%, var(--' + m + '-c))';
   const mk = (bg, t) => el('span', {}, [el('i', { class: 'mini', style: 'background:' + bg }), t]);
   if (st.tab === 'crowns') L.append(mk(g('silver'), 'כסף'), mk(g('cuni'), 'קופרו-ניקל'));
-  else L.append(mk(g('bronze'), 'ברונזה'), mk(g('cuni'), 'קופרו-ניקל'), mk(g('silver'), 'כסף'));
+  else L.append(mk(g('bronze'), 'ברונזה'), mk(g('cuni'), 'קופרו-ניקל'), mk(g('silver'), 'כסף'));   // Mandate and own collections
   L.append(mk('radial-gradient(circle at 50% 35%, #555a66, #23262d)', 'חסר'), mk('radial-gradient(circle at 35% 30%, #ffc2c8, var(--ruby) 60%, #a3192a)', 'נדיר / הערה'));
 }
 
@@ -127,6 +140,14 @@ function renderMandate(view) {
   view.append(tray);
 }
 
+function renderOwnList(view) {
+  const col = curCol(), items = allItems(col.id);
+  view.append(el('div', { class: 'tray' }, [
+    trayHead(col.name, col.sub || 'אוסף שבנית בעצמך.'),
+    items.length ? el('div', { class: 'slots' }, items.map(slotEl))
+      : el('p', { class: 'muted', style: 'color:var(--on-velvet-dim)', text: 'עוד אין כאן מטבעות. לחץ "הוסף מטבע" כדי להוסיף את הראשון.' }),
+  ]));
+}
 function renderExtras(view) {
   const extra = allItems(st.tab).filter(i => i.custom);
   if (!extra.length) return;
@@ -138,8 +159,13 @@ function renderExtras(view) {
 }
 
 function render() {
-  document.body.dataset.series = st.tab;
+  if (!colById(st.tab) && st.collections.length) st.tab = st.collections[0].id;
+  const empty = st.ready && !st.collections.length;
+  document.body.dataset.series = themeOf(curCol());
+  document.body.classList.toggle('no-collections', empty);
   renderStats(); renderTabs(); renderLegend();
+  if (empty) { const view = $('#view'); view.textContent = ''; view.append(welcome()); return; }
+  if (!st.collections.length) { $('#view').textContent = ''; return; }
   document.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.f === st.filter)));
   document.querySelectorAll('.vt').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.v === st.view)));
   $('.chips').hidden = st.view === 'album';
@@ -148,7 +174,9 @@ function render() {
     renderAlbum(view, false);
     if (st.reader) { const stg = $('#readerStage'); stg.textContent = ''; renderAlbum(stg, true); layoutReader(); }
   }
-  else { if (st.tab === 'crowns') renderCrowns(view); else renderMandate(view); renderExtras(view); }
+  else if (st.tab === 'crowns') { renderCrowns(view); renderExtras(view); }
+  else if (st.tab === 'mandate') { renderMandate(view); renderExtras(view); }
+  else renderOwnList(view);
   st.justAdded = null;
 }
 
@@ -168,6 +196,8 @@ function windowFor(diam, sheet) {
 function albumSections(series) {
   const extras = allItems(series).filter(i => i.custom);
   const out = [];
+  const col = colById(series);
+  if (col && col.kind === 'own') return extras.length ? [{ title: col.name, items: extras }] : [];
   if (series === 'crowns') out.push({ title: 'קראונים בריטיים', items: CROWNS });
   else for (const den of MANDATE_DENOMS) out.push({ title: den.d + (den.d === 1 ? ' מיל' : ' מילים') + ' · ' + den.metalName.split(',')[0] + ' · ' + den.diam + ' מ"מ', items: MANDATE.filter(c => c.d === den.d) });
   if (extras.length) out.push({ title: 'מטבעות שהוספת', items: extras });
@@ -254,7 +284,7 @@ function coverInside(atEnd) {
   const x = seriesStats(st.tab);
   return el('section', { class: 'pg lining' }, [el('div', { class: 'lining-inner' }, [
     el('span', { class: 'ex-libris', text: atEnd ? 'סוף האלבום' : 'אלבום' }),
-    el('b', { text: SERIES[st.tab].name }),
+    el('b', { text: curCol().name }),
     el('span', { text: x.have + ' מתוך ' + x.total + ' מטבעות' }),
   ])]);
 }
@@ -267,7 +297,7 @@ function renderAlbum(view, inReader) {
   const isOpen = inReader && bk.open;   // outside reading mode the album shows its closed cover
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const book = el('div', { class: 'book' + (isOpen ? ' open' : ''), role: 'region', 'aria-label': 'אלבום ' + SERIES[st.tab].name });
+  const book = el('div', { class: 'book' + (isOpen ? ' open' : ''), role: 'region', 'aria-label': 'אלבום ' + curCol().name });
   const right = el('div', { class: 'side right' }), left = el('div', { class: 'side left' });
   const ind = el('span', { class: 'pg-ind' });
   let busy = false;
@@ -283,11 +313,11 @@ function renderAlbum(view, inReader) {
 
   // Closed: only the front cover.
   const x = seriesStats(st.tab);
-  const cover = el('button', { class: 'cover', type: 'button', 'aria-label': 'פתח את האלבום ' + SERIES[st.tab].name }, [
+  const cover = el('button', { class: 'cover', type: 'button', 'aria-label': 'פתח את האלבום ' + curCol().name }, [
     el('span', { class: 'cover-frame' }, [
       el('span', { class: 'cover-kicker', text: 'אלבום מטבעות' }),
-      el('span', { class: 'cover-name', text: SERIES[st.tab].name }),
-      el('span', { class: 'cover-sub', text: SERIES[st.tab].sub }),
+      el('span', { class: 'cover-name', text: curCol().name }),
+      el('span', { class: 'cover-sub', text: curCol().sub || '' }),
       el('span', { class: 'cover-count', text: x.have + ' / ' + x.total }),
       el('span', { class: 'cover-hint', text: 'לחץ לפתיחה' }),
     ]),
@@ -601,8 +631,9 @@ async function takePhotos(item, firstFile, mode) {
 function openAdder() {
   const body = $('#adderBody'); body.textContent = '';
   body.append(el('h2', { text: 'הוספת מטבע לאוסף' }));
-  const seriesSel = el('select', { id: 'a-series' }, Object.entries(SERIES).map(([k, s]) => el('option', { value: k, text: s.name })));
-  seriesSel.value = st.tab;
+  if (!st.collections.length) { openLibrary(); return; }
+  const seriesSel = el('select', { id: 'a-series' }, st.collections.map(c => el('option', { value: c.id, text: c.name })));
+  seriesSel.value = curCol().id;
   const coinSel = el('select', { id: 'a-coin' });
   const fillCoins = () => {
     coinSel.textContent = '';
@@ -623,10 +654,11 @@ function openAdder() {
     msgEl,
     el('hr', { class: 'sep' }),
     el('h3', { text: 'מטבע שלא ברשימה' }),
-    el('p', { class: 'muted', text: 'למשל וריאנט, פרוף או טעות הטבעה. הוא יופיע תחת "מטבעות שהוספת".' }),
+    el('p', { class: 'muted', text: 'באוסף משלך כל המטבעות נוספים כך. באוסף מהספרייה: וריאנט, פרוף או טעות הטבעה.' }),
   );
   const label = el('input', { id: 'a-label', placeholder: 'למשל: קראון 1889 עם שפה LII' });
   const year = el('input', { id: 'a-year', type: 'number', min: '1800', max: '1970', inputmode: 'numeric', placeholder: 'שנה' });
+  const diam = el('input', { id: 'a-diam', type: 'number', min: '10', max: '60', step: '0.1', inputmode: 'decimal', placeholder: 'למשל 38.6' });
   const metal = el('select', { id: 'a-metal' }, [['silver', 'כסף'], ['cuni', 'קופרו-ניקל'], ['bronze', 'ברונזה']].map(([v, t]) => el('option', { value: v, text: t })));
   const msg2 = el('div', { class: 'msg' });
   const addCustom = el('button', { class: 'btn', type: 'button', text: 'הוסף מטבע מותאם' });
@@ -635,7 +667,7 @@ function openAdder() {
     addCustom.disabled = true;
     try {
       const id = newId();
-      const x = { series: seriesSel.value, label: label.value.trim(), year: year.value ? Number(year.value) : null, metal: metal.value };
+      const x = { series: seriesSel.value, label: label.value.trim(), year: year.value ? Number(year.value) : null, metal: metal.value, diam: diam.value ? Number(diam.value) : null };
       await Store.put('extras', id, x);
       const item = extraToItem(id, x); st.extras.set(id, item);
       const rec = { series: x.series, grade: '', paid: null, acquired: '', note: '', updatedAt: nowIso() };
@@ -645,7 +677,9 @@ function openAdder() {
   });
   body.append(el('div', { class: 'field' }, [el('label', { for: 'a-label', text: 'שם' }), label]),
     el('div', { class: 'row2' }, [el('div', { class: 'field' }, [el('label', { for: 'a-year', text: 'שנה' }), year]), el('div', { class: 'field' }, [el('label', { for: 'a-metal', text: 'מתכת' }), metal])]),
+    el('div', { class: 'field' }, [el('label', { for: 'a-diam', text: 'קוטר (מ"מ), קובע את גודל הכיס באלבום' }), diam]),
     addCustom, msg2);
+  if (curCol().kind === 'own') setTimeout(() => label.focus(), 50);
   $('#adder').showModal();
 }
 
@@ -653,9 +687,9 @@ function openAdder() {
 async function snapshot() {
   const owned = {}, extras = {}, photos = {};
   for (const [k, v] of st.owned) owned[k] = v;
-  for (const [k, v] of st.extras) extras[k] = { series: v.series, label: v.title, year: v.y || null, metal: v.metal };
+  for (const [k, v] of st.extras) extras[k] = { series: v.series, label: v.title, year: v.y || null, metal: v.metal, diam: v.diam || null };
   for (const [k, blob] of await Store.all('photos')) photos[k] = await Photo.toDataURL(blob);
-  return { app: 'coin-album', version: 2, exportedAt: nowIso(), owned, extras, photos };
+  return { app: 'coin-album', version: 3, exportedAt: nowIso(), collections: st.collections, owned, extras, photos };
 }
 function openMenu(msg) {
   const body = $('#menuBody'); body.textContent = '';
@@ -686,7 +720,10 @@ function openMenu(msg) {
         try {
           const photos = {};
           for (const [k, url] of Object.entries(data.photos || {})) photos[k] = await Photo.fromDataURL(url);
-          await Store.replaceAll(data.owned, data.extras || {}, photos); await load(); render(); openMenu('השחזור הושלם: ' + n + ' מטבעות.');
+          await Store.replaceAll(data.owned, data.extras || {}, photos);
+          if (Array.isArray(data.collections)) await Store.put('meta', 'collections', data.collections);
+          else await Store.del('meta', 'collections');   // older backups: work the collections out from the coins
+          await load(); render(); openMenu('השחזור הושלם: ' + n + ' מטבעות.');
         }
         catch (e) { msgEl.className = 'msg err'; msgEl.textContent = 'השחזור נכשל.'; }
       } }),
@@ -701,7 +738,20 @@ function openMenu(msg) {
   ].map(([v, t]) => el('option', { value: v, text: t })));
   sheetSel.value = sheetSetting();
   sheetSel.addEventListener('change', () => { try { localStorage.setItem('album.sheet', sheetSel.value); } catch (e) {} render(); });
+  const colRows = st.collections.map(c => {
+    const row = el('div', { class: 'col-row' }, [el('span', { text: c.name + (c.kind === 'own' ? ' (אוסף משלך)' : '') })]);
+    const rm = el('button', { class: 'btn danger', type: 'button', text: 'הסר', onclick: () => {
+      row.replaceChildren(el('span', { text: c.kind === 'own' ? 'להסיר את "' + c.name + '" ואת כל המטבעות שבו?' : 'להסיר את "' + c.name + '" מהאלבום? המטבעות שסימנת יישמרו אם תוסיף אותו שוב.' }),
+        el('button', { class: 'btn danger', type: 'button', text: 'כן, הסר', onclick: async () => { await removeCollection(c); openMenu('האוסף הוסר.'); } }),
+        el('button', { class: 'btn', type: 'button', text: 'ביטול', onclick: () => openMenu() }));
+    } });
+    row.append(rm); return row;
+  });
   body.append(
+    el('h2', { text: 'האוספים שלי' }),
+    ...(colRows.length ? colRows : [el('p', { class: 'muted', text: 'עוד אין אוספים.' })]),
+    el('button', { class: 'btn', type: 'button', text: '+ אוסף חדש', onclick: () => { $('#menu').close(); openLibrary(); } }),
+    el('hr', { class: 'sep' }),
     el('h2', { text: 'דפי האלבום' }),
     el('div', { class: 'field' }, [el('label', { for: 'm-sheet', text: 'סוג דף GRANDE' }), sheetSel]),
     el('p', { class: 'muted', text: 'במצב אוטומטי, כל דף מקבל את הדף הקטן ביותר שמסגרת המטבע שלו מתאימה למטבע הגדול ביותר באותו דף. בכל מסגרת יש חור בקוטר הסטנדרטי הקרוב (17.5 עד 39.5 מ"מ).' }),
@@ -715,23 +765,78 @@ function openMenu(msg) {
   if (!$('#menu').open) $('#menu').showModal();
 }
 
-/* ---------- first launch ---------- */
+/* ---------- collections: library, own collections, first launch ---------- */
 function notice(kids) { const n = $('#notice'); n.textContent = ''; if (!kids) { n.hidden = true; return; } n.append(...[].concat(kids)); n.hidden = false; }
-async function maybeOfferStarter() {
-  let done = false; try { done = !!(await Store.get('meta', 'starterOffered')); } catch (e) {}
-  if (done || st.owned.size) return;
-  const years = STARTER_OWNED.map(id => id.replace('c-', '')).join(', ');
-  notice([
-    el('span', { text: 'לסמן את הקראונים שכבר יש לך (' + years + ')? המחירים לא נכללים, אפשר להוסיף אותם בכרטיס של כל מטבע.' }),
-    el('button', { class: 'btn primary', type: 'button', text: 'כן, סמן', onclick: async () => {
-      for (const id of STARTER_OWNED) {
-        const rec = { series: 'crowns', grade: '', paid: null, acquired: '', note: '', updatedAt: nowIso() };
-        await Store.put('owned', id, rec); st.owned.set(id, rec);
-      }
-      await Store.put('meta', 'starterOffered', true); notice(null); render();
-    } }),
-    el('button', { class: 'btn', type: 'button', text: 'לא, תודה', onclick: async () => { await Store.put('meta', 'starterOffered', true); notice(null); } }),
+async function saveCollections() { await Store.put('meta', 'collections', st.collections); }
+async function addCatalog(key) {
+  if (!colById(key)) { st.collections.push({ id: key, kind: 'catalog', name: CATALOGS[key].name, sub: CATALOGS[key].sub }); await saveCollections(); }
+  st.tab = key; try { localStorage.setItem('album.tab', key); } catch (e) {}
+  render(); toast('"' + CATALOGS[key].name + '" נוסף לאלבום');
+}
+async function addOwnCollection(name, sub) {
+  const id = 'u-' + newId().slice(0, 8);
+  st.collections.push({ id, kind: 'own', name, sub }); await saveCollections();
+  st.tab = id; try { localStorage.setItem('album.tab', id); } catch (e) {}
+  render(); toast('האוסף "' + name + '" נוצר');
+}
+async function removeCollection(c) {
+  if (c.kind === 'own') {
+    for (const [xid, it] of [...st.extras]) if (it.series === c.id) {
+      await Store.del('extras', xid); await Store.del('owned', it.id); await deletePhotos(it.id); st.extras.delete(xid); st.owned.delete(it.id);
+    }
+  }
+  st.collections = st.collections.filter(x => x.id !== c.id); await saveCollections(); render();
+}
+function libraryContent(onDone) {
+  const cards = Object.entries(CATALOGS).map(([key, c]) => {
+    const has = !!colById(key);
+    return el('div', { class: 'lib-card ' + c.theme }, [
+      el('b', { text: c.name }), el('span', { class: 'lib-sub', text: c.sub }), el('p', { text: c.about }),
+      el('button', { class: 'btn ' + (has ? '' : 'gold'), type: 'button', text: has ? 'כבר באלבום שלך' : '+ הוסף לאלבום שלי', disabled: has,
+        onclick: async () => { await addCatalog(key); onDone && onDone(); } }),
+    ]);
+  });
+  const name = el('input', { id: 'l-name', placeholder: 'למשל: שטרות שואה, מטבעות ירושלים' });
+  const sub = el('input', { id: 'l-sub', placeholder: 'תיאור קצר (לא חובה)' });
+  const msg = el('div', { class: 'msg' });
+  const own = el('form', { class: 'lib-own fields' }, [
+    el('b', { text: 'אוסף משלך' }),
+    el('p', { class: 'muted', text: 'תן לאוסף שם, ואז הוסף לו מטבעות אחד-אחד. לכל אוסף כריכה וספר משלו.' }),
+    el('div', { class: 'field' }, [el('label', { for: 'l-name', text: 'שם האוסף' }), name]),
+    el('div', { class: 'field' }, [el('label', { for: 'l-sub', text: 'תיאור' }), sub]),
+    el('button', { class: 'btn accent', type: 'submit', text: 'צור אוסף' }), msg,
   ]);
+  own.addEventListener('submit', async e => {
+    e.preventDefault();
+    if (!name.value.trim()) { msg.className = 'msg err'; msg.textContent = 'כתוב שם לאוסף.'; name.focus(); return; }
+    await addOwnCollection(name.value.trim(), sub.value.trim()); onDone && onDone();
+  });
+  return [el('div', { class: 'lib-grid' }, cards), own];
+}
+function openLibrary() {
+  const body = $('#adderBody'); body.textContent = '';
+  body.append(el('h2', { text: 'אוסף חדש' }), el('p', { class: 'muted', text: 'בחר קטלוג מוכן מהספרייה, או צור אוסף משלך.' }),
+    ...libraryContent(() => $('#adder').close()),
+    el('div', { class: 'confirm' }, [el('button', { class: 'btn', type: 'button', text: 'סגור', onclick: () => $('#adder').close() })]));
+  if (!$('#adder').open) $('#adder').showModal();
+}
+function welcome() {
+  return el('div', { class: 'welcome' }, [
+    el('h2', { text: 'ברוך הבא לאלבום שלך' }),
+    el('p', { class: 'muted', text: 'כל מה שתסמן, תצלם ותכתוב נשמר רק בטלפון הזה. כדי להתחיל, בחר קטלוג מוכן או צור אוסף משלך.' }),
+    ...libraryContent(null),
+  ]);
+}
+// Which collections a device keeps. Devices from before collections existed get the two catalogs they were using.
+async function loadCollections() {
+  let cols = null; try { cols = await Store.get('meta', 'collections'); } catch (e) {}
+  if (!Array.isArray(cols)) {
+    let used = false; try { used = !!(await Store.get('meta', 'starterOffered')); } catch (e) {}
+    used = used || st.owned.size > 0 || st.extras.size > 0;
+    cols = used ? Object.keys(CATALOGS).map(k => ({ id: k, kind: 'catalog', name: CATALOGS[k].name, sub: CATALOGS[k].sub })) : [];
+    await Store.put('meta', 'collections', cols);
+  }
+  st.collections = cols.filter(c => c.kind === 'own' || CATALOGS[c.id]);
 }
 
 /* ---------- boot ---------- */
@@ -740,7 +845,9 @@ async function load() {
   st.owned = owned;
   for (const id of [...st.photos.keys()]) setPhotoUrl(id, null);
   for (const [id, blob] of photos) setPhotoUrl(id, blob);
-  st.extras = new Map([...extras].map(([id, x]) => [id, extraToItem(id, x)]));
+  st.extras = new Map([...extras].map(([id, x]) => [id, x]));
+  await loadCollections();
+  st.extras = new Map([...extras].map(([id, x]) => [id, extraToItem(id, x)]));   // needs the collections for names
 }
 
 $('#addBtn').addEventListener('click', openAdder);
@@ -751,7 +858,7 @@ document.querySelectorAll('.vt').forEach(c => c.addEventListener('click', () => 
 for (const d of [$('#sheet'), $('#adder'), $('#menu')]) d.addEventListener('click', e => { if (e.target === d) d.close(); });
 
 render();
-load().then(() => { st.ready = true; render(); maybeOfferStarter(); Store.persist(); })
+load().then(() => { st.ready = true; render(); Store.persist(); })
   .catch(() => notice(el('span', { text: 'לא הצלחתי לפתוח את האחסון בטלפון. אם הדפדפן במצב גלישה בסתר, פתח אותו במצב רגיל.' })));
 
 if ('serviceWorker' in navigator) {

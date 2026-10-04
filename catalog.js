@@ -76,14 +76,16 @@ for (const den of MANDATE_DENOMS) for (const y of den.years) {
 }
 const MANDATE_YEARS = [...new Set(MANDATE.map(c => c.y))].sort((a, b) => a - b);
 
-const SERIES = {
-  crowns: { name: 'קראונים בריטיים', sub: '1818–1965, חמישה שילינג', list: CROWNS },
-  mandate: { name: 'מטבעות המנדט', sub: '1927–1947, כל הערכים והשנים', list: MANDATE },
+// The catalog library: ready-made checklists anyone can add to their album. Which catalogs a person
+// collects, and what they own, is personal and lives only on their device (see store.js), never here.
+const CATALOGS = {
+  crowns: { name: 'קראונים בריטיים', sub: '1818–1965, חמישה שילינג', list: CROWNS, theme: 'crowns',
+    about: '43 קראונים מג\'ורג\' השלישי ועד אליזבת השנייה, כולל פרופים ושנים נדירות.' },
+  mandate: { name: 'מטבעות המנדט', sub: '1927–1947, כל הערכים והשנים', list: MANDATE, theme: 'mandate',
+    about: '64 מטבעות: 1, 2, 5, 10, 20, 50 ו-100 מיל בכל שנות ההטבעה.' },
 };
 const GRADES = ['', 'G', 'VG', 'F', 'VF', 'XF', 'AU', 'UNC', 'פרוף'];
 
-// Crown years already in the collection (from the silver sheet) — offered once on first launch.
-const STARTER_OWNED = ['c-1822', 'c-1887', 'c-1889', 'c-1891', 'c-1894', 'c-1897', 'c-1935'];
 
 // Album pages follow the LEUCHTTURM GRANDE coin system (sheet 242 x 312 mm): coins sit in cardboard
 // coin holders, and the sheet's pockets hold the holders. Two coin sheets exist:
