@@ -93,15 +93,6 @@ function renderTabs() {
   ]));
 }
 
-function renderLegend() {
-  const L = $('#legend'); L.textContent = '';
-  const g = m => 'radial-gradient(circle at 32% 28%, var(--' + m + '-a), var(--' + m + '-b) 55%, var(--' + m + '-c))';
-  const mk = (bg, t) => el('span', {}, [el('i', { class: 'mini', style: 'background:' + bg }), t]);
-  if (st.tab === 'crowns') L.append(mk(g('silver'), 'כסף'), mk(g('cuni'), 'קופרו-ניקל'));
-  else L.append(mk(g('bronze'), 'ברונזה'), mk(g('cuni'), 'קופרו-ניקל'), mk(g('silver'), 'כסף'));   // Mandate and own collections
-  L.append(mk('radial-gradient(circle at 50% 35%, #555a66, #23262d)', 'חסר'), mk('radial-gradient(circle at 35% 30%, #ffc2c8, var(--ruby) 60%, #a3192a)', 'נדיר / הערה'));
-}
-
 function trayHead(title, sub, extra) {
   return el('div', { class: 'tray-head' }, [el('h2', { text: title }), extra || null, el('p', { text: sub })]);
 }
@@ -172,7 +163,7 @@ function render() {
   const empty = st.ready && !st.collections.length;
   document.body.dataset.series = themeOf(curCol());
   document.body.classList.toggle('no-collections', empty);
-  renderStats(); renderTabs(); renderLegend();
+  renderStats(); renderTabs();
   if (empty) { const view = $('#view'); view.textContent = ''; view.append(welcome()); return; }
   if (!st.collections.length) { $('#view').textContent = ''; return; }
   document.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.f === st.filter)));
@@ -535,7 +526,7 @@ async function saveOwned(item, v, msgEl, btn) {
     await Store.put('owned', item.id, rec);
     st.owned.set(item.id, rec);
     if (isNew) { st.justAdded = item.id; $('#sheet').close(); render(); toast(item.title + ' נכנס לאלבום ✓'); }
-    else { render(); openSheet(item.id, 'השינויים נשמרו.'); }
+    else { $('#sheet').close(); render(); toast('השינויים נשמרו ✓'); }
   } catch (e) {
     btn.disabled = false; msgEl.className = 'msg err'; msgEl.textContent = 'השמירה נכשלה. ייתכן שהזיכרון בטלפון מלא.';
   }
