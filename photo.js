@@ -134,13 +134,19 @@ const Photo = (() => {
     return r2 > 0 ? { cx: fcx, cy: fcy, r: Math.sqrt(r2) } : null;
   }
 
-  function exportCircle(bmp, c) {
+  // Draw the circle c of bmp into a size x size round image, turned by deg degrees (clockwise).
+  function drawRound(ctx, bmp, c, deg, size) {
+    ctx.save(); ctx.clearRect(0, 0, size, size);
+    ctx.beginPath(); ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2); ctx.clip();
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, size, size);
+    ctx.translate(size / 2, size / 2); ctx.rotate(deg * Math.PI / 180);
+    ctx.drawImage(bmp, c.cx - c.r, c.cy - c.r, c.r * 2, c.r * 2, -size / 2, -size / 2, size, size);
+    ctx.restore();
+  }
+  function exportCircle(bmp, c, deg) {
     const cv = document.createElement('canvas'); cv.width = cv.height = OUT;
     const ctx = cv.getContext('2d');
-    ctx.save(); ctx.beginPath(); ctx.arc(OUT / 2, OUT / 2, OUT / 2, 0, Math.PI * 2); ctx.clip();
-    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, OUT, OUT);
-    ctx.drawImage(bmp, c.cx - c.r, c.cy - c.r, c.r * 2, c.r * 2, 0, 0, OUT, OUT);
-    ctx.restore();
+    drawRound(ctx, bmp, c, deg || 0, OUT);
     return new Promise(res => cv.toBlob(b => b && b.type === 'image/webp' ? res(b) : cv.toBlob(res, 'image/jpeg', 0.88), 'image/webp', 0.88));
   }
 
@@ -159,14 +165,35 @@ const Photo = (() => {
       size.value = toSlider(c.r);
       const done = v => { dlg.close(); resolve(v); };
       const saveBtn = el('button', { class: 'btn accent', type: 'button', text: 'שמור תמונה' });
+      // rotation: quarter turns plus a fine angle; the round preview shows the saved result
+      let quarter = 0;
+      const fine = el('input', { type: 'range', id: 'crop-rot', min: '-45', max: '45', step: '0.5', value: '0' });
+      const preview = el('canvas', { class: 'crop-preview', width: '240', height: '240', 'aria-label': 'כך המטבע יישמר' });
+      const pctx = preview.getContext('2d');
+      const deg = () => quarter * 90 + Number(fine.value);
+      const degLbl = el('span', { class: 'rot-deg' });
+      const drawPreview = () => { drawRound(pctx, bmp, c, deg(), 240); degLbl.textContent = Math.round(((deg() % 360) + 360) % 360) + '°'; };
+      const turn = q => { quarter = (quarter + q + 4) % 4; drawPreview(); };
       body.append(
         el('h2', { text: heading || 'חיתוך המטבע' }),
-        el('p', { class: 'muted', text: 'העיגול הזהוב סומן אוטומטית סביב המטבע. גרור אותו או שנה את הגודל אם צריך.' }),
+        el('p', { class: 'muted', text: 'העיגול הזהוב סומן אוטומטית סביב המטבע. גרור אותו או שנה את הגודל אם צריך, וסובב עד שהמטבע ישר.' }),
         stage,
         el('div', { class: 'field' }, [el('label', { for: 'crop-size', text: 'גודל העיגול' }), size]),
+        el('div', { class: 'rot-box' }, [
+          preview,
+          el('div', { class: 'rot-ctl' }, [
+            el('span', { class: 'rot-title', text: 'יישור המטבע' }),
+            el('div', { class: 'confirm' }, [
+              el('button', { class: 'btn', type: 'button', text: '↺ 90°', 'aria-label': 'סובב 90 מעלות נגד כיוון השעון', onclick: () => turn(-1) }),
+              el('button', { class: 'btn', type: 'button', text: '↻ 90°', 'aria-label': 'סובב 90 מעלות עם כיוון השעון', onclick: () => turn(1) }),
+              degLbl,
+            ]),
+            el('label', { for: 'crop-rot', class: 'rot-fine', text: 'כיוון עדין' }), fine,
+          ]),
+        ]),
         el('div', { class: 'confirm' }, [
           saveBtn,
-          el('button', { class: 'btn', type: 'button', text: 'זיהוי אוטומטי מחדש', onclick: () => { c = { ...auto }; size.value = toSlider(c.r); draw(); } }),
+          el('button', { class: 'btn', type: 'button', text: 'זיהוי אוטומטי מחדש', onclick: () => { c = { ...auto }; size.value = toSlider(c.r); draw(); drawPreview(); } }),
           el('button', { class: 'btn', type: 'button', text: 'ביטול', onclick: () => done(null) }),
         ]),
       );
@@ -201,15 +228,16 @@ const Photo = (() => {
         const k = (view.dpr || 1) / view.s;
         c.cx = Math.min(bmp.width, Math.max(0, drag.cx + (e.clientX - drag.x) * k));
         c.cy = Math.min(bmp.height, Math.max(0, drag.cy + (e.clientY - drag.y) * k));
-        draw();
+        draw(); drawPreview();
       });
       const end = () => { drag = null; };
       stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', end);
-      size.addEventListener('input', () => { c.r = fromSlider(size.value); draw(); });
-      saveBtn.addEventListener('click', async () => { saveBtn.disabled = true; done(await exportCircle(bmp, c)); });
+      size.addEventListener('input', () => { c.r = fromSlider(size.value); draw(); drawPreview(); });
+      fine.addEventListener('input', drawPreview);
+      saveBtn.addEventListener('click', async () => { saveBtn.disabled = true; done(await exportCircle(bmp, c, deg())); });
       dlg.addEventListener('cancel', () => resolve(null), { once: true });
 
-      dlg.showModal(); layout(); draw();
+      dlg.showModal(); layout(); draw(); drawPreview();
     });
   }
 
