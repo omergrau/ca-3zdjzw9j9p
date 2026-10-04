@@ -378,10 +378,19 @@ function renderAlbum(view, inReader) {
     if (busy || bk.p >= pages.length) return;
     busy = true;
     if (singlePage) {
+      const oldPage = left.firstElementChild;
+      const turn = oldPage ? oldPage.cloneNode(true) : null;
       bk.p++;
       left.replaceChildren(leftFor(bk.p));
-      if (!reduce) await left.animate([{opacity:.25,transform:'translateX(-10%)'},{opacity:1,transform:'translateX(0)'}],
-        {duration:220,easing:'ease-out'}).finished;
+      if (turn && !reduce) {
+        turn.classList.add('single-turn', 'single-turn-forward');
+        book.append(turn);
+        await turn.animate(
+          [{transform:'rotateY(0deg)',opacity:1},{transform:'rotateY(-82deg)',opacity:.72},{transform:'rotateY(-118deg)',opacity:0}],
+          {duration:460,easing:'cubic-bezier(.45,.05,.25,1)',fill:'forwards'}
+        ).finished;
+        turn.remove();
+      }
       paint(); busy = false; return;
     }
     const lf = leaf(pageFront(pages[bk.p], bk.p), pageBack(pages[bk.p], bk.p), 'left');
@@ -395,9 +404,16 @@ function renderAlbum(view, inReader) {
     busy = true;
     if (singlePage && bk.p > 0) {
       bk.p--;
-      left.replaceChildren(leftFor(bk.p));
-      if (!reduce) await left.animate([{opacity:.25,transform:'translateX(10%)'},{opacity:1,transform:'translateX(0)'}],
-        {duration:220,easing:'ease-out'}).finished;
+      const incoming = leftFor(bk.p);
+      left.replaceChildren(incoming);
+      if (!reduce) {
+        incoming.classList.add('single-turn-back');
+        await incoming.animate(
+          [{transform:'rotateY(-105deg)',opacity:.2},{transform:'rotateY(-35deg)',opacity:.9},{transform:'rotateY(0deg)',opacity:1}],
+          {duration:460,easing:'cubic-bezier(.3,.7,.2,1)',fill:'forwards'}
+        ).finished;
+        incoming.classList.remove('single-turn-back');
+      }
       paint(); busy = false; return;
     }
     if (bk.p === 0) {
@@ -638,7 +654,7 @@ function layoutReader() {
   const book = stage.querySelector('.book');
   if (book) {
     const pw = portrait
-      ? Math.max(120, Math.min(W - 72, (H - 92) * 242 / 312))
+      ? Math.max(140, Math.min(W - 30, (H - 58) * 242 / 312))
       : Math.max(80, Math.min((W - 132) / 2, (H - 34) * 242 / 312));
     book.style.setProperty('--pw', pw + 'px');
   }
