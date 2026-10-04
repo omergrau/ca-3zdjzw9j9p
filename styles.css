@@ -513,3 +513,8 @@ body[data-series="file"] { --velvet: var(--file-velvet); --velvet-2: var(--file-
 
 .ph-src { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; }
 .photo-cta b { font-size: 14px; }
+
+/* aluminium coins: lighter and flatter than silver */
+:root { --alu-a: #ffffff; --alu-b: #d9dde2; --alu-c: #9aa3ad; }
+.slot.own.m-alu .coin { background: radial-gradient(circle at 32% 28%, var(--alu-a), var(--alu-b) 60%, var(--alu-c)); }
+.back-holder.m-alu .window .coin { background: radial-gradient(circle at 60% 35%, var(--alu-a), var(--alu-b) 60%, var(--alu-c)); }

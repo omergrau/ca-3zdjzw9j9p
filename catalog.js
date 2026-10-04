@@ -4,7 +4,7 @@
 const S925 = { metal: 'silver', metalName: 'כסף 925' };
 const S500 = { metal: 'silver', metalName: 'כסף 500' };
 const CUNI = { metal: 'cuni', metalName: 'קופרו-ניקל' };
-const METAL_NAME = { bronze: 'ברונזה', cuni: 'קופרו-ניקל', silver: 'כסף' };
+const METAL_NAME = { bronze: 'ברונזה', cuni: 'קופרו-ניקל', silver: 'כסף', alu: 'אלומיניום' };
 
 const CROWN_REIGNS = [
   { key: 'g3', cypher: 'GIIIR', name: "ג'ורג' השלישי", years: '1818–1820', design: "ג'ורג' הקדוש והדרקון (פיסטרוצ'י)", m: S925,
@@ -93,6 +93,8 @@ const GRADES = ['', 'G', 'VG', 'F', 'VF', 'XF', 'AU', 'UNC', 'פרוף'];
 //                items: [{ id, group, y, label, metal, diam, variant?, rare?, tag?, note?, holed? }] }
 // Register one here with { src } and it appears in the library; its coins load on demand.
 const CATALOG_FILES = {
+  pruta: { src: 'catalogs/pruta.json', name: 'מטבעות הפרוטה', sub: '1949–1960, תש"ט–תשט"ו', groupLabel: 'ערך',
+    about: 'סדרת הפרוטה: כל ערך בכל שנה, כולל וריאנט הפנינה של 1949. מקור: Numista.' },
 };
 for (const [key, f] of Object.entries(CATALOG_FILES)) CATALOGS[key] = Object.assign({ list: null, groups: [], theme: 'file', groupLabel: 'קבוצה' }, f);
 
