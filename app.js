@@ -458,32 +458,58 @@ function applyReaderZoom() {
 function installReaderZoom() {
   const stage = $('#readerStage'); if (!stage || stage.dataset.zoomReady) return;
   stage.dataset.zoomReady = '1';
-  const pts = new Map();
-  let startDist = 0, startZoom = 1, startPanX = 0, startPanY = 0, startMid = null, lastTap = 0;
-  const dist = () => { const p=[...pts.values()]; return p.length<2 ? 0 : Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y); };
-  const mid = () => { const p=[...pts.values()]; return p.length<2 ? null : {x:(p[0].x+p[1].x)/2,y:(p[0].y+p[1].y)/2}; };
-  stage.addEventListener('pointerdown', e => {
+  let touches = new Map(), pinch = false, startDist = 0, startZoom = 1, startPanX = 0, startPanY = 0, startMid = null;
+  let swipeStart = null;
+
+  const vals = () => [...touches.values()];
+  const dist = () => { const p=vals(); return p.length<2 ? 0 : Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y); };
+  const mid = () => { const p=vals(); return p.length<2 ? null : {x:(p[0].x+p[1].x)/2,y:(p[0].y+p[1].y)/2}; };
+
+  stage.addEventListener('touchstart', e => {
     if (!st.reader) return;
-    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    // Do not capture a single pointer: the book must receive pointerup for its normal swipe/page-turn gesture.
-    // Capture only once a genuine two-finger pinch begins.
-    if (pts.size===2) {
-      for (const id of pts.keys()) stage.setPointerCapture?.(id);
+    touches.clear();
+    for (const t of e.touches) touches.set(t.identifier,{x:t.clientX,y:t.clientY});
+    if (e.touches.length === 1) {
+      pinch = false;
+      swipeStart = { x:e.touches[0].clientX, y:e.touches[0].clientY };
+    } else if (e.touches.length >= 2) {
+      pinch = true; swipeStart = null;
       startDist=dist(); startZoom=reader.zoom; startPanX=reader.panX; startPanY=reader.panY; startMid=mid();
+      e.preventDefault();
     }
-  });
-  stage.addEventListener('pointermove', e => {
-    if (!pts.has(e.pointerId)) return;
-    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    if (pts.size===2 && startDist) {
+  }, {passive:false});
+
+  stage.addEventListener('touchmove', e => {
+    touches.clear();
+    for (const t of e.touches) touches.set(t.identifier,{x:t.clientX,y:t.clientY});
+    if (pinch && e.touches.length >= 2 && startDist) {
       const m=mid(); reader.zoom=Math.max(1,Math.min(3.5,startZoom*dist()/startDist));
       reader.panX=startPanX+(m.x-startMid.x); reader.panY=startPanY+(m.y-startMid.y);
       if (reader.zoom<=1.01) { reader.zoom=1; reader.panX=reader.panY=0; }
       applyReaderZoom(); e.preventDefault();
     }
   }, {passive:false});
-  const end = e => { pts.delete(e.pointerId); if (pts.size<2) startDist=0; };
-  stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', end);
+
+  stage.addEventListener('touchend', e => {
+    if (!st.reader) return;
+    if (!pinch && swipeStart && e.changedTouches.length === 1) {
+      let dx=e.changedTouches[0].clientX-swipeStart.x, dy=e.changedTouches[0].clientY-swipeStart.y;
+      if (reader.rotated) [dx,dy]=[dy,-dx];
+      if (Math.abs(dx)>40 && Math.abs(dx)>Math.abs(dy)*1.25) {
+        const book=stage.querySelector('.book');
+        if (book) {
+          // Reuse the book's established pointer swipe direction by clicking the matching navigation control.
+          const nav=stage.querySelector('.pg-nav');
+          const buttons=nav ? nav.querySelectorAll('button') : [];
+          if (buttons.length>=2) (dx>0 ? buttons[1] : buttons[0]).click();
+        }
+      }
+    }
+    if (e.touches.length < 2) { pinch=false; startDist=0; }
+    if (!e.touches.length) { touches.clear(); swipeStart=null; }
+  }, {passive:false});
+  stage.addEventListener('touchcancel', () => { touches.clear(); pinch=false; startDist=0; swipeStart=null; });
+
   stage.addEventListener('dblclick', e => {
     if (!st.reader || e.target.closest('.pg-nav,.reader-x')) return;
     if (reader.zoom>1.01) resetReaderZoom();
