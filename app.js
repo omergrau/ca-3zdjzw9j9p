@@ -32,9 +32,10 @@ function extraToItem(id, x) {
 // A collector can trim a catalog: hide whole groups (a reign, a denomination, a country) or single coins.
 // Hidden coins keep their data; they just leave the album, the counts and the lists.
 function hiddenOf(series) { const c = colById(series); return { groups: new Set(c?.hidden?.groups || []), items: new Set(c?.hidden?.items || []) }; }
-function visibleIn(series) { const h = hiddenOf(series); return it => !h.groups.has(it.group) && !h.items.has(it.id); }
+function showsVariants(series) { const c = colById(series); return !c || c.showVariants !== false; }
+function visibleIn(series) { const h = hiddenOf(series), v = showsVariants(series); return it => !h.groups.has(it.group) && !h.items.has(it.id) && (v || !it.variant); }
 function allItems(series) {
-  const base = CATALOGS[series] && colById(series) ? CATALOGS[series].list.filter(visibleIn(series)) : [];
+  const base = CATALOGS[series] && CATALOGS[series].list && colById(series) ? CATALOGS[series].list.filter(visibleIn(series)) : [];
   const extra = [...st.extras.values()].filter(x => x.series === series);
   if (!base.length) extra.sort((a, b) => (Number(a.y) || 0) - (Number(b.y) || 0) || a.title.localeCompare(b.title, 'he'));
   return base.concat(extra);
@@ -140,6 +141,25 @@ function renderMandate(view) {
   view.append(tray);
 }
 
+// List view for catalogs loaded from files: one tray per group.
+function renderGroupedList(view, key) {
+  const cat = CATALOGS[key], col = colById(key);
+  if (!cat.list) { view.append(el('div', { class: 'tray' }, [trayHead(cat.name, 'טוען את הקטלוג...')])); return; }
+  const vis = visibleIn(key);
+  const tray = el('div', { class: 'tray' }, [trayHead(col.name, cat.sub || '')]);
+  for (const g of cat.groups) {
+    const items = cat.list.filter(c => c.group === g.key && vis(c)), have = items.filter(i => st.owned.has(i.id)).length;
+    if (!items.length) continue;
+    tray.append(el('div', { class: 'reign' }, [
+      el('div', { class: 'reign-head' }, [
+        el('div', {}, [el('h3', { text: g.name }), el('small', { text: have + '/' + items.length })]),
+        el('span', { class: 'mini-bar', 'aria-hidden': 'true' }, [el('i', { style: 'width:' + Math.round(have / items.length * 100) + '%' })]),
+      ]),
+      el('div', { class: 'slots' }, items.map(slotEl)),
+    ]));
+  }
+  view.append(tray);
+}
 function renderOwnList(view) {
   const col = curCol(), items = allItems(col.id);
   view.append(el('div', { class: 'tray' }, [
@@ -177,6 +197,7 @@ function render() {
   }
   else if (st.tab === 'crowns') { renderCrowns(view); renderExtras(view); }
   else if (st.tab === 'mandate') { renderMandate(view); renderExtras(view); }
+  else if (CATALOGS[st.tab]) { renderGroupedList(view, st.tab); renderExtras(view); }
   else renderOwnList(view);
   st.justAdded = null;
 }
@@ -198,6 +219,7 @@ function albumSections(series) {
   if (col && col.kind === 'own') return extras.length ? [{ title: col.name, items: extras }] : [];
   const vis = visibleIn(series);
   if (series === 'crowns') out.push({ title: 'קראונים בריטיים', items: CROWNS.filter(vis) });
+  else if (series !== 'mandate') { const cat = CATALOGS[series]; for (const g of (cat && cat.list ? cat.groups : [])) out.push({ title: g.name, items: cat.list.filter(c => c.group === g.key && vis(c)) }); }
   else for (const den of MANDATE_DENOMS) out.push({ title: den.d + (den.d === 1 ? ' מיל' : ' מילים') + ' · ' + den.metalName.split(',')[0] + ' · ' + den.diam + ' מ"מ', items: MANDATE.filter(c => c.d === den.d && vis(c)) });
   if (extras.length) out.push({ title: 'מטבעות שהוספת', items: extras });
   return out.filter(s => s.items.length);
@@ -426,8 +448,15 @@ function exitReader(fromHistory) {
   st.reader = false;
   const bk = st.book[st.tab]; if (bk) bk.open = false;
   $('#reader').hidden = true; $('#readerStage').textContent = ''; document.body.classList.remove('reading');
-  try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {}
-  if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+  // turn the screen back upright first (a lock only works while still full screen), then leave full screen;
+  // the installed app's default orientation is portrait, so it stays upright afterwards
+  const so = screen.orientation;
+  const upright = so && so.lock && document.fullscreenElement ? so.lock('portrait-primary').catch(() => {}) : Promise.resolve();
+  upright.finally(() => {
+    try { if (so && so.unlock) so.unlock(); } catch (e) {}
+    if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+    window.scrollTo({ top: 0 });
+  });
   if (reader.pushed && !fromHistory) { reader.pushed = false; history.back(); } else reader.pushed = false;
   render();
 }
@@ -552,29 +581,37 @@ async function deletePhotos(id) {
 function photoSection(item) {
   const own = st.owned.has(item.id);
   const front = own && st.photos.get(item.id), back = own && st.photos.get(item.id + REV);
-  const input = el('input', { type: 'file', accept: 'image/*', hidden: true });
+  // two ways in: the camera, or a photo already in the gallery
+  const camIn = el('input', { type: 'file', accept: 'image/*', capture: 'environment', hidden: true });
+  const galIn = el('input', { type: 'file', accept: 'image/*', hidden: true });
   let mode = 'both';
-  input.addEventListener('change', async () => {
+  for (const input of [camIn, galIn]) input.addEventListener('change', async () => {
     const f = input.files && input.files[0]; input.value = '';
     if (f) await takePhotos(item, f, mode);
   });
-  const pick = m => { mode = m; input.click(); };
-  const kids = [input];
+  const pick = (m, from) => { mode = m; (from === 'gallery' ? galIn : camIn).click(); };
+  const sourceBtns = (m, cls) => [
+    el('button', { class: 'btn ' + cls, type: 'button', text: '📷 מצלמה', onclick: () => pick(m, 'camera') }),
+    el('button', { class: 'btn ' + cls, type: 'button', text: '🖼 מהגלריה', onclick: () => pick(m, 'gallery') }),
+  ];
+  const kids = [camIn, galIn];
   if (front || back) {
     const thumb = (url, t, side) => el('figure', { class: 'ph' }, [url
       ? el('button', { class: 'ph-open', type: 'button', 'aria-label': 'הצג את ה' + t + ' בגדול', onclick: () => openLightbox(item, side) }, [el('img', { src: url, alt: t })])
       : el('span', { class: 'ph-missing', text: '?' }), el('figcaption', { text: t })]);
     kids.push(el('div', { class: 'ph-pair' }, [thumb(front, 'צד קדמי', 'front'), thumb(back, 'צד אחורי', 'back')]));
-    const row = [el('button', { class: 'btn', type: 'button', text: 'צלם מחדש את שני הצדדים', onclick: () => pick('both') })];
-    if (!back) row.unshift(el('button', { class: 'btn accent', type: 'button', text: '📷 הוסף צד אחורי', onclick: () => pick('back') }));
+    if (!back) kids.push(el('div', { class: 'ph-src' }, [el('span', { class: 'muted', text: 'הוסף צד אחורי:' }), ...sourceBtns('back', 'accent')]));
+    kids.push(el('div', { class: 'ph-src' }, [el('span', { class: 'muted', text: 'החלף את שני הצדדים:' }), ...sourceBtns('both', '')]));
+    const row = [];
     row.push(el('button', { class: 'btn danger', type: 'button', text: 'מחק תמונות', onclick: async () => {
       await deletePhotos(item.id); render(); openSheet(item.id, 'התמונות נמחקו.');
     } }));
     kids.push(el('div', { class: 'confirm' }, row));
   } else {
     kids.push(el('div', { class: 'photo-cta' }, [
-      el('button', { class: 'btn accent', type: 'button', text: '📷 צלם את המטבע (2 צדדים)', onclick: () => pick('both') }),
-      el('span', { class: 'muted', text: 'קודם הצד הקדמי, אחר כך הצד האחורי. המטבע יזוהה ויחתך אוטומטית.' }),
+      el('b', { text: 'תמונות המטבע (2 צדדים)' }),
+      el('div', { class: 'confirm' }, sourceBtns('both', 'accent')),
+      el('span', { class: 'muted', text: 'קודם הצד הקדמי, אחר כך הצד האחורי. אפשר לצלם עכשיו או לבחור תמונה מהגלריה. המטבע יזוהה ויחתך אוטומטית.' }),
     ]));
   }
   return el('div', { class: 'photo-slot' }, kids);
@@ -583,18 +620,21 @@ function photoSection(item) {
 function askForSecondSide() {
   return new Promise(resolve => {
     const dlg = $('#cropper'), body = $('#cropperBody');
-    const input = el('input', { type: 'file', accept: 'image/*', hidden: true });
+    const input = el('input', { type: 'file', accept: 'image/*', capture: 'environment', hidden: true });
+    const gallery = el('input', { type: 'file', accept: 'image/*', hidden: true });
     let done = false;
     const finish = v => { if (done) return; done = true; if (dlg.open) dlg.close(); resolve(v); };
     input.addEventListener('change', () => finish(input.files && input.files[0] || null));
+    gallery.addEventListener('change', () => finish(gallery.files && gallery.files[0] || null));
     body.textContent = '';
     body.append(
       el('span', { class: 'step', text: 'שלב 2 מתוך 2' }),
       el('h2', { text: 'עכשיו הצד האחורי' }),
       el('p', { class: 'muted', text: 'הפוך את המטבע וצלם את הצד השני. התמונה שלו תופיע בגב הדף באלבום.' }),
-      input,
+      input, gallery,
       el('div', { class: 'confirm' }, [
-        el('button', { class: 'btn accent', type: 'button', text: '📷 צלם או בחר את הצד האחורי', onclick: () => input.click() }),
+        el('button', { class: 'btn accent', type: 'button', text: '📷 מצלמה', onclick: () => input.click() }),
+        el('button', { class: 'btn accent', type: 'button', text: '🖼 מהגלריה', onclick: () => gallery.click() }),
         el('button', { class: 'btn', type: 'button', text: 'ביטול', onclick: () => finish(null) }),
       ]),
     );
@@ -660,13 +700,17 @@ function openLightbox(item, side) {
 function openCustomize(col) {
   if (!col || col.kind !== 'catalog') return;
   const cat = CATALOGS[col.id], h = hiddenOf(col.id);
+  if (!cat.list) { toast('הקטלוג עוד נטען, נסה שוב בעוד רגע.'); return; }
   const groupsHidden = new Set(h.groups), itemsHidden = new Set(h.items);
   const body = $('#adderBody'); body.textContent = '';
   const count = el('p', { class: 'muted' });
   const refreshCount = () => {
-    const n = cat.list.filter(it => !groupsHidden.has(it.group) && !itemsHidden.has(it.id)).length;
+    const n = cat.list.filter(it => !groupsHidden.has(it.group) && !itemsHidden.has(it.id) && (varBox.checked || !it.variant)).length;
     count.textContent = 'באלבום יופיעו ' + n + ' מתוך ' + cat.list.length + ' מטבעות.';
   };
+  const nVar = cat.list.filter(it => it.variant).length;
+  const varBox = el('input', { type: 'checkbox', id: 'cz-var' }); varBox.checked = col.showVariants !== false;
+  const varRow = nVar ? el('label', { class: 'cz-var', for: 'cz-var' }, [varBox, el('span', {}, [el('b', { text: 'הצג וריאנטים' }), el('small', { text: ' (' + nVar + ' מטבעות: מטבעות שונות, סגסוגות, תאריכים גדולים/קטנים וכו\')' })])]) : null;
   const list = el('div', { class: 'cz-list' });
   for (const g of cat.groups) {
     const items = cat.list.filter(it => it.group === g.key);
@@ -690,6 +734,7 @@ function openCustomize(col) {
   const setAll = on => { list.querySelectorAll('.cz-g input').forEach(b => { if (b.checked !== on) { b.checked = on; b.dispatchEvent(new Event('change')); } }); };
   const save = el('button', { class: 'btn accent', type: 'button', text: 'שמור', onclick: async () => {
     col.hidden = { groups: [...groupsHidden], items: [...itemsHidden] };
+    col.showVariants = varBox.checked;
     await saveCollections(); $('#adder').close(); render(); toast('האלבום עודכן');
   } });
   body.append(
@@ -699,9 +744,10 @@ function openCustomize(col) {
       el('button', { class: 'btn', type: 'button', text: 'סמן הכול', onclick: () => setAll(true) }),
       el('button', { class: 'btn', type: 'button', text: 'נקה הכול', onclick: () => setAll(false) }),
     ]),
-    list, count,
+    varRow, list, count,
     el('div', { class: 'confirm' }, [save, el('button', { class: 'btn', type: 'button', text: 'ביטול', onclick: () => $('#adder').close() })]),
   );
+  varBox.addEventListener('change', refreshCount);
   refreshCount();
   $('#adder').showModal();
 }
@@ -714,7 +760,7 @@ const botApi = {
   addCatalog: id => addCatalog(id),
   groups: id => (CATALOGS[id] && CATALOGS[id].groups) || [],
   groupLabel: id => (CATALOGS[id] && CATALOGS[id].groupLabel) || 'קבוצה',
-  items: (id, includeHidden) => includeHidden && CATALOGS[id] ? CATALOGS[id].list.concat([...st.extras.values()].filter(x => x.series === id)) : allItems(id),
+  items: (id, includeHidden) => includeHidden && CATALOGS[id] ? (CATALOGS[id].list || []).concat([...st.extras.values()].filter(x => x.series === id)) : allItems(id),
   isOwned: id => st.owned.has(id),
   isHidden: (colId, item) => !visibleIn(colId)(item),
   hidden: id => { const h = hiddenOf(id); return { groups: [...h.groups], items: [...h.items] }; },
@@ -907,7 +953,11 @@ function openMenu(msg) {
 /* ---------- collections: library, own collections, first launch ---------- */
 function notice(kids) { const n = $('#notice'); n.textContent = ''; if (!kids) { n.hidden = true; return; } n.append(...[].concat(kids)); n.hidden = false; }
 async function saveCollections() { await Store.put('meta', 'collections', st.collections); }
+async function ensureCatalog(key) {
+  try { await loadCatalogFile(key); } catch (e) { toast('לא הצלחתי לטעון את הקטלוג. בדוק חיבור לאינטרנט ונסה שוב.'); }
+}
 async function addCatalog(key) {
+  await ensureCatalog(key);
   if (!colById(key)) { st.collections.push({ id: key, kind: 'catalog', name: CATALOGS[key].name, sub: CATALOGS[key].sub }); await saveCollections(); }
   st.tab = key; try { localStorage.setItem('album.tab', key); } catch (e) {}
   render(); toast('"' + CATALOGS[key].name + '" נוסף לאלבום');
@@ -987,6 +1037,7 @@ async function load() {
   st.extras = new Map([...extras].map(([id, x]) => [id, x]));
   await loadCollections();
   st.extras = new Map([...extras].map(([id, x]) => [id, extraToItem(id, x)]));   // needs the collections for names
+  for (const c of st.collections) if (c.kind === 'catalog' && CATALOGS[c.id].src) ensureCatalog(c.id).then(render);
 }
 
 $('#addBtn').addEventListener('click', openAdder);

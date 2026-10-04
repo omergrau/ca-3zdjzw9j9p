@@ -69,7 +69,7 @@ for (const den of MANDATE_DENOMS) for (const y of den.years) {
     if (den.d === 1 && y === 1945) rare = 'שנה שלא מופיעה בכל הקטלוגים, לאמת';
     const metalName = metal === den.metal ? den.metalName : (METAL_NAME[metal] + (den.holed ? ', מחורר (הנפקת מלחמה)' : ''));
     MANDATE.push({ id: 'm-' + den.d + '-' + y + (isAlt ? 'b' : ''), series: 'mandate', group: 'd' + den.d, d: den.d, y, metal, metalName, diam: den.diam,
-      holed: den.holed, tag: variants.length > 1 ? METAL_NAME[metal] : '', rare,
+      holed: den.holed, tag: variants.length > 1 ? METAL_NAME[metal] : '', rare, variant: isAlt,
       title: den.d + (den.d === 1 ? ' מיל ' : ' מילים ') + y + (variants.length > 1 ? ' (' + METAL_NAME[metal] + ')' : ''),
       sub: 'מנדט בריטי, פלשתינה (א"י)' });
   }
@@ -87,6 +87,30 @@ const CATALOGS = {
     about: '64 מטבעות: 1, 2, 5, 10, 20, 50 ו-100 מיל בכל שנות ההטבעה.' },
 };
 const GRADES = ['', 'G', 'VG', 'F', 'VF', 'XF', 'AU', 'UNC', 'פרוף'];
+
+// Big catalogs live in their own JSON files (catalogs/<key>.json) and load when first needed.
+// File format: { name, sub, about, theme, groupLabel, groups: [{ key, name }],
+//                items: [{ id, group, y, label, metal, diam, variant?, rare?, tag?, note?, holed? }] }
+// Register one here with { src } and it appears in the library; its coins load on demand.
+const CATALOG_FILES = {
+};
+for (const [key, f] of Object.entries(CATALOG_FILES)) CATALOGS[key] = Object.assign({ list: null, groups: [], theme: 'file', groupLabel: 'קבוצה' }, f);
+
+async function loadCatalogFile(key) {
+  const cat = CATALOGS[key];
+  if (!cat || !cat.src || cat.list) return cat;
+  const res = await fetch(cat.src, { cache: 'no-cache' });
+  if (!res.ok) throw new Error('catalog ' + key + ' ' + res.status);
+  const data = await res.json();
+  Object.assign(cat, { name: data.name || cat.name, sub: data.sub || cat.sub, about: data.about || cat.about,
+    theme: data.theme || cat.theme, groupLabel: data.groupLabel || cat.groupLabel, groups: data.groups || [] });
+  cat.list = (data.items || []).map(it => ({
+    id: key + '-' + it.id, series: key, group: it.group, y: it.y, tag: it.tag || '', rare: it.rare || '', variant: !!it.variant,
+    metal: it.metal || 'silver', metalName: it.metalName || METAL_NAME[it.metal] || '', diam: Number(it.diam) || 25, holed: !!it.holed,
+    title: it.label, sub: cat.name + (it.variant ? ' · וריאנט' : ''), design: it.note || '',
+  }));
+  return cat;
+}
 
 
 // Album pages (sheet 242 x 312 mm): coins sit in square cardboard coin holders, and the sheet's pockets

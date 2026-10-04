@@ -502,3 +502,14 @@ dialog#botDlg { width: min(480px, calc(100vw - 16px)); height: min(640px, calc(1
 .bot-chips .chip { border: 1px solid var(--line); }
 .bot-form { display: flex; gap: 8px; padding: 10px 14px 14px; border-top: 1px solid var(--line); }
 .bot-form input { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); padding: 10px 12px; }
+
+.cz-var { display: flex; gap: 8px; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--paper); border: 1px solid var(--line); font-size: 14px; }
+.cz-var input { width: 18px; height: 18px; accent-color: var(--accent); }
+.cz-var small { color: var(--muted); }
+/* catalogs loaded from files get a neutral navy/silver look until they define their own */
+:root { --file-velvet: #1d2f4f; --file-velvet-2: #2f4c7a; --file-accent: #c9d6ea; --file-accent-ink: #0d1a2e; }
+body[data-series="file"] { --velvet: var(--file-velvet); --velvet-2: var(--file-velvet-2); --accent: var(--file-accent); --accent-ink: var(--file-accent-ink); }
+.tab.file, .lib-card.file { --tv: var(--file-velvet); --tv2: var(--file-velvet-2); --ta: var(--file-accent); }
+
+.ph-src { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; }
+.photo-cta b { font-size: 14px; }
