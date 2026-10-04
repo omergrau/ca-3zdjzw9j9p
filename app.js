@@ -429,7 +429,7 @@ function renderAlbum(view, inReader) {
       const lf = leaf(coverFace(), coverInside(), 'left');
       await animate(lf, 0, 180);
       lf.remove(); bk.open = true; paint(); busy = false;
-      nav.hidden = false;
+      nav.hidden = false; edges.hidden = false;
     });
   } else { book.append(right, left); }
 
@@ -454,7 +454,23 @@ function renderAlbum(view, inReader) {
 
   const nav = el('div', { class: 'pg-nav' }, [prev, el('div', { class: 'pg-center' }, [jump, ind]), next]);
   nav.hidden = !isOpen;
-  view.append(el('div', { class: 'desk' }, [book, nav]));
+
+  // Tap the outer page edges to turn: left edge = forward, right edge = back.
+  // These narrow zones sit over the margins only, so coin buttons in the page body stay clickable.
+  const edgePrev = el('button', {
+    class: 'page-edge page-edge-right', type: 'button',
+    'aria-label': 'דף אחד אחורה', title: 'דף אחורה',
+    onclick: e => { e.stopPropagation(); backward(); }
+  });
+  const edgeNext = el('button', {
+    class: 'page-edge page-edge-left', type: 'button',
+    'aria-label': 'דף אחד קדימה', title: 'דף קדימה',
+    onclick: e => { e.stopPropagation(); forward(); }
+  });
+  const edges = el('div', { class: 'page-edges', 'aria-hidden': isOpen ? 'false' : 'true' }, [edgeNext, edgePrev]);
+  edges.hidden = !isOpen;
+
+  view.append(el('div', { class: 'desk' }, [book, edges, nav]));
   if (isOpen) paint();
   if (inReader && !isOpen && bk.autoOpen) { bk.autoOpen = false; setTimeout(() => cover.click(), 60); }
 }
