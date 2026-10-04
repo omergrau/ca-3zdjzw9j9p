@@ -1,6 +1,6 @@
 'use strict';
 (() => {
-const st = { tab: 'crowns', filter: 'all', owned: new Map(), extras: new Map(), ready: false };
+const st = { tab: 'crowns', filter: 'all', owned: new Map(), extras: new Map(), photos: new Map(), ready: false };
 try { const t = localStorage.getItem('album.tab'); if (t && SERIES[t]) st.tab = t; } catch (e) {}
 
 const $ = s => document.querySelector(s);
@@ -29,7 +29,9 @@ function findItem(id) { return allItems('crowns').concat(allItems('mandate')).fi
 
 /* ---------- rendering ---------- */
 function coinEl(item) {
-  const coin = el('span', { class: 'coin' + (item.holed ? ' holed' : '') }, [String(item.y || '·')]);
+  const photo = st.owned.has(item.id) && st.photos.get(item.id);
+  const coin = el('span', { class: 'coin' + (item.holed ? ' holed' : '') + (photo ? ' has-photo' : '') }, [String(item.y || '·')]);
+  if (photo) coin.append(el('img', { src: photo, alt: '', loading: 'lazy', decoding: 'async' }));
   if (item.rare) coin.append(el('span', { class: 'rare-dot', title: item.rare }));
   return coin;
 }
@@ -185,7 +187,7 @@ function openSheet(id, msg) {
       el('div', { class: 'field' }, [el('label', { for: 'f-date', text: 'תאריך רכישה' }), date]),
     ]),
     el('div', { class: 'field' }, [el('label', { for: 'f-note', text: 'הערות' }), note]),
-    el('div', { class: 'photo-slot' }, [el('i', { 'aria-hidden': 'true', text: '📷' }), 'צילום המטבע יתווסף בשלב הבא.']),
+    photoSection(item),
   );
   const msgEl = el('div', { class: 'msg' + (msg ? ' ok' : ''), text: msg || '' });
   const save = el('button', { class: 'btn ' + (rec ? 'primary' : 'accent'), type: 'submit', text: rec ? 'שמור שינויים' : '+ הכנס לאלבום' });
@@ -228,9 +230,50 @@ async function saveOwned(item, v, msgEl, btn) {
 async function removeOwned(item, msgEl) {
   try {
     await Store.del('owned', item.id); st.owned.delete(item.id);
+    await Store.del('photos', item.id); setPhotoUrl(item.id, null);
     if (item.custom) { await Store.del('extras', item.extraId); st.extras.delete(item.extraId); $('#sheet').close(); render(); return; }
     render(); openSheet(item.id, 'הוסר מהאוסף.');
   } catch (e) { msgEl.className = 'msg err'; msgEl.textContent = 'ההסרה נכשלה. נסה שוב.'; }
+}
+
+/* ---------- photos ---------- */
+function setPhotoUrl(id, blob) {
+  const old = st.photos.get(id); if (old) URL.revokeObjectURL(old);
+  if (blob) st.photos.set(id, URL.createObjectURL(blob)); else st.photos.delete(id);
+}
+function photoSection(item) {
+  const has = st.owned.has(item.id) && st.photos.has(item.id);
+  const input = el('input', { type: 'file', accept: 'image/*', hidden: true });
+  input.addEventListener('change', async () => {
+    const f = input.files && input.files[0]; input.value = '';
+    if (f) await takePhoto(item, f);
+  });
+  const pick = el('button', { class: 'btn ' + (has ? '' : 'accent'), type: 'button', text: has ? 'החלף תמונה' : '📷 צלם או בחר תמונה', onclick: () => input.click() });
+  const kids = [input];
+  if (has) {
+    const del = el('button', { class: 'btn danger', type: 'button', text: 'מחק תמונה', onclick: async () => {
+      await Store.del('photos', item.id); setPhotoUrl(item.id, null); render(); openSheet(item.id, 'התמונה נמחקה.');
+    } });
+    kids.push(el('div', { class: 'confirm' }, [pick, del]));
+  } else {
+    kids.push(el('div', { class: 'photo-cta' }, [pick, el('span', { class: 'muted', text: 'המטבע יזוהה ויחתך אוטומטית. רק העיגול שלו נשמר.' })]));
+  }
+  return el('div', { class: 'photo-slot' }, kids);
+}
+async function takePhoto(item, file) {
+  let blob;
+  try { blob = await Photo.crop(file, $('#cropper'), $('#cropperBody'), el); }
+  catch (e) { toast('לא הצלחתי לפתוח את התמונה. נסה תמונה אחרת.'); return; }
+  if (!blob) return;
+  try {
+    await Store.put('photos', item.id, blob); setPhotoUrl(item.id, blob);
+    const isNew = !st.owned.has(item.id);
+    if (isNew) {
+      const rec = { series: item.series, grade: '', paid: null, acquired: '', note: '', updatedAt: nowIso() };
+      await Store.put('owned', item.id, rec); st.owned.set(item.id, rec); st.justAdded = item.id;
+    }
+    render(); openSheet(item.id, isNew ? 'התמונה נשמרה והמטבע נכנס לאלבום.' : 'התמונה נשמרה.');
+  } catch (e) { toast('שמירת התמונה נכשלה. ייתכן שהזיכרון בטלפון מלא.'); }
 }
 
 /* ---------- add dialog ---------- */
@@ -286,18 +329,19 @@ function openAdder() {
 }
 
 /* ---------- backup menu ---------- */
-function snapshot() {
-  const owned = {}, extras = {};
+async function snapshot() {
+  const owned = {}, extras = {}, photos = {};
   for (const [k, v] of st.owned) owned[k] = v;
   for (const [k, v] of st.extras) extras[k] = { series: v.series, label: v.title, year: v.y || null, metal: v.metal };
-  return { app: 'coin-album', version: 1, exportedAt: nowIso(), owned, extras };
+  for (const [k, blob] of await Store.all('photos')) photos[k] = await Photo.toDataURL(blob);
+  return { app: 'coin-album', version: 2, exportedAt: nowIso(), owned, extras, photos };
 }
 function openMenu(msg) {
   const body = $('#menuBody'); body.textContent = '';
   const have = st.owned.size;
   const msgEl = el('div', { class: 'msg' + (msg ? ' ok' : ''), text: msg || '' });
-  const exportBtn = el('button', { class: 'btn primary', type: 'button', text: 'שמור גיבוי לקובץ', onclick: () => {
-    const blob = new Blob([JSON.stringify(snapshot(), null, 2)], { type: 'application/json' });
+  const exportBtn = el('button', { class: 'btn primary', type: 'button', text: 'שמור גיבוי לקובץ', onclick: async () => {
+    const blob = new Blob([JSON.stringify(await snapshot())], { type: 'application/json' });
     const a = el('a', { href: URL.createObjectURL(blob), download: 'coin-album-' + new Date().toISOString().slice(0, 10) + '.json' });
     document.body.append(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
@@ -318,7 +362,11 @@ function openMenu(msg) {
     confirmBox.textContent = '';
     confirmBox.append(el('span', { text: 'הגיבוי מכיל ' + n + ' מטבעות ויחליף את מה שיש עכשיו באפליקציה (' + have + '). להמשיך?' }),
       el('button', { class: 'btn danger', type: 'button', text: 'כן, שחזר', onclick: async () => {
-        try { await Store.replaceAll(data.owned, data.extras || {}); await load(); render(); openMenu('השחזור הושלם: ' + n + ' מטבעות.'); }
+        try {
+          const photos = {};
+          for (const [k, url] of Object.entries(data.photos || {})) photos[k] = await Photo.fromDataURL(url);
+          await Store.replaceAll(data.owned, data.extras || {}, photos); await load(); render(); openMenu('השחזור הושלם: ' + n + ' מטבעות.');
+        }
         catch (e) { msgEl.className = 'msg err'; msgEl.textContent = 'השחזור נכשל.'; }
       } }),
       el('button', { class: 'btn', type: 'button', text: 'ביטול', onclick: () => openMenu() }));
@@ -327,7 +375,7 @@ function openMenu(msg) {
   let last = ''; try { last = localStorage.getItem('album.lastBackup') || ''; } catch (e) {}
   body.append(
     el('h2', { text: 'גיבוי' }),
-    el('p', { class: 'muted', text: 'האוסף שמור רק בטלפון הזה. כדאי לשמור גיבוי מדי פעם ולשלוח אותו לעצמך (למשל במייל או בדרייב).' }),
+    el('p', { class: 'muted', text: 'האוסף והתמונות שמורים רק בטלפון הזה. כדאי לשמור גיבוי מדי פעם ולשלוח אותו לעצמך (למשל במייל או בדרייב). התמונות נכללות בגיבוי.' }),
     el('p', { class: 'muted', text: 'באוסף: ' + have + ' מטבעות. ' + (last ? 'גיבוי אחרון: ' + new Date(last).toLocaleDateString('he-IL') + '.' : 'עדיין לא נשמר גיבוי.') }),
     el('div', { class: 'confirm' }, [exportBtn, importBtn]), file, confirmBox, msgEl,
     el('div', { class: 'confirm' }, [el('button', { class: 'btn', type: 'button', text: 'סגור', onclick: () => $('#menu').close() })]),
@@ -356,8 +404,10 @@ async function maybeOfferStarter() {
 
 /* ---------- boot ---------- */
 async function load() {
-  const [owned, extras] = await Promise.all([Store.all('owned'), Store.all('extras')]);
+  const [owned, extras, photos] = await Promise.all([Store.all('owned'), Store.all('extras'), Store.all('photos')]);
   st.owned = owned;
+  for (const id of [...st.photos.keys()]) setPhotoUrl(id, null);
+  for (const [id, blob] of photos) setPhotoUrl(id, blob);
   st.extras = new Map([...extras].map(([id, x]) => [id, extraToItem(id, x)]));
 }
 

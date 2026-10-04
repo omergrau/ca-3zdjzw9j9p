@@ -239,3 +239,14 @@ hr.sep { border: 0; border-top: 1px solid var(--line); margin-block: 0; }
   .row2 { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before { transition: none !important; animation: none !important; } }
+
+/* ---------- photos ---------- */
+.coin.has-photo { color: transparent; }
+.coin.has-photo img { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.slot.own .coin.has-photo { background: #222; }
+.coin.has-photo::after { display: none; }
+.photo-slot { flex-direction: column; align-items: stretch; }
+.photo-cta { display: grid; gap: 6px; justify-items: start; }
+.crop-stage { display: block; margin-inline: auto; border-radius: 14px; touch-action: none; cursor: grab; background: #111; max-width: 100%; }
+.crop-stage:active { cursor: grabbing; }
+#crop-size { width: 100%; accent-color: var(--cr-accent); }
