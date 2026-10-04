@@ -250,10 +250,10 @@ function pageBack(p, i) {
     el('div', { class: 'pg-foot' }, [el('span', { text: '' }), el('span', { text: '' })]),
   ]);
 }
-function coverInside() {
+function coverInside(atEnd) {
   const x = seriesStats(st.tab);
   return el('section', { class: 'pg lining' }, [el('div', { class: 'lining-inner' }, [
-    el('span', { class: 'ex-libris', text: 'אלבום' }),
+    el('span', { class: 'ex-libris', text: atEnd ? 'סוף האלבום' : 'אלבום' }),
     el('b', { text: SERIES[st.tab].name }),
     el('span', { text: x.have + ' מתוך ' + x.total + ' מטבעות' }),
   ])]);
@@ -263,7 +263,7 @@ function renderAlbum(view, inReader) {
   const pages = albumPages(st.tab);
   st.book = st.book || {};
   const bk = st.book[st.tab] = st.book[st.tab] || { open: false, p: 0 };
-  bk.p = Math.min(bk.p, pages.length - 1);
+  bk.p = Math.min(bk.p, pages.length);   // p = pages.length: the last sheet is turned, the back cover's inside shows on the left
   const isOpen = inReader && bk.open;   // outside reading mode the album shows its closed cover
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -273,11 +273,12 @@ function renderAlbum(view, inReader) {
   let busy = false;
 
   const rightFor = p => p === 0 ? coverInside() : pageBack(pages[p - 1], p - 1);
+  const leftFor = p => p < pages.length ? pageFront(pages[p], p) : coverInside(true);
   function paint() {
     right.replaceChildren(rightFor(bk.p));
-    left.replaceChildren(pageFront(pages[bk.p], bk.p));
-    ind.textContent = 'דף ' + (bk.p + 1) + ' מתוך ' + pages.length;
-    prev.disabled = false; next.disabled = bk.p >= pages.length - 1;
+    left.replaceChildren(leftFor(bk.p));
+    ind.textContent = bk.p < pages.length ? 'דף ' + (bk.p + 1) + ' מתוך ' + pages.length : 'סוף האלבום';
+    prev.disabled = false; next.disabled = bk.p >= pages.length;
   }
 
   // Closed: only the front cover.
@@ -312,10 +313,10 @@ function renderAlbum(view, inReader) {
 
   // Forward: the left page (front of p) turns over to the right, showing its back.
   async function forward() {
-    if (busy || bk.p >= pages.length - 1) return;
+    if (busy || bk.p >= pages.length) return;
     busy = true;
     const lf = leaf(pageFront(pages[bk.p], bk.p), pageBack(pages[bk.p], bk.p), 'left');
-    left.replaceChildren(pageFront(pages[bk.p + 1], bk.p + 1));
+    left.replaceChildren(leftFor(bk.p + 1));
     await animate(lf, 0, 180);
     bk.p++; lf.remove(); paint(); busy = false;
   }
