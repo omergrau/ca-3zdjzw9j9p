@@ -490,16 +490,26 @@ body.reading { overflow: hidden; }
 #reader .pg-nav .btn::before { font-size: 26px; line-height: 52px; }
 #reader .pg-nav .btn:first-child::before { content: "›"; }   /* back: toward the right (Hebrew book) */
 #reader .pg-nav .btn:last-child::before { content: "‹"; }    /* forward: toward the left */
-#reader .pg-ind { position: static; transform: none; }
+#reader .pg-ind {
+  position: absolute; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); left: 50%;
+  transform: translateX(-50%); padding: 5px 10px; min-width: 0;
+  border-radius: 999px; background: rgba(12,14,18,.52); color: rgba(246,231,220,.78);
+  font-size: 11px; font-weight: 700; backdrop-filter: blur(8px);
+}
 #reader .pg-center {
-  position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%);
-  display: flex; align-items: center; gap: 8px; pointer-events: auto;
+  position: absolute; top: calc(12px + env(safe-area-inset-top, 0px)); right: 14px;
+  display: block; pointer-events: auto; z-index: 8;
 }
 #reader .pg-jump {
-  max-width: min(42vw, 220px); height: 34px; padding: 0 28px 0 8px;
-  border: 1px solid rgba(255,255,255,.22); border-radius: 10px;
-  background: rgba(20,20,24,.82); color: #f6e7dc; font: inherit; font-size: 12px;
+  width: min(54vw, 230px); height: 42px; padding: 0 38px 0 14px;
+  border: 1px solid rgba(227,192,106,.45); border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(76,27,34,.94), rgba(45,16,22,.96));
+  color: #f7eadf; font: inherit; font-size: 13px; font-weight: 700;
+  box-shadow: 0 6px 22px rgba(0,0,0,.28), inset 0 1px rgba(255,255,255,.08);
+  backdrop-filter: blur(10px); outline: none; cursor: pointer;
 }
+#reader .pg-jump:focus { border-color: rgba(227,192,106,.85); box-shadow: 0 0 0 3px rgba(227,192,106,.14), 0 6px 22px rgba(0,0,0,.28); }
 #reader .page-edges { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
 #reader .page-edge {
   position: absolute; top: 8%; bottom: 8%; width: clamp(14px, 3vw, 24px);
@@ -634,7 +644,11 @@ body[data-series="file"] { --velvet: var(--file-velvet); --velvet-2: var(--file-
 #reader .book.single-page .single-turn-back { transform-origin: right center; }
 @media (orientation: portrait) {
   #reader .desk { padding-bottom: 6px; }
-  #reader .pg-center { bottom: 1px; }
+  #reader .pg-center {
+    top: calc(62px + env(safe-area-inset-top, 0px));
+    right: 10px;
+  }
+  #reader .pg-jump { width: min(62vw, 220px); height: 40px; }
 }
 
 .ph-edit { padding: 4px 10px; font-size: 12px; }
