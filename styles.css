@@ -633,3 +633,5 @@ body[data-series="file"] { --velvet: var(--file-velvet); --velvet-2: var(--file-
   #reader .desk { padding-bottom: 6px; }
   #reader .pg-center { bottom: 1px; }
 }
+
+.ph-edit { padding: 4px 10px; font-size: 12px; }

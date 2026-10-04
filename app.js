@@ -779,7 +779,7 @@ function setPhotoUrl(key, blob) {
   if (blob) st.photos.set(key, URL.createObjectURL(blob)); else st.photos.delete(key);
 }
 async function deletePhotos(id) {
-  for (const k of [id, id + REV]) { await Store.del('photos', k); setPhotoUrl(k, null); }
+  for (const k of [id, id + REV]) { await Store.del('photos', k); await Store.del('sources', k); setPhotoUrl(k, null); }
 }
 function photoSection(item) {
   const own = st.owned.has(item.id);
@@ -803,7 +803,8 @@ function photoSection(item) {
   if (front || back) {
     const thumb = (url, t, side) => el('figure', { class: 'ph' }, [url
       ? el('button', { class: 'ph-open', type: 'button', 'aria-label': 'הצג את ה' + t + ' בגדול', onclick: () => openLightbox(item, side) }, [el('img', { src: url, alt: t })])
-      : el('span', { class: 'ph-missing', text: '?' }), el('figcaption', { text: t })]);
+      : el('span', { class: 'ph-missing', text: '?' }), el('figcaption', { text: t }),
+      url ? el('button', { class: 'btn ph-edit', type: 'button', text: '✂ ערוך חיתוך', 'aria-label': 'ערוך את החיתוך והיישור של ה' + t, onclick: () => editPhoto(item, side) }) : null]);
     kids.push(el('div', { class: 'ph-pair' }, [thumb(front, 'צד קדמי', 'front'), thumb(back, 'צד אחורי', 'back')]));
     kids.push(sideTools('front', front ? 'צלם/העלה מחדש צד קדמי' : 'הוסף צד קדמי'));
     kids.push(sideTools('back', back ? 'צלם/העלה מחדש צד אחורי' : 'הוסף צד אחורי'));
@@ -850,9 +851,29 @@ function askForSecondSide() {
   });
 }
 
-async function saveCoinPhoto(item, side, blob) {
+// `res` is what Photo.crop resolves: the round photo, the original it was cut from, and the crop params.
+async function saveCoinPhoto(item, side, res) {
   const key = side === 'back' ? item.id + REV : item.id;
-  await Store.put('photos', key, blob); setPhotoUrl(key, blob);
+  await Store.put('photos', key, res.photo); setPhotoUrl(key, res.photo);
+  await Store.put('sources', key, { blob: res.source, params: res.params });
+}
+// Open the crop again for a saved photo. With the original kept, the circle can grow back too;
+// older photos (and ones restored from a backup) only have the round crop, so they can only be tightened or turned.
+async function editPhoto(item, side) {
+  const key = side === 'back' ? item.id + REV : item.id, title = 'עריכת ה' + (side === 'back' ? 'צד האחורי' : 'צד הקדמי');
+  const src = await Store.get('sources', key), photo = await Store.get('photos', key);
+  if (!src && !photo) return;
+  let res;
+  try {
+    if (src) res = await Photo.crop(src.blob, $('#cropper'), $('#cropperBody'), el, title, { isSource: true, init: src.params });
+    else {
+      const bmp = await createImageBitmap(photo), half = bmp.width / 2; if (bmp.close) bmp.close();
+      res = await Photo.crop(photo, $('#cropper'), $('#cropperBody'), el, title, { isSource: true, init: { cx: half, cy: half, r: half, deg: 0 } });
+    }
+  } catch (e) { toast('לא הצלחתי לפתוח את התמונה לעריכה.'); return; }
+  if (!res) { openSheet(item.id); return; }
+  try { await saveCoinPhoto(item, side, res); render(); openSheet(item.id, 'התמונה עודכנה.'); }
+  catch (e) { toast('שמירת התמונה נכשלה. ייתכן שהזיכרון בטלפון מלא.'); }
 }
 async function ensureOwnedForPhoto(item) {
   if (st.owned.has(item.id)) return false;
@@ -865,6 +886,10 @@ async function swapCoinPhotos(item) {
   if (!frontBlob || !backBlob) return;
   await Store.put('photos', item.id, backBlob);
   await Store.put('photos', item.id + REV, frontBlob);
+  // the originals travel with their photos, so "edit" keeps opening the right picture
+  const [sf, sb] = await Promise.all([Store.get('sources', item.id), Store.get('sources', item.id + REV)]);
+  if (sb) await Store.put('sources', item.id, sb); else await Store.del('sources', item.id);
+  if (sf) await Store.put('sources', item.id + REV, sf); else await Store.del('sources', item.id + REV);
   setPhotoUrl(item.id, backBlob); setPhotoUrl(item.id + REV, frontBlob); render();
 }
 async function takePhotos(item, firstFile, mode) {

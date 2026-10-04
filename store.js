@@ -2,7 +2,7 @@
 'use strict';
 
 const Store = (() => {
-  const DB_NAME = 'coin-album', DB_VERSION = 2;
+  const DB_NAME = 'coin-album', DB_VERSION = 3;
   let dbp = null;
 
   function open() {
@@ -15,6 +15,7 @@ const Store = (() => {
         if (!db.objectStoreNames.contains('extras')) db.createObjectStore('extras');
         if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta');
         if (!db.objectStoreNames.contains('photos')) db.createObjectStore('photos');   // v2: cropped coin photos (Blob)
+        if (!db.objectStoreNames.contains('sources')) db.createObjectStore('sources'); // v3: originals {blob, params} to re-edit a crop
       };
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
@@ -52,9 +53,9 @@ const Store = (() => {
   async function replaceAll(owned, extras, photos) {
     const db = await open();
     return new Promise((resolve, reject) => {
-      const t = db.transaction(['owned', 'extras', 'photos'], 'readwrite');
+      const t = db.transaction(['owned', 'extras', 'photos', 'sources'], 'readwrite');
       const o = t.objectStore('owned'), x = t.objectStore('extras'), ph = t.objectStore('photos');
-      o.clear(); x.clear(); ph.clear();
+      o.clear(); x.clear(); ph.clear(); t.objectStore('sources').clear();   // originals aren't part of backups
       for (const [k, v] of Object.entries(owned)) o.put(v, k);
       for (const [k, v] of Object.entries(extras)) x.put(v, k);
       for (const [k, v] of Object.entries(photos || {})) ph.put(v, k);

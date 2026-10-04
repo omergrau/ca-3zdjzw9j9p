@@ -4,6 +4,7 @@
 const Photo = (() => {
   const OUT = 640;           // saved photo size (px, square)
   const WORK = 256;          // detection works on a downscaled copy
+  const SRC = 2000;          // the original is kept at most this big, so the crop can be edited later
 
   async function loadBitmap(file) {
     try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); }
@@ -150,11 +151,26 @@ const Photo = (() => {
     return new Promise(res => cv.toBlob(b => b && b.type === 'image/webp' ? res(b) : cv.toBlob(res, 'image/jpeg', 0.88), 'image/webp', 0.88));
   }
 
-  /** Opens the crop dialog for `file`. Resolves a Blob (round crop) or null if cancelled. */
-  async function crop(file, dlg, body, el, heading) {
-    const bmp = await loadBitmap(file);
-    let c = detect(bmp);
-    const auto = { ...c };
+  // A downscaled copy of the original photo (JPEG) and its bitmap, so later edits use the same pixels.
+  async function toSource(bmp) {
+    const k = Math.min(1, SRC / Math.max(bmp.width, bmp.height));
+    const cv = document.createElement('canvas');
+    cv.width = Math.round(bmp.width * k); cv.height = Math.round(bmp.height * k);
+    cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
+    const blob = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.9));
+    return { blob, bmp: await createImageBitmap(cv) };
+  }
+
+  /** Opens the crop dialog for `file`. Resolves null if cancelled, else
+   *  { photo: Blob (round crop), source: Blob (the original, to re-edit later), params: {cx, cy, r, deg} }.
+   *  opts.init: start from an earlier crop (params) instead of the detected circle.
+   *  opts.isSource: `file` is already a saved original, keep it as is. */
+  async function crop(file, dlg, body, el, heading, opts = {}) {
+    let bmp = await loadBitmap(file), source = file;
+    if (!opts.isSource) ({ blob: source, bmp } = await toSource(bmp));
+    const auto = detect(bmp);
+    let c = opts.init ? { cx: opts.init.cx, cy: opts.init.cy, r: opts.init.r } : { ...auto };
+    const initDeg = opts.init ? Number(opts.init.deg) || 0 : 0;
     return new Promise(resolve => {
       body.textContent = '';
       const stage = el('canvas', { class: 'crop-stage', 'aria-label': 'אזור החיתוך. גרור כדי להזיז את העיגול' });
@@ -166,8 +182,8 @@ const Photo = (() => {
       const done = v => { dlg.close(); resolve(v); };
       const saveBtn = el('button', { class: 'btn accent', type: 'button', text: 'שמור תמונה' });
       // rotation: quarter turns plus a fine angle; the round preview shows the saved result
-      let quarter = 0;
-      const fine = el('input', { type: 'range', id: 'crop-rot', min: '-45', max: '45', step: '0.5', value: '0' });
+      let quarter = ((Math.round(initDeg / 90) % 4) + 4) % 4;
+      const fine = el('input', { type: 'range', id: 'crop-rot', min: '-45', max: '45', step: '0.5', value: String(initDeg - Math.round(initDeg / 90) * 90) });
       const preview = el('canvas', { class: 'crop-preview', width: '240', height: '240', 'aria-label': 'כך המטבע יישמר' });
       const pctx = preview.getContext('2d');
       const deg = () => quarter * 90 + Number(fine.value);
@@ -234,7 +250,10 @@ const Photo = (() => {
       stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', end);
       size.addEventListener('input', () => { c.r = fromSlider(size.value); draw(); drawPreview(); });
       fine.addEventListener('input', drawPreview);
-      saveBtn.addEventListener('click', async () => { saveBtn.disabled = true; done(await exportCircle(bmp, c, deg())); });
+      saveBtn.addEventListener('click', async () => {
+        saveBtn.disabled = true;
+        done({ photo: await exportCircle(bmp, c, deg()), source, params: { cx: c.cx, cy: c.cy, r: c.r, deg: deg() } });
+      });
       dlg.addEventListener('cancel', () => resolve(null), { once: true });
 
       dlg.showModal(); layout(); draw(); drawPreview();
