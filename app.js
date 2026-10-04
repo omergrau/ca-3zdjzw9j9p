@@ -645,7 +645,29 @@ function zoomAt(pt, z) {
 // Taps in the reader: one tap on a coin opens its card, two quick taps zoom in there (or back out).
 // The single tap waits a moment so it can tell the two apart.
 const readerTaps = { last: null, timer: 0, passing: false };
+// A tap on a page's outer margin turns the page, like flicking a real album's edge:
+// the left page's left edge goes forward, the right page's right edge goes back
+// (with one page on screen, its two edges). Coins near the edge still open their card.
+function readerEdgeTurn(x, y, target) {
+  if (reader.zoom > 1.01 || (target && target.closest && target.closest('.pocket.slot'))) return false;
+  const stage = $('#readerStage');
+  if (!stage.querySelector('.book.open')) return false;
+  const [prevBtn, nextBtn] = stage.querySelectorAll('.pg-nav > .btn');
+  if (!prevBtn || !nextBtn) return false;
+  const L = stage.querySelector('.book .side.left > .pg'), R = stage.querySelector('.book .side.right > .pg');
+  const inBand = (r, side) => {
+    if (y < r.top || y > r.bottom) return false;
+    const band = Math.max(22, r.width * 0.14);
+    return side === 'left' ? x >= r.left - 40 && x <= r.left + band : x >= r.right - band && x <= r.right + 40;   // the dark margin just outside the page counts too
+  };
+  const l = L && L.getBoundingClientRect(), r = R && R.getBoundingClientRect();
+  if (l && inBand(l, 'left')) { if (!nextBtn.disabled) nextBtn.click(); return true; }
+  const back = r || l;   // single page: its right edge goes back
+  if (back && inBand(back, 'right')) { if (!prevBtn.disabled) prevBtn.click(); return true; }
+  return false;
+}
 function readerTap(x, y, target) {
+  if (readerEdgeTurn(x, y, target)) { readerTaps.last = null; return true; }
   const now = performance.now(), last = readerTaps.last;
   if (last && now - last.t < 320 && Math.hypot(x - last.x, y - last.y) < 40) {
     clearTimeout(readerTaps.timer); readerTaps.last = null;
