@@ -528,7 +528,7 @@ function installReaderZoom() {
   const stage = $('#readerStage'); if (!stage || stage.dataset.zoomReady) return;
   stage.dataset.zoomReady = '1';
   let touches = new Map(), pinch = false, startDist = 0, startZoom = 1, startPanX = 0, startPanY = 0, startMid = null;
-  let swipeStart = null;
+  let swipeStart = null, panStart = null;
 
   const vals = () => [...touches.values()];
   const dist = () => { const p=vals(); return p.length<2 ? 0 : Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y); };
@@ -540,7 +540,15 @@ function installReaderZoom() {
     for (const t of e.touches) touches.set(t.identifier,{x:t.clientX,y:t.clientY});
     if (e.touches.length === 1) {
       pinch = false;
-      swipeStart = { x:e.touches[0].clientX, y:e.touches[0].clientY };
+      const p = { x:e.touches[0].clientX, y:e.touches[0].clientY };
+      if (reader.zoom > 1.01) {
+        swipeStart = null;
+        panStart = { ...p, panX: reader.panX, panY: reader.panY };
+        e.preventDefault();
+      } else {
+        panStart = null;
+        swipeStart = p;
+      }
     } else if (e.touches.length >= 2) {
       pinch = true; swipeStart = null;
       stage.classList.add('pinching');
@@ -557,12 +565,16 @@ function installReaderZoom() {
       reader.panX=startPanX+(m.x-startMid.x); reader.panY=startPanY+(m.y-startMid.y);
       if (reader.zoom<=1.01) { reader.zoom=1; reader.panX=reader.panY=0; }
       applyReaderZoom(); e.preventDefault();
+    } else if (!pinch && panStart && e.touches.length === 1 && reader.zoom > 1.01) {
+      reader.panX = panStart.panX + (e.touches[0].clientX - panStart.x);
+      reader.panY = panStart.panY + (e.touches[0].clientY - panStart.y);
+      applyReaderZoom(); e.preventDefault();
     }
   }, {passive:false});
 
   stage.addEventListener('touchend', e => {
     if (!st.reader) return;
-    if (!pinch && swipeStart && e.changedTouches.length === 1) {
+    if (!pinch && reader.zoom <= 1.01 && swipeStart && e.changedTouches.length === 1) {
       let dx=e.changedTouches[0].clientX-swipeStart.x, dy=e.changedTouches[0].clientY-swipeStart.y;
       if (reader.rotated) [dx,dy]=[dy,-dx];
       if (Math.abs(dx)>40 && Math.abs(dx)>Math.abs(dy)*1.25) {
@@ -576,9 +588,9 @@ function installReaderZoom() {
       }
     }
     if (e.touches.length < 2) { pinch=false; startDist=0; stage.classList.remove('pinching'); applyReaderZoom(true); }
-    if (!e.touches.length) { touches.clear(); swipeStart=null; }
+    if (!e.touches.length) { touches.clear(); swipeStart=null; panStart=null; }
   }, {passive:false});
-  stage.addEventListener('touchcancel', () => { touches.clear(); pinch=false; startDist=0; swipeStart=null; stage.classList.remove('pinching'); applyReaderZoom(true); });
+  stage.addEventListener('touchcancel', () => { touches.clear(); pinch=false; startDist=0; swipeStart=null; panStart=null; stage.classList.remove('pinching'); applyReaderZoom(true); });
 
   stage.addEventListener('dblclick', e => {
     if (!st.reader || e.target.closest('.pg-nav,.reader-x')) return;
