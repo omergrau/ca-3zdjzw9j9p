@@ -627,6 +627,8 @@ function installReaderZoom() {
 }
 function enterReader() {
   const bk = st.book[st.tab];
+  reader.portrait = window.innerHeight > window.innerWidth * 1.05;
+  reader.rotated = false;
   st.reader = true; bk.autoOpen = true; resetReaderZoom(); installReaderZoom();
   $('#reader').hidden = false; document.body.classList.add('reading');
   const de = document.documentElement;
@@ -665,8 +667,7 @@ function layoutReader() {
   stage.style.transform = 'translate(-50%, -50%)';
   if (changed) {
     resetReaderZoom();
-    stage.textContent = '';
-    renderAlbum(stage, true);
+    render();
   }
   const book = stage.querySelector('.book');
   if (book) {
