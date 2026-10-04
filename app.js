@@ -706,6 +706,77 @@ function openCustomize(col) {
   $('#adder').showModal();
 }
 
+/* ---------- assistant (rule-based, see bot.js) ---------- */
+const botApi = {
+  collections: () => st.collections,
+  current: () => curCol(),
+  library: () => Object.entries(CATALOGS).map(([id, c]) => ({ id, name: c.name })),
+  addCatalog: id => addCatalog(id),
+  groups: id => (CATALOGS[id] && CATALOGS[id].groups) || [],
+  groupLabel: id => (CATALOGS[id] && CATALOGS[id].groupLabel) || 'קבוצה',
+  items: (id, includeHidden) => includeHidden && CATALOGS[id] ? CATALOGS[id].list.concat([...st.extras.values()].filter(x => x.series === id)) : allItems(id),
+  isOwned: id => st.owned.has(id),
+  isHidden: (colId, item) => !visibleIn(colId)(item),
+  hidden: id => { const h = hiddenOf(id); return { groups: [...h.groups], items: [...h.items] }; },
+  async setHidden(id, h) {
+    const col = colById(id), prev = col.hidden ? JSON.parse(JSON.stringify(col.hidden)) : { groups: [], items: [] };
+    col.hidden = h; await saveCollections(); render();
+    return async () => { col.hidden = prev; await saveCollections(); render(); };
+  },
+  async setOwned(ids, own) {
+    const changed = [];
+    for (const id of ids) {
+      const item = findItem(id) || { series: st.tab };
+      if (own && !st.owned.has(id)) {
+        const rec = { series: item.series, grade: '', paid: null, acquired: '', note: '', updatedAt: nowIso() };
+        await Store.put('owned', id, rec); st.owned.set(id, rec); changed.push([id, null]);
+      } else if (!own && st.owned.has(id)) {
+        const old = st.owned.get(id); await Store.del('owned', id); st.owned.delete(id); changed.push([id, old]);
+      }
+    }
+    render();
+    return async () => {
+      for (const [id, old] of changed) { if (old) { await Store.put('owned', id, old); st.owned.set(id, old); } else { await Store.del('owned', id); st.owned.delete(id); } }
+      render();
+    };
+  },
+  stats: id => {
+    if (id) return seriesStats(id);
+    let have = 0, total = 0; for (const c of st.collections) { const x = seriesStats(c.id); have += x.have; total += x.total; }
+    return { have, total, pct: total ? Math.round(have / total * 100) : 0 };
+  },
+};
+const botLog = [];
+function openBot() {
+  const dlg = $('#botDlg'), body = $('#botBody');
+  const msgs = el('div', { class: 'bot-msgs', role: 'log', 'aria-live': 'polite' });
+  const input = el('input', { id: 'bot-in', autocomplete: 'off', placeholder: 'למשל: השאר רק ויקטוריה' });
+  const say = (who, text, undo) => {
+    const b = el('div', { class: 'bot-msg ' + who }, [el('span', { text })]);
+    if (undo) {
+      const u = el('button', { class: 'btn bot-undo', type: 'button', text: 'בטל' });
+      u.addEventListener('click', async () => { u.disabled = true; await undo(); u.textContent = 'בוטל'; });
+      b.append(u);
+    }
+    msgs.append(b); msgs.scrollTop = msgs.scrollHeight;
+  };
+  const send = async text => {
+    text = (text || '').trim(); if (!text) return;
+    botLog.push(['me', text]); say('me', text); input.value = '';
+    let res; try { res = await Bot.handle(text, botApi); } catch (e) { res = { reply: 'משהו השתבש. נסה לנסח אחרת.' }; }
+    botLog.push(['bot', res.reply]); say('bot', res.reply, res.undo);
+  };
+  const form = el('form', { class: 'bot-form' }, [input, el('button', { class: 'btn accent', type: 'submit', text: 'שלח' })]);
+  form.addEventListener('submit', e => { e.preventDefault(); send(input.value); });
+  const chips = el('div', { class: 'bot-chips' }, ['כמה יש לי', 'מה חסר לי', 'עזרה'].map(t => el('button', { class: 'chip', type: 'button', text: t, onclick: () => send(t) })));
+  body.replaceChildren(
+    el('div', { class: 'bot-head' }, [el('b', { text: 'העוזר של האלבום' }), el('button', { class: 'lb-x bot-x', type: 'button', 'aria-label': 'סגור', text: '✕', onclick: () => dlg.close() })]),
+    msgs, chips, form);
+  if (!botLog.length) say('bot', 'שלום! אני יכול להסתיר או להחזיר חלקים מהאלבום, לסמן מטבעות שיש לך, ולספר מה חסר. כתוב "עזרה" לדוגמאות.');
+  else for (const [w, t] of botLog) say(w, t);
+  dlg.showModal(); setTimeout(() => input.focus(), 50);
+}
+
 /* ---------- add dialog ---------- */
 function openAdder() {
   const body = $('#adderBody'); body.textContent = '';
@@ -919,6 +990,7 @@ async function load() {
 }
 
 $('#addBtn').addEventListener('click', openAdder);
+$('#botBtn').addEventListener('click', openBot);
 $('#customizeBtn').addEventListener('click', () => openCustomize(curCol()));
 $('#readerClose').addEventListener('click', () => exitReader(false));
 $('#menuBtn').addEventListener('click', () => openMenu());

@@ -482,3 +482,23 @@ dialog#lightbox::backdrop { background: #000; }
 .cz-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 10px; padding: 4px 12px 10px; }
 .cz-item { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
 .cz-list input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); }
+
+/* ---------- assistant ---------- */
+.bot-fab { position: fixed; z-index: 30; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); inset-inline-start: 16px; width: 56px; height: 56px; border-radius: 50%;
+  border: 0; font-size: 24px; color: #fff; background: radial-gradient(circle at 35% 30%, #a43a49, #5b1620 70%); box-shadow: 0 6px 18px rgba(91, 22, 32, .45); }
+body.reading .bot-fab, body.no-collections .bot-fab { display: none; }
+dialog#botDlg { width: min(480px, calc(100vw - 16px)); height: min(640px, calc(100dvh - 24px)); }
+.bot { display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; height: 100%; }
+.bot-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; color: #f6e7dc;
+  background: linear-gradient(150deg, #7a2430, #5b1620); border-radius: 22px 22px 0 0; }
+.bot-head b { font-family: var(--f-display); font-size: 19px; }
+.bot-x { position: static; }
+.bot-msgs { overflow: auto; padding: 14px; display: grid; align-content: start; gap: 8px; }
+.bot-msg { max-width: 86%; padding: 9px 12px; border-radius: 14px; white-space: pre-line; font-size: 14px; line-height: 1.45; display: grid; gap: 6px; }
+.bot-msg.bot { justify-self: start; background: var(--paper); border: 1px solid var(--line); border-start-start-radius: 4px; }
+.bot-msg.me { justify-self: end; background: var(--velvet); color: var(--on-velvet); border-start-end-radius: 4px; }
+.bot-undo { justify-self: start; padding: 3px 10px; font-size: 12px; }
+.bot-chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 14px 8px; }
+.bot-chips .chip { border: 1px solid var(--line); }
+.bot-form { display: flex; gap: 8px; padding: 10px 14px 14px; border-top: 1px solid var(--line); }
+.bot-form input { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); padding: 10px 12px; }
