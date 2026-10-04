@@ -394,6 +394,17 @@ body.reading { overflow: hidden; }
   contain: layout paint;
 }
 #reader .desk.zoomed .book { transition: none; cursor: zoom-out; }
+
+/* Portrait reader: one physical sheet front at a time; backs are intentionally skipped. */
+#reader .book.single-page {
+  width: var(--pw);
+  aspect-ratio: 242 / 312;
+}
+#reader .book.single-page .side.left { left: 0; width: 100%; }
+#reader .book.single-page .side.right { display: none; }
+#reader .book.single-page.open::after { display: none; }
+#reader .book.single-page.open::before { inset: -8px; }
+#reader .book.single-page .side.left .pg { border-radius: 4px; }
 #reader .desk.zoomed .pg-nav { opacity: .35; }
 
 /* Pinch performance mode: keep the live DOM, but strip expensive paint effects while it moves. */
