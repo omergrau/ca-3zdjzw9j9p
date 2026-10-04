@@ -450,7 +450,16 @@ body.reading { overflow: hidden; }
 #reader .pg-nav .btn::before { font-size: 26px; line-height: 52px; }
 #reader .pg-nav .btn:first-child::before { content: "›"; }   /* back: toward the right (Hebrew book) */
 #reader .pg-nav .btn:last-child::before { content: "‹"; }    /* forward: toward the left */
-#reader .pg-ind { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); }
+#reader .pg-ind { position: static; transform: none; }
+#reader .pg-center {
+  position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 8px; pointer-events: auto;
+}
+#reader .pg-jump {
+  max-width: min(42vw, 220px); height: 34px; padding: 0 28px 0 8px;
+  border: 1px solid rgba(255,255,255,.22); border-radius: 10px;
+  background: rgba(20,20,24,.82); color: #f6e7dc; font: inherit; font-size: 12px;
+}
 
 /* ---------- own collections, library, welcome ---------- */
 :root { --own-velvet: #23314a; --own-velvet-2: #34507a; --own-accent: #9cc8ff; --own-accent-ink: #0b1a2e; }
