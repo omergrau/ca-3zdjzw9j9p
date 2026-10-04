@@ -386,8 +386,13 @@ function renderAlbum(view, inReader) {
         turn.classList.add('single-turn', 'single-turn-forward');
         book.append(turn);
         await turn.animate(
-          [{transform:'rotateY(0deg)',opacity:1},{transform:'rotateY(-82deg)',opacity:.72},{transform:'rotateY(-118deg)',opacity:0}],
-          {duration:460,easing:'cubic-bezier(.45,.05,.25,1)',fill:'forwards'}
+          [
+            {transform:'perspective(1400px) rotateY(0deg) translateZ(0) scaleX(1)',opacity:1,offset:0},
+            {transform:'perspective(1400px) rotateY(-18deg) translateZ(18px) scaleX(.985)',opacity:1,offset:.22},
+            {transform:'perspective(1400px) rotateY(-72deg) translateZ(34px) scaleX(.94)',opacity:.96,offset:.62},
+            {transform:'perspective(1400px) rotateY(-126deg) translateZ(8px) scaleX(.9)',opacity:0,offset:1}
+          ],
+          {duration:680,easing:'cubic-bezier(.35,.02,.18,1)',fill:'forwards'}
         ).finished;
         turn.remove();
       }
@@ -409,8 +414,13 @@ function renderAlbum(view, inReader) {
       if (!reduce) {
         incoming.classList.add('single-turn-back');
         await incoming.animate(
-          [{transform:'rotateY(-105deg)',opacity:.2},{transform:'rotateY(-35deg)',opacity:.9},{transform:'rotateY(0deg)',opacity:1}],
-          {duration:460,easing:'cubic-bezier(.3,.7,.2,1)',fill:'forwards'}
+          [
+            {transform:'perspective(1400px) rotateY(-126deg) translateZ(8px) scaleX(.9)',opacity:.15,offset:0},
+            {transform:'perspective(1400px) rotateY(-70deg) translateZ(34px) scaleX(.94)',opacity:.95,offset:.4},
+            {transform:'perspective(1400px) rotateY(-16deg) translateZ(18px) scaleX(.985)',opacity:1,offset:.8},
+            {transform:'perspective(1400px) rotateY(0deg) translateZ(0) scaleX(1)',opacity:1,offset:1}
+          ],
+          {duration:680,easing:'cubic-bezier(.25,.72,.2,1)',fill:'forwards'}
         ).finished;
         incoming.classList.remove('single-turn-back');
       }
@@ -654,7 +664,7 @@ function layoutReader() {
   const book = stage.querySelector('.book');
   if (book) {
     const pw = portrait
-      ? Math.max(140, Math.min(W - 30, (H - 58) * 242 / 312))
+      ? Math.max(150, Math.min(W - 12, (H - 32) * 242 / 312))
       : Math.max(80, Math.min((W - 132) / 2, (H - 34) * 242 / 312));
     book.style.setProperty('--pw', pw + 'px');
   }
