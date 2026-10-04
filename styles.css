@@ -624,3 +624,22 @@ body[data-series="file"] { --velvet: var(--file-velvet); --velvet-2: var(--file-
 :root { --alu-a: #ffffff; --alu-b: #d9dde2; --alu-c: #9aa3ad; }
 .slot.own.m-alu .coin { background: radial-gradient(circle at 32% 28%, var(--alu-a), var(--alu-b) 60%, var(--alu-c)); }
 .back-holder.m-alu .window .coin { background: radial-gradient(circle at 60% 35%, var(--alu-a), var(--alu-b) 60%, var(--alu-c)); }
+
+/* Portrait page-turn v2: the current sheet stays opaque and peels away from the binder. */
+#reader .book.single-page { perspective: 1200px; transform-style: preserve-3d; }
+#reader .book.single-page .single-turn {
+  transform-origin: right center;
+  opacity: 1 !important;
+  overflow: hidden;
+  box-shadow: -20px 10px 34px rgba(0,0,0,.42);
+}
+#reader .book.single-page .single-turn-shade {
+  position: absolute; inset: 0; z-index: 30; pointer-events: none; opacity: .08;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.18) 0%, transparent 20%, transparent 58%, rgba(0,0,0,.5) 100%);
+}
+#reader .book.single-page .single-turn-back { transform-origin: right center; }
+@media (orientation: portrait) {
+  #reader .desk { padding-bottom: 6px; }
+  #reader .pg-center { bottom: 1px; }
+}
