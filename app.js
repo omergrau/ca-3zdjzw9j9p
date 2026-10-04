@@ -289,7 +289,11 @@ function pageBack(p, i) {
       const rev = st.photos.get(it.id + REV);
       const coin = el('span', { class: 'coin' + (it.holed ? ' holed' : '') + (rev ? ' has-photo' : '') }, rev ? [el('img', { src: rev, alt: '' })] : []);
       coin.style.width = coin.style.height = ((it.diam || 25) / win * 100) + '%';
-      cells.push(el('span', { class: 'pocket own back-holder slot m-' + it.metal }, [el('span', { class: 'holder' }, [
+      cells.push(el('button', {
+        type: 'button', class: 'pocket own back-holder slot m-' + it.metal,
+        'aria-label': it.title + ', גב המטבע, פתח פרטים',
+        title: it.title, onclick: () => openSheet(it.id),
+      }, [el('span', { class: 'holder' }, [
         el('span', { class: 'window', style: '--w:' + (win / p.sheet.holder * 100) + '%' }, [coin]),
         el('span', { class: 'hl-lbl', text: String(it.y || '') }),
       ])]));
