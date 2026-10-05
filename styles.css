@@ -767,3 +767,14 @@ body[data-series="file"] { --velvet: var(--file-velvet); --velvet-2: var(--file-
   #reader .pg-rail{top:calc(8px + env(safe-area-inset-top,0px));width:min(84vw,520px);max-height:none}
   #reader .desk.has-top-rail .book{margin-top:60px}
 }
+
+/* Reader roller placement refinement: keep it attached to the right edge, high above the album. */
+#reader .pg-rail{
+  left:auto; right:max(0px,env(safe-area-inset-right,0px)); transform:none;
+  width:min(72vw,620px); border-radius:14px 0 0 14px;
+}
+#reader .desk.has-top-rail .book{margin-top:76px}
+@media (orientation:portrait){
+  #reader .pg-rail{left:auto;right:max(0px,env(safe-area-inset-right,0px));transform:none;width:min(82vw,500px);border-radius:14px 0 0 14px}
+  #reader .desk.has-top-rail .book{margin-top:80px}
+}
