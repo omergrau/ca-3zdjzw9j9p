@@ -38,10 +38,27 @@ function extraToItem(id, x) {
 // A collector can trim a catalog: hide whole groups (a reign, a denomination, a country) or single coins.
 // Hidden coins keep their data; they just leave the album, the counts and the lists.
 function hiddenOf(series) { const c = colById(series); return { groups: new Set(c?.hidden?.groups || []), items: new Set(c?.hidden?.items || []) }; }
-function showsVariants(series) { const c = colById(series); return !c || c.showVariants !== false; }
-function visibleIn(series) { const h = hiddenOf(series), v = showsVariants(series); return it => !h.groups.has(it.group) && !h.items.has(it.id) && (v || !it.variant); }
+function albumSettings(col) {
+  const legacyVariants = col?.showVariants !== false;
+  return Object.assign({ scope: 'all-years', variants: legacyVariants, mints: true }, col?.settings || {});
+}
+function showsVariants(series) { const c = colById(series); return albumSettings(c).variants !== false; }
+function visibleIn(series) {
+  const h = hiddenOf(series), c = colById(series), settings = albumSettings(c), v = settings.variants !== false, m = settings.mints !== false;
+  return it => !h.groups.has(it.group) && !h.items.has(it.id) && (v || !it.variant) && (m || !it.mintVariant);
+}
 function allItems(series) {
-  const base = CATALOGS[series] && CATALOGS[series].list && colById(series) ? CATALOGS[series].list.filter(visibleIn(series)) : [];
+  let base = CATALOGS[series] && CATALOGS[series].list && colById(series) ? CATALOGS[series].list.filter(visibleIn(series)) : [];
+  const settings = albumSettings(colById(series));
+  if (settings.scope === 'one-per-type') {
+    const seen = new Set();
+    base = base.filter(it => {
+      if (st.owned.has(it.id)) return true;
+      const k = it.typeKey || it.group || it.d || it.denomination || it.title.replace(/\b(18|19|20)\d{2}\b/g, '').trim();
+      if (seen.has(k)) return false;
+      seen.add(k); return true;
+    });
+  }
   const extra = [...st.extras.values()].filter(x => x.series === series);
   if (!base.length) extra.sort((a, b) => (Number(a.y) || 0) - (Number(b.y) || 0) || a.title.localeCompare(b.title, 'he'));
   return base.concat(extra);
@@ -1158,12 +1175,25 @@ function openCustomize(col) {
   const body = $('#adderBody'); body.textContent = '';
   const count = el('p', { class: 'muted' });
   const refreshCount = () => {
-    const n = cat.list.filter(it => !groupsHidden.has(it.group) && !itemsHidden.has(it.id) && (varBox.checked || !it.variant)).length;
+    let pool = cat.list.filter(it => !groupsHidden.has(it.group) && !itemsHidden.has(it.id) && (varBox.checked || !it.variant) && (mintBox.checked || !it.mintVariant));
+    if (scope.value === 'one-per-type') {
+      const seen = new Set(); pool = pool.filter(it => { const k = it.typeKey || it.group || it.d || it.denomination || it.title.replace(/\b(18|19|20)\d{2}\b/g, '').trim(); if (seen.has(k)) return false; seen.add(k); return true; });
+    }
+    const n = pool.length;
     count.textContent = 'באלבום יופיעו ' + n + ' מתוך ' + cat.list.length + ' מטבעות.';
   };
+  const settings = albumSettings(col);
   const nVar = cat.list.filter(it => it.variant).length;
-  const varBox = el('input', { type: 'checkbox', id: 'cz-var' }); varBox.checked = col.showVariants !== false;
-  const varRow = nVar ? el('label', { class: 'cz-var', for: 'cz-var' }, [varBox, el('span', {}, [el('b', { text: 'הצג וריאנטים' }), el('small', { text: ' (' + nVar + ' מטבעות: מטבעות שונות, סגסוגות, תאריכים גדולים/קטנים וכו\')' })])]) : null;
+  const nMint = cat.list.filter(it => it.mint || it.mintMark || it.mintVariant).length;
+  const scope = el('select', { class: 'cz-select', id: 'cz-scope' }, [
+    el('option', { value: 'all-years', text: 'כל השנים וההנפקות' }),
+    el('option', { value: 'one-per-type', text: 'אחד מכל סוג / ערך' }),
+  ]);
+  scope.value = settings.scope || 'all-years';
+  const varBox = el('input', { type: 'checkbox', id: 'cz-var' }); varBox.checked = settings.variants !== false;
+  const mintBox = el('input', { type: 'checkbox', id: 'cz-mint' }); mintBox.checked = settings.mints !== false;
+  const varRow = nVar ? el('label', { class: 'cz-var', for: 'cz-var' }, [varBox, el('span', {}, [el('b', { text: 'וריאנטים' }), el('small', { text: ' כולל וריאנטים מוכרים של אותה הנפקה' })])]) : null;
+  const mintRow = nMint ? el('label', { class: 'cz-var', for: 'cz-mint' }, [mintBox, el('span', {}, [el('b', { text: 'מטבעות וסימני מטבעה' }), el('small', { text: ' הפרד הנפקות לפי Mint / Mint Mark כשיש לכך משמעות אספנית' })])]) : null;
   const list = el('div', { class: 'cz-list' });
   for (const g of cat.groups) {
     const items = cat.list.filter(it => it.group === g.key);
@@ -1187,20 +1217,25 @@ function openCustomize(col) {
   const setAll = on => { list.querySelectorAll('.cz-g input').forEach(b => { if (b.checked !== on) { b.checked = on; b.dispatchEvent(new Event('change')); } }); };
   const save = el('button', { class: 'btn accent', type: 'button', text: 'שמור', onclick: async () => {
     col.hidden = { groups: [...groupsHidden], items: [...itemsHidden] };
-    col.showVariants = varBox.checked;
+    col.showVariants = varBox.checked; // backwards compatibility with existing backups
+    col.settings = { scope: scope.value, variants: varBox.checked, mints: mintBox.checked };
     await saveCollections(); $('#adder').close(); render(); toast('האלבום עודכן');
   } });
   body.append(
-    el('h2', { text: 'התאמת האלבום: ' + col.name }),
-    el('p', { class: 'muted', text: 'סמן רק את מה שאתה אוסף. אפשר להוריד ' + cat.groupLabel + ' שלם, או לפתוח אותו ולבחור מטבעות בודדים. מטבעות שמוסתרים לא נמחקים, והם יחזרו אם תסמן אותם שוב.' }),
+    el('h2', { text: 'הגדרות האלבום: ' + col.name }),
+    el('p', { class: 'muted', text: 'הגדר פעם אחת איך אתה אוסף את הסדרה. אפשר לחזור ולשנות את ההגדרות בכל זמן; מטבעות שכבר סימנת כבבעלותך לעולם לא נמחקים.' }),
+    el('label', { class: 'cz-setting' }, [
+      el('span', {}, [el('b', { text: 'מבנה האוסף' }), el('small', { text: ' בחר אם להשלים כל שנה והנפקה או להחזיק נציג אחד מכל סוג.' })]),
+      scope
+    ]),
     el('div', { class: 'confirm' }, [
       el('button', { class: 'btn', type: 'button', text: 'סמן הכול', onclick: () => setAll(true) }),
       el('button', { class: 'btn', type: 'button', text: 'נקה הכול', onclick: () => setAll(false) }),
     ]),
-    varRow, list, count,
+    varRow, mintRow, list, count,
     el('div', { class: 'confirm' }, [save, el('button', { class: 'btn', type: 'button', text: 'ביטול', onclick: () => $('#adder').close() })]),
   );
-  varBox.addEventListener('change', refreshCount);
+  for (const ctl of [varBox, mintBox, scope]) ctl.addEventListener('change', refreshCount);
   refreshCount();
   $('#adder').showModal();
 }
@@ -1428,7 +1463,8 @@ async function ensureCatalog(key) {
 }
 async function addCatalog(key) {
   await ensureCatalog(key);
-  if (!colById(key)) { st.collections.push({ id: key, kind: 'catalog', name: CATALOGS[key].name, sub: CATALOGS[key].sub, color: CATALOG_COLOR[key] || 'burgundy' }); await saveCollections(); }
+  if (!colById(key)) { st.collections.push({ id: key, kind: 'catalog', name: CATALOGS[key].name, sub: CATALOGS[key].sub, color: CATALOG_COLOR[key] || 'burgundy',
+      settings: { scope: 'all-years', variants: true, mints: true } }); await saveCollections(); }
   st.tab = key; try { localStorage.setItem('album.tab', key); } catch (e) {}
   render(); toast('"' + CATALOGS[key].name + '" נוסף לאלבום');
 }
