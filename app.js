@@ -908,6 +908,11 @@ function openSheet(id, msg) {
   add('קוטר', item.diam ? item.diam + ' מ״מ' : '');
   add('עובי', item.thickness != null ? item.thickness + ' מ״מ' : '');
   add('כמות הנפקה', item.mintageText || (item.mintage != null ? fmtNum(item.mintage) : ''));
+  add('מחזור', item.mintageCirculated != null ? fmtNum(item.mintageCirculated) : '');
+  add('BU', item.mintageBU != null ? fmtNum(item.mintageBU) : '');
+  add('Proof', item.mintageProof != null ? fmtNum(item.mintageProof) : '');
+  add('סוג', item.commemorative ? 'מטבע זיכרון במחזור' : '');
+  add('תאריך הנפקה', item.issueDate);
   add('מטבעה', item.mint);
   add('סימן מטבעה', item.mintMark);
   add('שפה', item.edge);
