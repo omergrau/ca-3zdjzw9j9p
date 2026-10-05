@@ -142,6 +142,8 @@ const CATALOG_FILES = {
     about: 'מטבעות הליש״ט העשרוניים לפי שנה, כל עיצובי 50 הפני, סדרת A–Z, הלירה העגולה ובת 12 הצלעות ומטבעות 2 לירות להנצחה.' },
   us: { src: 'catalogs/us.json', name: 'ארצות הברית', sub: '1793–היום, מחצי סנט ועד דולר', groupLabel: 'ערך',
     about: 'כל מטבעות המחזור של ארה״ב לפי סוג, שנה ומטבעה, כולל מדינות, פארקים, וריאנטים ושגיאות מפורסמים ומטבעות פרוף.' },
+  ottoman: { src: 'catalogs/ottoman.json', name: 'האימפריה העות׳מאנית', sub: '1326–1923, מאקצ׳ה ועד 500 קורוש', groupLabel: 'ערך',
+    about: 'מטבעות האימפריה העות׳מאנית מאורהאן ועד מהמט השישי, לכל תאריך ושנת מלכות, עם מטבעה, מתכת ו-Key Dates. אפשר לסדר לפי סולטן.' },
   euro: { src: 'catalogs/euro.json', name: 'יורו', sub: '1999–היום, כל מדינות גוש האירו', groupLabel: 'ערך',
     about: 'כל מטבעות האירו של 25 המדינות לפי ערך ושנה, סימני המטבעה של גרמניה וכל מטבעות ההנצחה של 2 יורו.' },
   newshekel: { src: 'catalogs/new-shekel.json', name: 'השקל החדש', sub: '1985–היום, התשמ״ה–', groupLabel: 'ערך',
@@ -171,7 +173,7 @@ async function loadCatalogFile(key) {
 
   Object.assign(cat, { name: data.name || cat.name, sub: data.sub || cat.sub, about: data.about || cat.about,
     theme: data.theme || cat.theme, groupLabel: data.groupLabel || cat.groupLabel, groups: data.groups || [],
-    countries: data.countries || [], sourceAttribution: data.sourceAttribution || '', catalogVersion: data.catalogVersion || '',
+    countries: data.countries || [], countryLabel: data.countryLabel || '', countriesLabel: data.countriesLabel || '', sourceAttribution: data.sourceAttribution || '', catalogVersion: data.catalogVersion || '',
     defaultSort: data.defaultSort || null });
   // Big catalogs keep the physical specs once per group (e.g. every 2 euro coin) instead of on every item.
   const specs = data.groupSpecs || {};

@@ -300,8 +300,8 @@ function renderSort() {
     el('span', { class: 'sort-lbl', text: 'מיון:' }),
     el('div', { class: 'sort-opts' }, sortModes(series).map(([k, t]) => el('button', { class: 'so', type: 'button', 'aria-pressed': String(s.by === k), text: t,
       onclick: () => { if (s.by !== k) setSort(series, { by: k, country: s.country }); } }))),
-    hasCountries(series) ? el('button', { class: 'so-country', type: 'button', 'aria-pressed': String(s.country), text: '🌍 לפי מדינה',
-      title: 'מקבץ כל מדינה בנפרד, בתוך המיון שבחרת', onclick: () => setSort(series, { by: s.by, country: !s.country }) }) : null,
+    hasCountries(series) ? el('button', { class: 'so-country', type: 'button', 'aria-pressed': String(s.country), text: CATALOGS[series].countryLabel || '🌍 לפי מדינה',
+      title: 'מקבץ כל ' + (CATALOGS[series].countryLabel ? 'קבוצה' : 'מדינה') + ' בנפרד, בתוך המיון שבחרת', onclick: () => setSort(series, { by: s.by, country: !s.country }) }) : null,
   );
 }
 // Fill pages in order; a new section starts a new page. Each page is sized by its own largest coin.
@@ -1263,10 +1263,10 @@ function openCustomize(col) {
     ]),
     varRow, mintRow, errorRow, proofRow,
     countryList ? el('div', { class: 'cz-setting cz-countries-box' }, [
-      el('span', {}, [el('b', { text: 'מדינות' }), el('small', { text: ' השאר רק את המדינות שאתה אוסף.' })]),
+      el('span', {}, [el('b', { text: cat.countriesLabel || 'מדינות' }), el('small', { text: ' השאר רק את ה' + (cat.countriesLabel || 'מדינות') + ' שאתה אוסף.' })]),
       el('div', { class: 'confirm' }, [
-        el('button', { class: 'btn', type: 'button', text: 'כל המדינות', onclick: () => setCountries(true) }),
-        el('button', { class: 'btn', type: 'button', text: 'אף מדינה', onclick: () => setCountries(false) }),
+        el('button', { class: 'btn', type: 'button', text: 'כל ה' + (cat.countriesLabel || 'מדינות'), onclick: () => setCountries(true) }),
+        el('button', { class: 'btn', type: 'button', text: 'נקה הכול', onclick: () => setCountries(false) }),
       ]),
       countryList,
     ]) : null,
