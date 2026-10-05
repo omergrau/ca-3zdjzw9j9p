@@ -116,7 +116,11 @@ async function loadCatalogFile(key) {
   cat.list = (data.items || []).map(it => ({
     id: key + '-' + it.id, series: key, group: it.group, country: it.country || '', y: it.y, tag: it.tag || '', rare: it.rare || '', variant: !!it.variant,
     mint: it.mint || '', mintMark: it.mintMark || '', mintVariant: !!it.mintVariant, typeKey: it.typeKey || '',
-    metal: it.metal || 'silver', metalName: it.metalName || METAL_NAME[it.metal] || '', diam: Number(it.diam) || 25, holed: !!it.holed,
+    metal: it.metal || 'silver', metalName: it.metalName || METAL_NAME[it.metal] || '', composition: it.composition || '',
+    weight: Number.isFinite(Number(it.weight)) ? Number(it.weight) : null,
+    diam: Number(it.diam) || 25, thickness: Number.isFinite(Number(it.thickness)) ? Number(it.thickness) : null,
+    mintage: it.mintage == null ? null : Number(it.mintage), mintageText: it.mintageText || '',
+    catalog: it.catalog || '', edge: it.edge || '', orientation: it.orientation || '', holed: !!it.holed,
     title: it.label, sub: cat.name + (it.variant ? ' · וריאנט' : ''), design: it.note || '',
   }));
   return cat;
