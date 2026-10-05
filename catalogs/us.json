@@ -1,0 +1,79 @@
+{
+ "name": "ארצות הברית",
+ "sub": "1793–היום, מחצי סנט ועד דולר",
+ "about": "כל מטבעות המחזור של ארה״ב לפי ערך, סוג, שנה ומטבעה (P, D, S, O, CC, W): סנטים גדולים וקטנים, ניקלים, דיימים, רבעי דולר (כולל המדינות, הפארקים והנשים), חצאי דולר ודולרים. וריאנטים ושגיאות מפורסמים (1955 DDO, 1937-D \"שלוש רגליים\" ועוד), מטבעות פרוף (מוסתרים כברירת מחדל) ו-Key / Semi-Key.",
+ "theme": "file",
+ "groupLabel": "ערך",
+ "groups": [
+  {
+   "key": "hc",
+   "name": "חצי סנט"
+  },
+  {
+   "key": "c1",
+   "name": "סנט"
+  },
+  {
+   "key": "c2",
+   "name": "2 סנט"
+  },
+  {
+   "key": "c3s",
+   "name": "3 סנט כסף"
+  },
+  {
+   "key": "c3n",
+   "name": "3 סנט ניקל"
+  },
+  {
+   "key": "hd",
+   "name": "חצי דיים"
+  },
+  {
+   "key": "n5",
+   "name": "ניקל (5 סנט)"
+  },
+  {
+   "key": "d10",
+   "name": "דיים (10 סנט)"
+  },
+  {
+   "key": "c20",
+   "name": "20 סנט"
+  },
+  {
+   "key": "q25",
+   "name": "רבע דולר"
+  },
+  {
+   "key": "h50",
+   "name": "חצי דולר"
+  },
+  {
+   "key": "d1",
+   "name": "דולר"
+  }
+ ],
+ "defaultSort": {
+  "by": "group"
+ },
+ "sources": [
+  "Wikipedia (en) — US coin mintage figure articles (cents, nickels, Roosevelt dime, quarters, half dollars, Kennedy, Morgan, Peace, Sacagawea, Presidential, 2c, 3c silver, 20c, Eisenhower)",
+  "Wikipedia (ru) — mintage tables for early and Seated Liberty coinage, Barber and Mercury dimes, half dimes, half cents, three-cent nickel, early, Seated and Trade dollars"
+ ],
+ "catalogVersion": "2026-10-05-1",
+ "shards": [
+  "catalogs/us/hc.json",
+  "catalogs/us/c1.json",
+  "catalogs/us/c2.json",
+  "catalogs/us/c3s.json",
+  "catalogs/us/c3n.json",
+  "catalogs/us/hd.json",
+  "catalogs/us/n5.json",
+  "catalogs/us/d10.json",
+  "catalogs/us/c20.json",
+  "catalogs/us/q25.json",
+  "catalogs/us/h50.json",
+  "catalogs/us/d1.json"
+ ]
+}

@@ -40,12 +40,12 @@ function extraToItem(id, x) {
 function hiddenOf(series) { const c = colById(series); return { groups: new Set(c?.hidden?.groups || []), items: new Set(c?.hidden?.items || []), countries: new Set(c?.hidden?.countries || []) }; }
 function albumSettings(col) {
   const legacyVariants = col?.showVariants !== false;
-  return Object.assign({ scope: 'all-years', variants: legacyVariants, mints: true, errors: false }, col?.settings || {});
+  return Object.assign({ scope: 'all-years', variants: legacyVariants, mints: true, errors: false, proofs: false }, col?.settings || {});
 }
 function showsVariants(series) { const c = colById(series); return albumSettings(c).variants !== false; }
 function visibleIn(series) {
-  const h = hiddenOf(series), c = colById(series), settings = albumSettings(c), v = settings.variants !== false, m = settings.mints !== false, e = settings.errors === true;
-  return it => !h.groups.has(it.group) && !h.items.has(it.id) && !(it.country && h.countries.has(it.country)) && (v || !it.variant) && (m || !it.mintVariant) && (e || !it.error);
+  const h = hiddenOf(series), c = colById(series), settings = albumSettings(c), v = settings.variants !== false, m = settings.mints !== false, e = settings.errors === true, p = settings.proofs === true;
+  return it => !h.groups.has(it.group) && !h.items.has(it.id) && !(it.country && h.countries.has(it.country)) && (v || !it.variant) && (m || !it.mintVariant) && (e || !it.error) && (p || !it.proof);
 }
 function allItems(series) {
   let base = CATALOGS[series] && CATALOGS[series].list && colById(series) ? CATALOGS[series].list.filter(visibleIn(series)) : [];
@@ -1184,7 +1184,7 @@ function openCustomize(col) {
   const body = $('#adderBody'); body.textContent = '';
   const count = el('p', { class: 'muted' });
   const refreshCount = () => {
-    let pool = cat.list.filter(it => !groupsHidden.has(it.group) && !itemsHidden.has(it.id) && !(it.country && countriesHidden.has(it.country)) && (varBox.checked || !it.variant) && (mintBox.checked || !it.mintVariant) && (errorBox.checked || !it.error));
+    let pool = cat.list.filter(it => !groupsHidden.has(it.group) && !itemsHidden.has(it.id) && !(it.country && countriesHidden.has(it.country)) && (varBox.checked || !it.variant) && (mintBox.checked || !it.mintVariant) && (errorBox.checked || !it.error) && (proofBox.checked || !it.proof));
     if (scope.value === 'one-per-type') {
       const seen = new Set(); pool = pool.filter(it => { const k = it.typeKey || it.group || it.d || it.denomination || it.title.replace(/\b(18|19|20)\d{2}\b/g, '').trim(); if (seen.has(k)) return false; seen.add(k); return true; });
     }
@@ -1203,6 +1203,9 @@ function openCustomize(col) {
   const varBox = el('input', { type: 'checkbox', id: 'cz-var' }); varBox.checked = settings.variants !== false;
   const mintBox = el('input', { type: 'checkbox', id: 'cz-mint' }); mintBox.checked = settings.mints !== false;
   const errorBox = el('input', { type: 'checkbox', id: 'cz-error' }); errorBox.checked = settings.errors === true;
+  const nProof = cat.list.filter(it => it.proof).length;
+  const proofBox = el('input', { type: 'checkbox', id: 'cz-proof' }); proofBox.checked = settings.proofs === true;
+  const proofRow = nProof ? el('label', { class: 'cz-var', for: 'cz-proof' }, [proofBox, el('span', {}, [el('b', { text: 'מטבעות פרוף ומהדורות אספנים' }), el('small', { text: ' ' + nProof + ' מטבעות פרוף, פרוף כסף ומהדורות מיוחדות שלא נועדו למחזור' })])]) : null;
   const varRow = nVar ? el('label', { class: 'cz-var', for: 'cz-var' }, [varBox, el('span', {}, [el('b', { text: 'וריאנטים' }), el('small', { text: ' כולל וריאנטים מוכרים של אותה הנפקה' })])]) : null;
   const mintRow = nMint ? el('label', { class: 'cz-var', for: 'cz-mint' }, [mintBox, el('span', {}, [el('b', { text: 'מטבעות וסימני מטבעה' }), el('small', { text: ' הפרד הנפקות לפי Mint / Mint Mark כשיש לכך משמעות אספנית' })])]) : null;
   const errorRow = nError ? el('label', { class: 'cz-var', for: 'cz-error' }, [errorBox, el('span', {}, [el('b', { text: 'טעויות הטבעה מוכרות' }), el('small', { text: ' הוסף לאלבום שגיאות קטלוגיות מפורסמות כמו רושמה הפוכה, doubled die וכדומה' })])]) : null;
@@ -1244,7 +1247,7 @@ function openCustomize(col) {
   const save = el('button', { class: 'btn accent', type: 'button', text: 'שמור', onclick: async () => {
     col.hidden = { groups: [...groupsHidden], items: [...itemsHidden], countries: [...countriesHidden] };
     col.showVariants = varBox.checked; // backwards compatibility with existing backups
-    col.settings = { scope: scope.value, variants: varBox.checked, mints: mintBox.checked, errors: errorBox.checked };
+    col.settings = { scope: scope.value, variants: varBox.checked, mints: mintBox.checked, errors: errorBox.checked, proofs: proofBox.checked };
     await saveCollections(); $('#adder').close(); render(); toast('האלבום עודכן');
   } });
   body.append(
@@ -1258,7 +1261,7 @@ function openCustomize(col) {
       el('button', { class: 'btn', type: 'button', text: 'סמן הכול', onclick: () => setAll(true) }),
       el('button', { class: 'btn', type: 'button', text: 'נקה הכול', onclick: () => setAll(false) }),
     ]),
-    varRow, mintRow, errorRow,
+    varRow, mintRow, errorRow, proofRow,
     countryList ? el('div', { class: 'cz-setting cz-countries-box' }, [
       el('span', {}, [el('b', { text: 'מדינות' }), el('small', { text: ' השאר רק את המדינות שאתה אוסף.' })]),
       el('div', { class: 'confirm' }, [
@@ -1270,7 +1273,7 @@ function openCustomize(col) {
     list, count,
     el('div', { class: 'confirm' }, [save, el('button', { class: 'btn', type: 'button', text: 'ביטול', onclick: () => $('#adder').close() })]),
   );
-  for (const ctl of [varBox, mintBox, errorBox, scope]) ctl.addEventListener('change', refreshCount);
+  for (const ctl of [varBox, mintBox, errorBox, proofBox, scope]) ctl.addEventListener('change', refreshCount);
   refreshCount();
   $('#adder').showModal();
 }
