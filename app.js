@@ -898,8 +898,20 @@ function openSheet(id, msg) {
     el('div', {}, [el('h2', { text: item.title }), el('p', { text: item.sub })]),
   ]));
   const facts = el('dl', { class: 'facts' });
-  const add = (k, v) => { if (v) facts.append(el('dt', { text: k }), el('dd', { text: v })); };
-  add('מתכת', item.metalName); add('עיצוב', item.design);
+  const add = (k, v) => { if (v !== '' && v != null) facts.append(el('dt', { text: k }), el('dd', { text: String(v) })); };
+  const fmtNum = n => Number(n).toLocaleString('he-IL');
+  add('מתכת', item.metalName);
+  add('הרכב', item.composition);
+  add('משקל', item.weight != null ? item.weight + ' גרם' : '');
+  add('קוטר', item.diam ? item.diam + ' מ״מ' : '');
+  add('עובי', item.thickness != null ? item.thickness + ' מ״מ' : '');
+  add('כמות הנפקה', item.mintageText || (item.mintage != null ? fmtNum(item.mintage) : ''));
+  add('מטבעה', item.mint);
+  add('סימן מטבעה', item.mintMark);
+  add('שפה', item.edge);
+  add('כיוון', item.orientation);
+  add('קטלוג', item.catalog);
+  add('פרטים', item.design);
   body.append(facts);
   body.append(el('div', { class: 'status ' + (rec ? 'yes' : 'no'), text: rec ? '✓ באלבום' : 'עוד לא באלבום' }));
   if (item.rare) body.append(el('div', { class: 'rare-note' }, [el('span', { 'aria-hidden': 'true', text: '◆' }), item.rare]));
