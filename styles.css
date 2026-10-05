@@ -778,3 +778,16 @@ body[data-series="file"] { --velvet: var(--file-velvet); --velvet-2: var(--file-
   #reader .pg-rail{left:auto;right:max(0px,env(safe-area-inset-right,0px));transform:none;width:min(82vw,500px);border-radius:14px 0 0 14px}
   #reader .desk.has-top-rail .book{margin-top:80px}
 }
+
+/* Catalog attribution badges: key dates and optional documented mint errors. */
+.key-badge,.error-badge{
+  position:absolute; z-index:3; min-width:25px; height:15px; padding:0 4px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:7px; font:700 8px/1 var(--f-body); letter-spacing:.25px;
+  box-shadow:0 1px 4px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.2);
+  pointer-events:none;
+}
+.key-badge{left:-7px;top:-5px;background:#d5aa3b;color:#211406}
+.key-badge.semi-key{background:#b8a98b;color:#211b14}
+.error-badge{right:-8px;bottom:-4px;background:#7d1b2b;color:#fff0e6}
+.matrix .key-badge,.matrix .error-badge{transform:scale(.82)}
