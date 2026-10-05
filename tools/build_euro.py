@@ -67,6 +67,8 @@ def tier(n, setonly):
 
 def main():
     src = json.load(io.open(SRC, encoding='utf8'))
+    he_path = os.path.join(HERE, 'data', 'euro_cc_he.json')
+    HE = json.load(io.open(he_path, encoding='utf8')) if os.path.exists(he_path) else {}
     by_country = {c: [] for c in COUNTRY_HE}
     seen = set()
 
@@ -130,12 +132,13 @@ def main():
     for c in comms:
         cc, y = c['country'], c['year']
         k = order[(cc, y)] = order.get((cc, y), 0) + 1
-        subj = c['subject'] or 'מטבע הנצחה'
-        base_id = 'cc-%s-%d-%s' % (cc, y, slug(subj))
+        subj_en = c['subject'] or ''
+        subj = HE.get(subj_en) or subj_en or 'מטבע הנצחה'
+        base_id = 'cc-%s-%d-%s' % (cc, y, slug(subj_en or subj))
         common = 'הנפקה משותפת לכל גוש האירו. ' if c['common'] else ''
         n = c['volume']
         t, reason = tier(n, False)
-        common_note = common + ('תאריך הנפקה: ' + c['date'] + '.' if c['date'] else '')
+        common_note = common + ('תאריך הנפקה: ' + c['date'] + '. ' if c['date'] else '') + ('(' + subj_en + ')' if subj_en and subj_en != subj else '')
         if cc == 'de':
             per_mint = {m: (de_cc.get(y, {}).get(m) or []) for m in DE_MINTS}
             for m in DE_MINTS:
