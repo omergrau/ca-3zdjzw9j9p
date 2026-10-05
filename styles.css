@@ -797,3 +797,9 @@ body[data-series="file"] { --velvet: var(--file-velvet); --velvet-2: var(--file-
 .slot.own.m-ngold .coin, .back-holder.m-ngold .window .coin, .slot.own.m-gold .coin, .back-holder.m-gold .window .coin { background: radial-gradient(circle at 32% 28%, #fff3b8, #e2b648 55%, #9a7420); }
 .slot.own.m-copper .coin, .back-holder.m-copper .window .coin { background: radial-gradient(circle at 32% 28%, #f6c3a1, #c77446 55%, #7c3d1d); }
 .slot.own.m-steel .coin, .back-holder.m-steel .window .coin { background: radial-gradient(circle at 32% 28%, #f1f3f6, #a9b0ba 55%, #6d7480); }
+
+/* customize: countries of a multi-country catalog */
+.cz-countries-box { display: grid; gap: 8px; }
+.cz-countries { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 4px 10px; max-height: 260px; overflow: auto; padding: 6px; border: 1px solid var(--line); border-radius: 12px; }
+/* euro coin colours: 1 euro has a silver centre in a gold ring (the opposite of 2 euro) */
+.slot.own.m-bimetal1 .coin, .back-holder.m-bimetal1 .window .coin { background: radial-gradient(circle at 50% 50%, var(--cuni-a) 0, var(--cuni-b) 52%, var(--cuni-c) 57%, #f1d27a 59%, #d4ab43 80%, #9a7420); }

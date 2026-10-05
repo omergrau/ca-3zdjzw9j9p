@@ -4,7 +4,7 @@
 const S925 = { metal: 'silver', metalName: 'כסף 925' };
 const S500 = { metal: 'silver', metalName: 'כסף 500' };
 const CUNI = { metal: 'cuni', metalName: 'קופרו-ניקל' };
-const METAL_NAME = { bronze: 'ברונזה', cuni: 'קופרו-ניקל', silver: 'כסף', alu: 'אלומיניום', bimetal: 'דו-מתכתי', gold: 'זהב', ngold: 'זהב נורדי', copper: 'נחושת', steel: 'פלדה' };
+const METAL_NAME = { bronze: 'ברונזה', cuni: 'קופרו-ניקל', silver: 'כסף', alu: 'אלומיניום', bimetal: 'דו-מתכתי', bimetal1: 'דו-מתכתי', gold: 'זהב', ngold: 'זהב נורדי', copper: 'נחושת', steel: 'פלדה' };
 
 const CROWN_REIGNS = [
   { key: 'g3', cypher: 'GIIIR', name: "ג'ורג' השלישי", years: '1818–1820', design: "ג'ורג' הקדוש והדרקון (פיסטרוצ'י)", m: S925,
@@ -136,6 +136,8 @@ const CATALOG_FILES = {
     about: 'סדרת האגורה והלירה של מדינת ישראל. מטבעות מחזור לפי ערך, עם הכנה לשנים, וריאנטים ומטבעות.' },
   oldshekel: { src: 'catalogs/old-shekel.json', name: 'השקל הישן', sub: '1980–1985, תש"ם–תשמ"ה', groupLabel: 'ערך',
     about: 'סדרת האגורות החדשות והשקל הישן. תשעה עריכים בסדרת המחזור.' },
+  euro: { src: 'catalogs/euro.json', name: 'יורו', sub: '1999–היום, כל מדינות גוש האירו', groupLabel: 'ערך',
+    about: 'כל מטבעות האירו של 25 המדינות לפי ערך ושנה, סימני המטבעה של גרמניה וכל מטבעות ההנצחה של 2 יורו.' },
   newshekel: { src: 'catalogs/new-shekel.json', name: 'השקל החדש', sub: '1985–היום, התשמ״ה–', groupLabel: 'ערך',
     about: 'כל מטבעות המחזור של השקל החדש לפי שנה, מטבעות החנוכה והזיכרון, וריאנטים, טעויות יישור ו-Key Dates.' },
 };
@@ -163,7 +165,11 @@ async function loadCatalogFile(key) {
 
   Object.assign(cat, { name: data.name || cat.name, sub: data.sub || cat.sub, about: data.about || cat.about,
     theme: data.theme || cat.theme, groupLabel: data.groupLabel || cat.groupLabel, groups: data.groups || [],
-    countries: data.countries || [], sourceAttribution: data.sourceAttribution || '', catalogVersion: data.catalogVersion || '' });
+    countries: data.countries || [], sourceAttribution: data.sourceAttribution || '', catalogVersion: data.catalogVersion || '',
+    defaultSort: data.defaultSort || null });
+  // Big catalogs keep the physical specs once per group (e.g. every 2 euro coin) instead of on every item.
+  const specs = data.groupSpecs || {};
+  if (Object.keys(specs).length) rawItems = rawItems.map(it => Object.assign({}, specs[it.group] || {}, it));
   // missing measurements stay missing (Number(null) would show as 0)
   const num = v => v == null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v);
   cat.list = rawItems.map(it => ({

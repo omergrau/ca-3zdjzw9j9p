@@ -1,0 +1,275 @@
+{
+ "name": "יורו",
+ "sub": "1999–היום, כל מדינות גוש האירו",
+ "about": "כל מטבעות האירו של כל המדינות (כולל אנדורה, מונקו, סן מרינו והוותיקן) לפי ערך ושנה, סימני המטבעה של גרמניה, שנות סטים בלבד, וכל מטבעות ההנצחה של 2 יורו כולל ההנפקות המשותפות. Key / Semi-Key לפי כמויות ההטבעה.",
+ "theme": "file",
+ "groupLabel": "ערך",
+ "groups": [
+  {
+   "key": "c1",
+   "name": "1 סנט"
+  },
+  {
+   "key": "c2",
+   "name": "2 סנט"
+  },
+  {
+   "key": "c5",
+   "name": "5 סנט"
+  },
+  {
+   "key": "c10",
+   "name": "10 סנט"
+  },
+  {
+   "key": "c20",
+   "name": "20 סנט"
+  },
+  {
+   "key": "c50",
+   "name": "50 סנט"
+  },
+  {
+   "key": "e1",
+   "name": "1 יורו"
+  },
+  {
+   "key": "e2",
+   "name": "2 יורו"
+  },
+  {
+   "key": "cc",
+   "name": "2 יורו הנצחה"
+  }
+ ],
+ "countries": [
+  {
+   "key": "at",
+   "name": "אוסטריה"
+  },
+  {
+   "key": "it",
+   "name": "איטליה"
+  },
+  {
+   "key": "ie",
+   "name": "אירלנד"
+  },
+  {
+   "key": "ad",
+   "name": "אנדורה"
+  },
+  {
+   "key": "ee",
+   "name": "אסטוניה"
+  },
+  {
+   "key": "bg",
+   "name": "בולגריה"
+  },
+  {
+   "key": "be",
+   "name": "בלגיה"
+  },
+  {
+   "key": "de",
+   "name": "גרמניה"
+  },
+  {
+   "key": "va",
+   "name": "הוותיקן"
+  },
+  {
+   "key": "nl",
+   "name": "הולנד"
+  },
+  {
+   "key": "gr",
+   "name": "יוון"
+  },
+  {
+   "key": "lu",
+   "name": "לוקסמבורג"
+  },
+  {
+   "key": "lv",
+   "name": "לטביה"
+  },
+  {
+   "key": "lt",
+   "name": "ליטא"
+  },
+  {
+   "key": "mc",
+   "name": "מונקו"
+  },
+  {
+   "key": "mt",
+   "name": "מלטה"
+  },
+  {
+   "key": "si",
+   "name": "סלובניה"
+  },
+  {
+   "key": "sk",
+   "name": "סלובקיה"
+  },
+  {
+   "key": "sm",
+   "name": "סן מרינו"
+  },
+  {
+   "key": "es",
+   "name": "ספרד"
+  },
+  {
+   "key": "pt",
+   "name": "פורטוגל"
+  },
+  {
+   "key": "fi",
+   "name": "פינלנד"
+  },
+  {
+   "key": "fr",
+   "name": "צרפת"
+  },
+  {
+   "key": "cy",
+   "name": "קפריסין"
+  },
+  {
+   "key": "hr",
+   "name": "קרואטיה"
+  }
+ ],
+ "defaultSort": {
+  "by": "group",
+  "country": true
+ },
+ "groupSpecs": {
+  "c1": {
+   "metal": "copper",
+   "metalName": "פלדה מצופה נחושת",
+   "composition": "פלדה בציפוי נחושת",
+   "weight": 2.3,
+   "diam": 16.25,
+   "thickness": 1.67,
+   "edge": "חלקה",
+   "orientation": "יישור מדליה ↑↑"
+  },
+  "c2": {
+   "metal": "copper",
+   "metalName": "פלדה מצופה נחושת",
+   "composition": "פלדה בציפוי נחושת",
+   "weight": 3.06,
+   "diam": 18.75,
+   "thickness": 1.67,
+   "edge": "חלקה עם חריץ",
+   "orientation": "יישור מדליה ↑↑"
+  },
+  "c5": {
+   "metal": "copper",
+   "metalName": "פלדה מצופה נחושת",
+   "composition": "פלדה בציפוי נחושת",
+   "weight": 3.92,
+   "diam": 21.25,
+   "thickness": 1.67,
+   "edge": "חלקה",
+   "orientation": "יישור מדליה ↑↑"
+  },
+  "c10": {
+   "metal": "ngold",
+   "metalName": "זהב נורדי",
+   "composition": "89% נחושת, 5% אלומיניום, 5% אבץ, 1% בדיל",
+   "weight": 4.1,
+   "diam": 19.75,
+   "thickness": 1.93,
+   "edge": "חריצים גסים",
+   "orientation": "יישור מדליה ↑↑"
+  },
+  "c20": {
+   "metal": "ngold",
+   "metalName": "זהב נורדי",
+   "composition": "89% נחושת, 5% אלומיניום, 5% אבץ, 1% בדיל",
+   "weight": 5.74,
+   "diam": 22.25,
+   "thickness": 2.14,
+   "edge": "חלקה עם 7 שקעים (\"פרח ספרדי\")",
+   "orientation": "יישור מדליה ↑↑"
+  },
+  "c50": {
+   "metal": "ngold",
+   "metalName": "זהב נורדי",
+   "composition": "89% נחושת, 5% אלומיניום, 5% אבץ, 1% בדיל",
+   "weight": 7.8,
+   "diam": 24.25,
+   "thickness": 2.38,
+   "edge": "חריצים גסים",
+   "orientation": "יישור מדליה ↑↑"
+  },
+  "e1": {
+   "metal": "bimetal1",
+   "metalName": "דו-מתכתי",
+   "composition": "טבעת ניקל-פליז, ליבה קופרו-ניקל",
+   "weight": 7.5,
+   "diam": 23.25,
+   "thickness": 2.33,
+   "edge": "חריצים לסירוגין",
+   "orientation": "יישור מדליה ↑↑"
+  },
+  "e2": {
+   "metal": "bimetal",
+   "metalName": "דו-מתכתי",
+   "composition": "טבעת קופרו-ניקל, ליבה ניקל-פליז",
+   "weight": 8.5,
+   "diam": 25.75,
+   "thickness": 2.2,
+   "edge": "חריצים דקים עם כיתוב",
+   "orientation": "יישור מדליה ↑↑"
+  },
+  "cc": {
+   "metal": "bimetal",
+   "metalName": "דו-מתכתי",
+   "composition": "טבעת קופרו-ניקל, ליבה ניקל-פליז",
+   "weight": 8.5,
+   "diam": 25.75,
+   "thickness": 2.2,
+   "edge": "חריצים דקים עם כיתוב",
+   "orientation": "יישור מדליה ↑↑"
+  }
+ },
+ "sources": [
+  "euro-coins.info — mintage quantities of euro coins by country, year and mint (circulation, BU, proof)",
+  "Wikipedia — \"<country> euro coins\" mintage tables and \"€2 commemorative coins\""
+ ],
+ "catalogVersion": "2026-10-05-1",
+ "shards": [
+  "catalogs/euro/at.json",
+  "catalogs/euro/it.json",
+  "catalogs/euro/ie.json",
+  "catalogs/euro/ad.json",
+  "catalogs/euro/ee.json",
+  "catalogs/euro/bg.json",
+  "catalogs/euro/be.json",
+  "catalogs/euro/de.json",
+  "catalogs/euro/va.json",
+  "catalogs/euro/nl.json",
+  "catalogs/euro/gr.json",
+  "catalogs/euro/lu.json",
+  "catalogs/euro/lv.json",
+  "catalogs/euro/lt.json",
+  "catalogs/euro/mc.json",
+  "catalogs/euro/mt.json",
+  "catalogs/euro/si.json",
+  "catalogs/euro/sk.json",
+  "catalogs/euro/sm.json",
+  "catalogs/euro/es.json",
+  "catalogs/euro/pt.json",
+  "catalogs/euro/fi.json",
+  "catalogs/euro/fr.json",
+  "catalogs/euro/cy.json",
+  "catalogs/euro/hr.json"
+ ]
+}

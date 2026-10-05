@@ -37,7 +37,7 @@ function extraToItem(id, x) {
 }
 // A collector can trim a catalog: hide whole groups (a reign, a denomination, a country) or single coins.
 // Hidden coins keep their data; they just leave the album, the counts and the lists.
-function hiddenOf(series) { const c = colById(series); return { groups: new Set(c?.hidden?.groups || []), items: new Set(c?.hidden?.items || []) }; }
+function hiddenOf(series) { const c = colById(series); return { groups: new Set(c?.hidden?.groups || []), items: new Set(c?.hidden?.items || []), countries: new Set(c?.hidden?.countries || []) }; }
 function albumSettings(col) {
   const legacyVariants = col?.showVariants !== false;
   return Object.assign({ scope: 'all-years', variants: legacyVariants, mints: true, errors: false }, col?.settings || {});
@@ -45,7 +45,7 @@ function albumSettings(col) {
 function showsVariants(series) { const c = colById(series); return albumSettings(c).variants !== false; }
 function visibleIn(series) {
   const h = hiddenOf(series), c = colById(series), settings = albumSettings(c), v = settings.variants !== false, m = settings.mints !== false, e = settings.errors === true;
-  return it => !h.groups.has(it.group) && !h.items.has(it.id) && (v || !it.variant) && (m || !it.mintVariant) && (e || !it.error);
+  return it => !h.groups.has(it.group) && !h.items.has(it.id) && !(it.country && h.countries.has(it.country)) && (v || !it.variant) && (m || !it.mintVariant) && (e || !it.error);
 }
 function allItems(series) {
   let base = CATALOGS[series] && CATALOGS[series].list && colById(series) ? CATALOGS[series].list.filter(visibleIn(series)) : [];
@@ -248,7 +248,8 @@ function sortModes(series) {
 }
 function hasCountries(series) { const cat = CATALOGS[series]; return !!(cat && cat.countries && cat.countries.length > 1); }
 function sortOf(series) {
-  const col = colById(series), modes = sortModes(series), s = (col && col.sort) || {};
+  const col = colById(series), modes = sortModes(series), cat = CATALOGS[series];
+  const s = (col && col.sort) || (cat && cat.defaultSort) || {};
   return { by: modes.some(m => m[0] === s.by) ? s.by : modes[0][0], country: !!s.country && hasCountries(series) };
 }
 async function setSort(series, sort) {
@@ -1179,11 +1180,11 @@ function openCustomize(col) {
   if (!col || col.kind !== 'catalog') return;
   const cat = CATALOGS[col.id], h = hiddenOf(col.id);
   if (!cat.list) { toast('הקטלוג עוד נטען, נסה שוב בעוד רגע.'); return; }
-  const groupsHidden = new Set(h.groups), itemsHidden = new Set(h.items);
+  const groupsHidden = new Set(h.groups), itemsHidden = new Set(h.items), countriesHidden = new Set(h.countries);
   const body = $('#adderBody'); body.textContent = '';
   const count = el('p', { class: 'muted' });
   const refreshCount = () => {
-    let pool = cat.list.filter(it => !groupsHidden.has(it.group) && !itemsHidden.has(it.id) && (varBox.checked || !it.variant) && (mintBox.checked || !it.mintVariant) && (errorBox.checked || !it.error));
+    let pool = cat.list.filter(it => !groupsHidden.has(it.group) && !itemsHidden.has(it.id) && !(it.country && countriesHidden.has(it.country)) && (varBox.checked || !it.variant) && (mintBox.checked || !it.mintVariant) && (errorBox.checked || !it.error));
     if (scope.value === 'one-per-type') {
       const seen = new Set(); pool = pool.filter(it => { const k = it.typeKey || it.group || it.d || it.denomination || it.title.replace(/\b(18|19|20)\d{2}\b/g, '').trim(); if (seen.has(k)) return false; seen.add(k); return true; });
     }
@@ -1205,29 +1206,43 @@ function openCustomize(col) {
   const varRow = nVar ? el('label', { class: 'cz-var', for: 'cz-var' }, [varBox, el('span', {}, [el('b', { text: 'וריאנטים' }), el('small', { text: ' כולל וריאנטים מוכרים של אותה הנפקה' })])]) : null;
   const mintRow = nMint ? el('label', { class: 'cz-var', for: 'cz-mint' }, [mintBox, el('span', {}, [el('b', { text: 'מטבעות וסימני מטבעה' }), el('small', { text: ' הפרד הנפקות לפי Mint / Mint Mark כשיש לכך משמעות אספנית' })])]) : null;
   const errorRow = nError ? el('label', { class: 'cz-var', for: 'cz-error' }, [errorBox, el('span', {}, [el('b', { text: 'טעויות הטבעה מוכרות' }), el('small', { text: ' הוסף לאלבום שגיאות קטלוגיות מפורסמות כמו רושמה הפוכה, doubled die וכדומה' })])]) : null;
+  // Catalogs that span countries (the euro): keep only the countries you collect.
+  const countryList = cat.countries && cat.countries.length > 1 ? el('div', { class: 'cz-countries' }, cat.countries.map(c => {
+    const n = cat.list.filter(it => it.country === c.key).length;
+    const b = el('input', { type: 'checkbox', id: 'czc-' + c.key }); b.checked = !countriesHidden.has(c.key);
+    b.addEventListener('change', () => { b.checked ? countriesHidden.delete(c.key) : countriesHidden.add(c.key); refreshCount(); });
+    return el('label', { class: 'cz-item cz-country', for: 'czc-' + c.key }, [b, el('span', { text: c.name + ' (' + n + ')' })]);
+  })) : null;
+  const setCountries = on => countryList && countryList.querySelectorAll('input').forEach(b => { if (b.checked !== on) { b.checked = on; b.dispatchEvent(new Event('change')); } });
   const list = el('div', { class: 'cz-list' });
   for (const g of cat.groups) {
     const items = cat.list.filter(it => it.group === g.key);
     const gBox = el('input', { type: 'checkbox', id: 'cz-' + g.key });
     gBox.checked = !groupsHidden.has(g.key);
-    const itemBoxes = items.map(it => {
-      const b = el('input', { type: 'checkbox', id: 'czi-' + it.id }); b.checked = !itemsHidden.has(it.id); b.disabled = !gBox.checked;
-      b.addEventListener('change', () => { b.checked ? itemsHidden.delete(it.id) : itemsHidden.add(it.id); refreshCount(); });
-      return el('label', { class: 'cz-item', for: 'czi-' + it.id }, [b, el('span', { text: it.title + (st.owned.has(it.id) ? ' ✓' : '') })]);
+    // the single coins of a group are only built when the group is opened (a big catalog has thousands)
+    const box = el('div', { class: 'cz-items' });
+    const details = el('details', { class: 'cz-group' }, [
+      el('summary', {}, [el('label', { class: 'cz-g', for: 'cz-' + g.key, onclick: e => e.stopPropagation() }, [gBox, el('b', { text: g.name })]), el('span', { class: 'cz-n', text: items.length + ' מטבעות' })]),
+      box,
+    ]);
+    details.addEventListener('toggle', () => {
+      if (!details.open || box.childElementCount) return;
+      box.append(...items.map(it => {
+        const b = el('input', { type: 'checkbox', id: 'czi-' + it.id }); b.checked = !itemsHidden.has(it.id); b.disabled = !gBox.checked;
+        b.addEventListener('change', () => { b.checked ? itemsHidden.delete(it.id) : itemsHidden.add(it.id); refreshCount(); });
+        return el('label', { class: 'cz-item', for: 'czi-' + it.id }, [b, el('span', { text: it.title + (st.owned.has(it.id) ? ' ✓' : '') })]);
+      }));
     });
     gBox.addEventListener('change', () => {
       gBox.checked ? groupsHidden.delete(g.key) : groupsHidden.add(g.key);
-      itemBoxes.forEach(lb => { lb.querySelector('input').disabled = !gBox.checked; });
+      box.querySelectorAll('input').forEach(b => { b.disabled = !gBox.checked; });
       refreshCount();
     });
-    list.append(el('details', { class: 'cz-group' }, [
-      el('summary', {}, [el('label', { class: 'cz-g', for: 'cz-' + g.key, onclick: e => e.stopPropagation() }, [gBox, el('b', { text: g.name })]), el('span', { class: 'cz-n', text: items.length + ' מטבעות' })]),
-      el('div', { class: 'cz-items' }, itemBoxes),
-    ]));
+    list.append(details);
   }
   const setAll = on => { list.querySelectorAll('.cz-g input').forEach(b => { if (b.checked !== on) { b.checked = on; b.dispatchEvent(new Event('change')); } }); };
   const save = el('button', { class: 'btn accent', type: 'button', text: 'שמור', onclick: async () => {
-    col.hidden = { groups: [...groupsHidden], items: [...itemsHidden] };
+    col.hidden = { groups: [...groupsHidden], items: [...itemsHidden], countries: [...countriesHidden] };
     col.showVariants = varBox.checked; // backwards compatibility with existing backups
     col.settings = { scope: scope.value, variants: varBox.checked, mints: mintBox.checked, errors: errorBox.checked };
     await saveCollections(); $('#adder').close(); render(); toast('האלבום עודכן');
@@ -1243,7 +1258,16 @@ function openCustomize(col) {
       el('button', { class: 'btn', type: 'button', text: 'סמן הכול', onclick: () => setAll(true) }),
       el('button', { class: 'btn', type: 'button', text: 'נקה הכול', onclick: () => setAll(false) }),
     ]),
-    varRow, mintRow, errorRow, list, count,
+    varRow, mintRow, errorRow,
+    countryList ? el('div', { class: 'cz-setting cz-countries-box' }, [
+      el('span', {}, [el('b', { text: 'מדינות' }), el('small', { text: ' השאר רק את המדינות שאתה אוסף.' })]),
+      el('div', { class: 'confirm' }, [
+        el('button', { class: 'btn', type: 'button', text: 'כל המדינות', onclick: () => setCountries(true) }),
+        el('button', { class: 'btn', type: 'button', text: 'אף מדינה', onclick: () => setCountries(false) }),
+      ]),
+      countryList,
+    ]) : null,
+    list, count,
     el('div', { class: 'confirm' }, [save, el('button', { class: 'btn', type: 'button', text: 'ביטול', onclick: () => $('#adder').close() })]),
   );
   for (const ctl of [varBox, mintBox, errorBox, scope]) ctl.addEventListener('change', refreshCount);
@@ -1265,7 +1289,7 @@ const botApi = {
   hidden: id => { const h = hiddenOf(id); return { groups: [...h.groups], items: [...h.items] }; },
   async setHidden(id, h) {
     const col = colById(id), prev = col.hidden ? JSON.parse(JSON.stringify(col.hidden)) : { groups: [], items: [] };
-    col.hidden = h; await saveCollections(); render();
+    col.hidden = Object.assign({ countries: prev.countries || [] }, h); await saveCollections(); render();
     return async () => { col.hidden = prev; await saveCollections(); render(); };
   },
   async setOwned(ids, own) {
