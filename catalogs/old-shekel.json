@@ -873,10 +873,10 @@
       "error": false,
       "errorName": "",
       "errorCategory": "",
-      "rarityTier": "",
-      "rarityReason": "",
+      "rarityTier": "semi-key",
+      "rarityReason": "Semi-Key: 500,000 מטבעות בלבד בהנפקת המחזור.",
       "commemorative": false,
-      "rare": "",
+      "rare": "500,000 מטבעות בלבד.",
       "note": ""
     },
     {
@@ -1161,10 +1161,10 @@
       "error": false,
       "errorName": "",
       "errorCategory": "",
-      "rarityTier": "",
-      "rarityReason": "",
+      "rarityTier": "key",
+      "rarityReason": "Key Date: 250,000 מטבעות בלבד בהנפקת המחזור.",
       "commemorative": false,
-      "rare": "",
+      "rare": "250,000 מטבעות בלבד.",
       "note": ""
     },
     {
@@ -1193,10 +1193,10 @@
       "error": false,
       "errorName": "",
       "errorCategory": "",
-      "rarityTier": "",
-      "rarityReason": "",
+      "rarityTier": "key",
+      "rarityReason": "Key Date: 250,000 מטבעות בלבד בהנפקת המחזור.",
       "commemorative": false,
-      "rare": "",
+      "rare": "250,000 מטבעות בלבד.",
       "note": ""
     },
     {
@@ -1513,10 +1513,10 @@
       "error": false,
       "errorName": "",
       "errorCategory": "",
-      "rarityTier": "",
-      "rarityReason": "",
+      "rarityTier": "semi-key",
+      "rarityReason": "Semi-Key: 500,000 מטבעות בלבד בהנפקת המחזור.",
       "commemorative": false,
-      "rare": "",
+      "rare": "500,000 מטבעות בלבד.",
       "note": "מוכרים מטבעות בעובי 1.5 ו-1.7 מ״מ וכן שפה חדה/מעוגלת; המקור הקטלוגי אינו משייך את ההבדלים באופן אמין לשנה ספציפית ולכן אינם מפוצלים לסלוטים מומצאים."
     },
     {
@@ -1801,10 +1801,10 @@
       "error": false,
       "errorName": "",
       "errorCategory": "",
-      "rarityTier": "",
-      "rarityReason": "",
+      "rarityTier": "key",
+      "rarityReason": "Key Date: 250,000 מטבעות בלבד בהנפקת המחזור.",
       "commemorative": false,
-      "rare": "",
+      "rare": "250,000 מטבעות בלבד.",
       "note": ""
     },
     {

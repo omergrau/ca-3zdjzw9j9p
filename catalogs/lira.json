@@ -1167,8 +1167,10 @@
       "catalog": "KM#25",
       "edge": "חלק",
       "orientation": "יישור מדליה ↑↑",
-      "rare": "",
-      "note": ""
+      "rare": "201,281 מטבעות בלבד.",
+      "note": "",
+      "rarityTier": "key",
+      "rarityReason": "Key Date: 201,281 מטבעות בלבד בהנפקת המחזור."
     },
     {
       "id": "a5-1966",
@@ -1192,8 +1194,10 @@
       "catalog": "KM#25",
       "edge": "חלק",
       "orientation": "יישור מדליה ↑↑",
-      "rare": "",
-      "note": ""
+      "rare": "290,866 מטבעות בלבד.",
+      "note": "",
+      "rarityTier": "key",
+      "rarityReason": "Key Date: 290,866 מטבעות בלבד בהנפקת המחזור."
     },
     {
       "id": "a5-1967",
@@ -2019,8 +2023,8 @@
       "orientation": "יישור מדליה ↑↑",
       "rare": "הנפקת מחזור נמוכה במיוחד ביחס לסדרה — כ-200 אלף מטבעות.",
       "note": "",
-      "rarityTier": "",
-      "rarityReason": ""
+      "rarityTier": "key",
+      "rarityReason": "Key Date: 201,000 מטבעות בלבד בהנפקת המחזור."
     },
     {
       "id": "a10-1966",
@@ -2671,8 +2675,8 @@
       "orientation": "יישור מדליה ↑↑",
       "rare": "הנפקת מחזור נמוכה: 194,000 מטבעות.",
       "note": "",
-      "rarityTier": "",
-      "rarityReason": ""
+      "rarityTier": "key",
+      "rarityReason": "Key Date: 194,000 מטבעות בלבד בהנפקת המחזור."
     },
     {
       "id": "a25-1964-trial",
@@ -2725,8 +2729,8 @@
       "orientation": "יישור מדליה ↑↑",
       "rare": "הנפקת מחזור נמוכה: 186,544 מטבעות; נחשבת תאריך טוב יותר בסדרה.",
       "note": "",
-      "rarityTier": "",
-      "rarityReason": ""
+      "rarityTier": "key",
+      "rarityReason": "Key Date: 186,544 מטבעות בלבד בהנפקת המחזור."
     },
     {
       "id": "a25-1966",
@@ -2750,8 +2754,10 @@
       "catalog": "KM#27",
       "edge": "חלק",
       "orientation": "יישור מדליה ↑↑",
-      "rare": "",
-      "note": ""
+      "rare": "320,000 מטבעות בלבד.",
+      "note": "",
+      "rarityTier": "semi-key",
+      "rarityReason": "Semi-Key: 320,000 מטבעות בלבד בהנפקת המחזור."
     },
     {
       "id": "a25-1967",
@@ -2775,8 +2781,10 @@
       "catalog": "KM#27",
       "edge": "חלק",
       "orientation": "יישור מדליה ↑↑",
-      "rare": "",
-      "note": ""
+      "rare": "325,041 מטבעות בלבד.",
+      "note": "",
+      "rarityTier": "semi-key",
+      "rarityReason": "Semi-Key: 325,041 מטבעות בלבד בהנפקת המחזור."
     },
     {
       "id": "a25-1968",
@@ -2800,8 +2808,10 @@
       "catalog": "KM#27",
       "edge": "חלק",
       "orientation": "יישור מדליה ↑↑",
-      "rare": "",
-      "note": ""
+      "rare": "445,000 מטבעות בלבד.",
+      "note": "",
+      "rarityTier": "semi-key",
+      "rarityReason": "Semi-Key: 445,000 מטבעות בלבד בהנפקת המחזור."
     },
     {
       "id": "a25-1969",
@@ -2825,8 +2835,10 @@
       "catalog": "KM#27",
       "edge": "חלק",
       "orientation": "יישור מדליה ↑↑",
-      "rare": "",
-      "note": ""
+      "rare": "432,004 מטבעות בלבד.",
+      "note": "",
+      "rarityTier": "semi-key",
+      "rarityReason": "Semi-Key: 432,004 מטבעות בלבד בהנפקת המחזור."
     },
     {
       "id": "a25-1970",
@@ -2850,8 +2862,10 @@
       "catalog": "KM#27",
       "edge": "חלק",
       "orientation": "יישור מדליה ↑↑",
-      "rare": "",
-      "note": ""
+      "rare": "417,000 מטבעות בלבד.",
+      "note": "",
+      "rarityTier": "semi-key",
+      "rarityReason": "Semi-Key: 417,000 מטבעות בלבד בהנפקת המחזור."
     },
     {
       "id": "a25-1971",
@@ -2875,8 +2889,10 @@
       "catalog": "KM#27",
       "edge": "חלק",
       "orientation": "יישור מדליה ↑↑",
-      "rare": "",
-      "note": ""
+      "rare": "500,030 מטבעות בלבד.",
+      "note": "",
+      "rarityTier": "semi-key",
+      "rarityReason": "Semi-Key: 500,030 מטבעות בלבד בהנפקת המחזור."
     },
     {
       "id": "a25-1972",
@@ -3500,8 +3516,10 @@
       "catalog": "KM#36.1",
       "edge": "משונן",
       "orientation": "יישור מדליה ↑↑",
-      "rare": "",
-      "note": ""
+      "rare": "450,000 מטבעות בלבד.",
+      "note": "",
+      "rarityTier": "semi-key",
+      "rarityReason": "Semi-Key: 450,000 מטבעות בלבד בהנפקת המחזור."
     },
     {
       "id": "half-1970",
@@ -3550,8 +3568,10 @@
       "catalog": "KM#36.1",
       "edge": "משונן",
       "orientation": "יישור מדליה ↑↑",
-      "rare": "",
-      "note": ""
+      "rare": "500,008 מטבעות בלבד.",
+      "note": "",
+      "rarityTier": "semi-key",
+      "rarityReason": "Semi-Key: 500,008 מטבעות בלבד בהנפקת המחזור."
     },
     {
       "id": "half-1972",
@@ -3575,8 +3595,10 @@
       "catalog": "KM#36.1",
       "edge": "משונן",
       "orientation": "יישור מדליה ↑↑",
-      "rare": "",
-      "note": ""
+      "rare": "421,000 מטבעות בלבד.",
+      "note": "",
+      "rarityTier": "semi-key",
+      "rarityReason": "Semi-Key: 421,000 מטבעות בלבד בהנפקת המחזור."
     },
     {
       "id": "half-1973",
@@ -4102,8 +4124,8 @@
       "orientation": "יישור מדליה ↑↑",
       "rare": "166,053 מטבעות בלבד בטיפוס הראשון של 1 לירה.",
       "note": "",
-      "rarityTier": "",
-      "rarityReason": ""
+      "rarityTier": "key",
+      "rarityReason": "Key Date: 166,053 מטבעות בלבד בהנפקת המחזור."
     },
     {
       "id": "l1-1966-t1-std",
@@ -4127,8 +4149,10 @@
       "catalog": "KM#37",
       "edge": "משונן",
       "orientation": "יישור מדליה ↑↑",
-      "rare": "",
-      "note": ""
+      "rare": "290,000 מטבעות בלבד.",
+      "note": "",
+      "rarityTier": "key",
+      "rarityReason": "Key Date: 290,000 מטבעות בלבד בהנפקת המחזור."
     },
     {
       "id": "l1-1967-t1-std",
@@ -4154,8 +4178,8 @@
       "orientation": "יישור מדליה ↑↑",
       "rare": "188,066 מטבעות בלבד בטיפוס הראשון, לצד המעבר לטיפוס השני באותה שנה.",
       "note": "",
-      "rarityTier": "",
-      "rarityReason": ""
+      "rarityTier": "key",
+      "rarityReason": "Key Date: 188,066 מטבעות בלבד בהנפקת המחזור."
     },
     {
       "id": "l1-1967-t2-std",
