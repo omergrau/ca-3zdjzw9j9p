@@ -46,30 +46,67 @@ for (const r of CROWN_REIGNS) for (const c of r.coins) {
     title: 'קראון ' + c.y + (c.tag ? ' (' + c.tag + ')' : ''), sub: r.name, design: c.design || r.design });
 }
 
+// The Mandate series (Royal Mint, London). Years, mintages and specs follow Numista / KM.
+// Item ids ('m-<value>-<year>', 'b' for the 1942 bronze 10 mils) are stable: collections and photos point at them.
 const MANDATE_DENOMS = [
-  { d: 1, diam: 21, metal: 'bronze', metalName: 'ברונזה', holed: false, years: [1927, 1935, 1937, 1939, 1940, 1941, 1942, 1943, 1944, 1945, 1946, 1947] },
-  { d: 2, diam: 28, metal: 'bronze', metalName: 'ברונזה', holed: false, years: [1927, 1941, 1942, 1945, 1946, 1947] },
-  { d: 5, diam: 20, metal: 'cuni', metalName: 'קופרו-ניקל, מחורר', holed: true, years: [1927, 1934, 1935, 1939, 1941, 1942, 1944, 1946, 1947],
-    war: { 1942: 'bronze', 1944: 'bronze' } },
-  { d: 10, diam: 27, metal: 'cuni', metalName: 'קופרו-ניקל, מחורר', holed: true, years: [1927, 1933, 1934, 1935, 1937, 1939, 1940, 1941, 1942, 1943, 1946, 1947],
-    war: { 1943: 'bronze' }, both: [1942] },
-  { d: 20, diam: 30.5, metal: 'cuni', metalName: 'קופרו-ניקל, מחורר', holed: true, years: [1927, 1933, 1934, 1935, 1940, 1941, 1942, 1944],
-    war: { 1942: 'bronze', 1944: 'bronze' } },
-  { d: 50, diam: 23.6, metal: 'silver', metalName: 'כסף 720', holed: false, years: [1927, 1931, 1933, 1934, 1935, 1939, 1940, 1942] },
-  { d: 100, diam: 29, metal: 'silver', metalName: 'כסף 720', holed: false, years: [1927, 1931, 1933, 1934, 1935, 1939, 1940, 1942] },
+  { d: 1, diam: 21, metal: 'bronze', metalName: 'ברונזה', holed: false, km: 'KM# 1', weight: 3.23, thickness: 1.36,
+    composition: '95.5% נחושת, 3% בדיל, 1.5% אבץ', edge: 'חלק',
+    years: { 1927: 10000000, 1935: 704000, 1937: 1200000, 1939: 3700000, 1940: 396000, 1941: 1920000, 1942: 4480000,
+             1943: 2800000, 1944: 1400000, 1946: 1632000, 1947: 2880000 },
+    melted1947: 'הוטבעו 2,880,000 אך כמעט כולם הותכו; ידועים כ-5 עותקים ועוד כמה במוזיאונים.' },
+  { d: 2, diam: 28, metal: 'bronze', metalName: 'ברונזה', holed: false, km: 'KM# 2', weight: 7.8, thickness: 1.6,
+    composition: '95.5% נחושת, 3% בדיל, 1.5% אבץ', edge: 'חלק',
+    years: { 1927: 5000000, 1941: 1600000, 1942: 2400000, 1945: 960000, 1946: 960000, 1947: 480000 },
+    melted1947: 'הוטבעו 480,000 אך כמעט כולם הותכו; ידוע עותק אחד.' },
+  { d: 5, diam: 20, metal: 'cuni', metalName: 'קופרו-ניקל, מחורר', holed: true, km: 'KM# 3', weight: 2.91, thickness: 1.34,
+    composition: '75% נחושת, 25% ניקל', edge: 'חלק',
+    years: { 1927: 10000000, 1934: 500000, 1935: 2700000, 1939: 2000000, 1941: 400000, 1942: 2700000, 1944: 1000000, 1946: 1000000, 1947: 1000000 },
+    war: { 1942: 'bronze', 1944: 'bronze' }, warKm: 'KM# 3a', warWeight: 2.9,
+    melted1947: 'הוטבעו מיליון אך כמעט כולם הותכו; ידועים 3 עותקים.' },
+  { d: 10, diam: 27, metal: 'cuni', metalName: 'קופרו-ניקל, מחורר', holed: true, km: 'KM# 4', weight: 6.5, thickness: 1.5,
+    composition: '75% נחושת, 25% ניקל', edge: 'חלק',
+    years: { 1927: 5000000, 1933: 500000, 1934: 500000, 1935: 1150000, 1937: 750000, 1939: 1000000, 1940: 1500000, 1941: 400000,
+             1942: 600000, 1943: 1000000, 1946: 1000000, 1947: 1000000 },
+    war: { 1943: 'bronze' }, both: { 1942: 1000000 }, warKm: 'KM# 4a', warWeight: 6.47,
+    melted1947: 'הוטבעו מיליון אך כמעט כולם הותכו; ידוע עותק אחד.' },
+  { d: 20, diam: 30.5, metal: 'cuni', metalName: 'קופרו-ניקל, מחורר', holed: true, km: 'KM# 5', weight: 11.33, thickness: 2.2,
+    composition: '75% נחושת, 25% ניקל', edge: 'חלק',
+    years: { 1927: 1500000, 1933: 250000, 1934: 125000, 1935: 575000, 1940: 200000, 1941: 100000, 1942: 1100000, 1944: 1000000 },
+    war: { 1942: 'bronze', 1944: 'bronze' }, warKm: 'KM# 5a', warWeight: 11.3 },
+  { d: 50, diam: 23.5, metal: 'silver', metalName: 'כסף 720', holed: false, km: 'KM# 6', weight: 5.83, thickness: 1.37,
+    composition: '72% כסף, 28% נחושת', edge: 'מחורץ',
+    years: { 1927: 8000000, 1931: 500000, 1933: 1000000, 1934: 398861, 1935: 5600000, 1939: 3000000, 1940: 2000000, 1942: 5000000 } },
+  { d: 100, diam: 28.5, metal: 'silver', metalName: 'כסף 720', holed: false, km: 'KM# 7', weight: 11.7, thickness: 2.2,
+    composition: '72% כסף, 28% נחושת', edge: 'מחורץ',
+    years: { 1927: 2000000, 1931: 250000, 1933: 500000, 1934: 200000, 1935: 2850000, 1939: 1500000, 1940: 1000000, 1942: 2500000 } },
 ];
+// Proof strikes recorded for the 1927 set (66-68 pieces).
+const MANDATE_PROOF_1927 = { 1: 68, 2: 68, 5: 66, 10: 66, 20: 66, 50: 66, 100: 66 };
 
 const MANDATE = [];
-for (const den of MANDATE_DENOMS) for (const y of den.years) {
-  const variants = (den.both || []).includes(y) ? ['cuni', 'bronze'] : [(den.war && den.war[y]) || den.metal];
+for (const den of MANDATE_DENOMS) for (const [ys, mintage] of Object.entries(den.years)) {
+  const y = Number(ys);
+  const variants = den.both && den.both[y] ? ['cuni', 'bronze'] : [(den.war && den.war[y]) || den.metal];
   for (const metal of variants) {
     const isAlt = variants.length > 1 && metal === 'bronze';
-    let rare = '';
-    if (y === 1947) rare = den.d === 1 ? 'רוב ההנפקה הותכה, ידועים כ-5 עותקים' : 'רוב ההנפקה הותכה, נדיר מאוד';
-    if (den.d === 1 && y === 1945) rare = 'שנה שלא מופיעה בכל הקטלוגים, לאמת';
+    const war = metal !== den.metal;
+    const count = isAlt ? den.both[y] : mintage;
+    let rare = '', rarityTier = '', rarityReason = '';
+    if (y === 1947) {
+      rare = den.melted1947 || 'רוב ההנפקה הותכה, נדיר מאוד';
+      rarityTier = 'key'; rarityReason = 'Key: הנפקת 1947 הותכה כמעט כולה עם סיום המנדט.';
+    } else if (count <= 400000) {
+      rare = count.toLocaleString('en-US') + ' מטבעות בלבד';
+      rarityTier = 'key'; rarityReason = 'Key Date: ' + count.toLocaleString('en-US') + ' מטבעות בלבד.';
+    } else if (count <= 750000) {
+      rarityTier = 'semi-key'; rarityReason = 'Semi-Key: ' + count.toLocaleString('en-US') + ' מטבעות.';
+    }
     const metalName = metal === den.metal ? den.metalName : (METAL_NAME[metal] + (den.holed ? ', מחורר (הנפקת מלחמה)' : ''));
     MANDATE.push({ id: 'm-' + den.d + '-' + y + (isAlt ? 'b' : ''), series: 'mandate', group: 'd' + den.d, d: den.d, y, metal, metalName, diam: den.diam,
-      holed: den.holed, tag: variants.length > 1 ? METAL_NAME[metal] : '', rare, variant: isAlt,
+      holed: den.holed, tag: variants.length > 1 ? METAL_NAME[metal] : '', rare, variant: isAlt, rarityTier, rarityReason,
+      mintage: count, mintageProof: y === 1927 ? MANDATE_PROOF_1927[den.d] : null,
+      composition: war ? 'ברונזה' : den.composition, weight: war ? den.warWeight : den.weight, thickness: den.thickness,
+      catalog: war ? den.warKm : den.km, edge: den.edge, mint: 'המטבעה המלכותית, לונדון',
       title: den.d + (den.d === 1 ? ' מיל ' : ' מילים ') + y + (variants.length > 1 ? ' (' + METAL_NAME[metal] + ')' : ''),
       sub: 'מנדט בריטי, פלשתינה (א"י)' });
   }

@@ -2,7 +2,7 @@
 # Item ids of the earlier catalog are kept so collections, notes and photos stay attached.
 import json, io, os
 
-OUT = r'D:\עומר\coin-album\catalogs\pruta.json'
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'catalogs', 'pruta.json')
 
 ALIGN = 'יישור מדליה ↑↑'
 HEATON = 'Heaton, בירמינגהם'
