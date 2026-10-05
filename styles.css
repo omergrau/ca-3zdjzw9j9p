@@ -736,3 +736,34 @@ body[data-series="file"] { --velvet: var(--file-velvet); --velvet-2: var(--file-
 .cz-setting span { display:grid; gap:2px; }
 .cz-setting small, .cz-var small { color:var(--muted); font-weight:400; }
 .cz-select { width:100%; min-height:42px; padding:8px 10px; border:1px solid var(--line); border-radius:10px; background:var(--paper); color:var(--ink); font:inherit; }
+
+/* Reader top roller: one compact page/category navigator, clear of the album. */
+#reader .pg-rail {
+  position:absolute; z-index:8;
+  top:calc(10px + env(safe-area-inset-top,0px)); left:50%; right:auto; bottom:auto;
+  transform:translateX(-50%);
+  width:min(76vw,680px); height:44px; max-height:none; margin:0;
+  display:flex; flex-direction:row; align-items:center; gap:4px;
+  overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:contain;
+  scroll-snap-type:x proximity; scrollbar-width:none; touch-action:pan-x;
+  padding:5px 7px; border-radius:14px;
+  background:rgba(12,8,6,.78); box-shadow:0 5px 20px rgba(0,0,0,.28);
+  backdrop-filter:blur(9px); -webkit-backdrop-filter:blur(9px);
+}
+#reader .pg-rail::-webkit-scrollbar{display:none}
+#reader .pg-rail button{
+  flex:0 0 auto; max-width:none; min-width:48px; height:34px; padding:0 10px;
+  border:0; border-radius:9px; background:transparent;
+  color:rgba(246,231,220,.78); font:inherit; font-size:11px; font-weight:800;
+  white-space:nowrap; overflow-wrap:normal; scroll-snap-align:center;
+}
+#reader .pg-rail button[aria-current]{background:#e2b648;color:#2a1606;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+#reader .desk.has-top-rail .book{margin-top:58px}
+#reader .desk.has-top-rail .pg-nav{padding-bottom:0;align-items:center}
+#reader .desk.has-top-rail .pg-nav>.btn:first-child{margin-right:0}
+/* The old top-right page select is retired; the roller is the only direct page picker. */
+#reader .pg-center,#reader .pg-jump{display:none!important}
+@media (orientation:portrait){
+  #reader .pg-rail{top:calc(8px + env(safe-area-inset-top,0px));width:min(84vw,520px);max-height:none}
+  #reader .desk.has-top-rail .book{margin-top:60px}
+}
