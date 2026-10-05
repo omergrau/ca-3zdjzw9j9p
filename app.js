@@ -420,9 +420,8 @@ function renderAlbum(view, inReader) {
       let cur = null;
       for (const b of rail.children) if (Number(b.dataset.p) <= bk.p) cur = b;
       for (const b of rail.children) b.toggleAttribute('aria-current', b === cur);
-      if (cur && cur.scrollIntoView && rail.scrollHeight > rail.clientHeight) cur.scrollIntoView({ block: 'nearest' });
+      if (cur && cur.scrollIntoView) cur.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
     }
-    if (jump) jump.value = String(bk.p);
     prev.disabled = false; next.disabled = bk.p >= pages.length;
   }
 
@@ -516,27 +515,6 @@ function renderAlbum(view, inReader) {
   const prev = el('button', { class: 'btn ghost', type: 'button', text: '→ אחורה', onclick: backward });
   const next = el('button', { class: 'btn ghost', type: 'button', text: 'קדימה ←', onclick: forward });
 
-  const jump = el('select', { class: 'pg-jump', 'aria-label': 'קפוץ לדף' });
-  const jumpLabels = new Map();
-  pages.forEach((p, i) => {
-    let label = p.sec.title;
-    // Keep the useful collection heading compact in the side picker.
-    if (st.tab === 'mandate') label = label.split(' · ')[0];
-    if (p.sec.years) label += ' · ' + yearSpan(p.items);
-    else if (p.parts > 1) label += ' (' + p.part + '/' + p.parts + ')';
-    // Repeated section names are still separate physical pages.
-    jumpLabels.set(i, label);
-    jump.append(el('option', { value: String(i), text: label + ' — דף ' + (i + 1) }));
-  });
-  jump.append(el('option', { value: String(pages.length), text: 'סוף האלבום' }));
-  jump.onchange = () => {
-    if (busy) { jump.value = String(bk.p); return; }
-    const target = Number(jump.value);
-    if (!Number.isFinite(target) || target < 0 || target > pages.length || target === bk.p) return;
-    bk.p = target;
-    paint();
-  };
-
   if (!isOpen) {
     book.append(cover);
     cover.addEventListener('click', async () => {
@@ -581,16 +559,23 @@ function renderAlbum(view, inReader) {
   });
   book.addEventListener('pointercancel', e => { if (e.pointerId === swipePointer) { swipePointer = null; swipeBlocked = false; sx = null; } });
 
-  const nav = el('div', { class: 'pg-nav' }, [prev, el('div', { class: 'pg-center' }, [jump, ind]), next]);
+  const nav = el('div', { class: 'pg-nav' }, [prev, ind, next]);
   nav.hidden = !isOpen;
 
   // Side index: jump straight to a value / year / country without turning every page on the way.
   const marks = inReader ? railMarks(pages) : [];
-  const rail = marks.length > 1 ? el('nav', { class: 'pg-rail', 'aria-label': 'מפתח האלבום' }, marks.map(m => el('button', {
+  const rail = marks.length > 1 ? el('nav', { class: 'pg-rail', 'aria-label': 'בחירת עמוד באלבום' }, marks.map(m => el('button', {
     type: 'button', 'data-p': String(m.p), text: m.label, title: m.label + ' (דף ' + (m.p + 1) + ')',
     onclick: e => { e.stopPropagation(); if (busy || !bk.open) return; resetReaderZoom(); bk.p = m.p; paint(); },
   }))) : null;
-  if (rail) rail.hidden = !isOpen;
+  if (rail) {
+    rail.hidden = !isOpen;
+    // Drag the top roller naturally with one finger/mouse; tapping an item still jumps to it.
+    let rx = 0, rscroll = 0, dragged = false;
+    rail.addEventListener('pointerdown', e => { rx = e.clientX; rscroll = rail.scrollLeft; dragged = false; rail.setPointerCapture?.(e.pointerId); });
+    rail.addEventListener('pointermove', e => { if (!rail.hasPointerCapture?.(e.pointerId)) return; const dx = e.clientX - rx; if (Math.abs(dx) > 4) dragged = true; rail.scrollLeft = rscroll - dx; });
+    rail.addEventListener('click', e => { if (dragged) { e.preventDefault(); e.stopPropagation(); dragged = false; } }, true);
+  }
   // Zoom buttons, for when two fingers are busy (and on a computer).
   const zoomCtl = inReader ? el('div', { class: 'zoom-ctl' }, [
     el('button', { type: 'button', text: '+', 'aria-label': 'הגדל', onclick: e => { e.stopPropagation(); zoomAt(null, reader.zoom * 1.6); } }),
@@ -613,7 +598,7 @@ function renderAlbum(view, inReader) {
   const edges = el('div', { class: 'page-edges', 'aria-hidden': isOpen ? 'false' : 'true' }, [edgeNext, edgePrev]);
   edges.hidden = !isOpen;
 
-  view.append(el('div', { class: 'desk' + (rail ? ' has-rail' : '') }, [book, edges, nav, rail, zoomCtl]));
+  view.append(el('div', { class: 'desk' + (rail ? ' has-top-rail' : '') }, [book, edges, nav, rail, zoomCtl]));
   if (isOpen) paint();
 }
 
