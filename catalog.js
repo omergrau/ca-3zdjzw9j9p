@@ -110,11 +110,26 @@ async function loadCatalogFile(key) {
   const res = await fetch(cat.src, { cache: 'no-cache' });
   if (!res.ok) throw new Error('catalog ' + key + ' ' + res.status);
   const data = await res.json();
+
+  // Large catalogs (Euro / US and future world catalogs) are split into shards.
+  // The manifest keeps the album metadata while each shard carries only its own items.
+  let rawItems = data.items || [];
+  if (Array.isArray(data.shards) && data.shards.length) {
+    const chunks = await Promise.all(data.shards.map(async src => {
+      const r = await fetch(src, { cache: 'no-cache' });
+      if (!r.ok) throw new Error('catalog shard ' + src + ' ' + r.status);
+      const j = await r.json();
+      return Array.isArray(j) ? j : (j.items || []);
+    }));
+    rawItems = chunks.flat();
+  }
+
   Object.assign(cat, { name: data.name || cat.name, sub: data.sub || cat.sub, about: data.about || cat.about,
     theme: data.theme || cat.theme, groupLabel: data.groupLabel || cat.groupLabel, groups: data.groups || [],
-    countries: data.countries || [] });   // optional [{ key, name }] for catalogs that span several countries (items carry `country`)
-  cat.list = (data.items || []).map(it => ({
-    id: key + '-' + it.id, series: key, group: it.group, country: it.country || '', y: it.y, tag: it.tag || '', rare: it.rare || '', variant: !!it.variant,
+    countries: data.countries || [], sourceAttribution: data.sourceAttribution || '', catalogVersion: data.catalogVersion || '' });
+  cat.list = rawItems.map(it => ({
+    id: key + '-' + it.id, series: key, group: it.group, country: it.country || '', denomination: it.denomination || '',
+    y: it.y, tag: it.tag || '', rare: it.rare || '', variant: !!it.variant,
     mint: it.mint || '', mintMark: it.mintMark || '', mintVariant: !!it.mintVariant, typeKey: it.typeKey || '',
     error: !!it.error, errorName: it.errorName || '', errorCategory: it.errorCategory || '',
     rarityTier: it.rarityTier || '', rarityReason: it.rarityReason || '',
@@ -122,7 +137,11 @@ async function loadCatalogFile(key) {
     weight: Number.isFinite(Number(it.weight)) ? Number(it.weight) : null,
     diam: Number(it.diam) || 25, thickness: Number.isFinite(Number(it.thickness)) ? Number(it.thickness) : null,
     mintage: it.mintage == null ? null : Number(it.mintage), mintageText: it.mintageText || '',
+    mintageCirculated: it.mintageCirculated == null ? null : Number(it.mintageCirculated),
+    mintageBU: it.mintageBU == null ? null : Number(it.mintageBU),
+    mintageProof: it.mintageProof == null ? null : Number(it.mintageProof),
     catalog: it.catalog || '', edge: it.edge || '', orientation: it.orientation || '', holed: !!it.holed,
+    commemorative: !!it.commemorative, designId: it.designId || '', issueDate: it.issueDate || '',
     title: it.label, sub: cat.name + (it.variant ? ' · וריאנט' : ''), design: it.note || '',
   }));
   return cat;
