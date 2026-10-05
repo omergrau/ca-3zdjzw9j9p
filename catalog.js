@@ -90,7 +90,7 @@ const GRADES = ['', 'G', 'VG', 'F', 'VF', 'XF', 'AU', 'UNC', 'פרוף'];
 
 // Big catalogs live in their own JSON files (catalogs/<key>.json) and load when first needed.
 // File format: { name, sub, about, theme, groupLabel, groups: [{ key, name }],
-//                items: [{ id, group, y, label, metal, diam, variant?, rare?, tag?, note?, holed? }] }
+//                items: [{ id, group, y, label, metal, diam, variant?, mint?, mintMark?, mintVariant?, typeKey?, rare?, tag?, note?, holed? }] }
 // Register one here with { src } and it appears in the library; its coins load on demand.
 const CATALOG_FILES = {
   pruta: { src: 'catalogs/pruta.json', name: 'מטבעות הפרוטה', sub: '1949–1960, תש"ט–תשט"ו', groupLabel: 'ערך',
@@ -109,6 +109,7 @@ async function loadCatalogFile(key) {
     countries: data.countries || [] });   // optional [{ key, name }] for catalogs that span several countries (items carry `country`)
   cat.list = (data.items || []).map(it => ({
     id: key + '-' + it.id, series: key, group: it.group, country: it.country || '', y: it.y, tag: it.tag || '', rare: it.rare || '', variant: !!it.variant,
+    mint: it.mint || '', mintMark: it.mintMark || '', mintVariant: !!it.mintVariant, typeKey: it.typeKey || '',
     metal: it.metal || 'silver', metalName: it.metalName || METAL_NAME[it.metal] || '', diam: Number(it.diam) || 25, holed: !!it.holed,
     title: it.label, sub: cat.name + (it.variant ? ' · וריאנט' : ''), design: it.note || '',
   }));
