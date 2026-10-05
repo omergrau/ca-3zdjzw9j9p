@@ -116,6 +116,8 @@ async function loadCatalogFile(key) {
   cat.list = (data.items || []).map(it => ({
     id: key + '-' + it.id, series: key, group: it.group, country: it.country || '', y: it.y, tag: it.tag || '', rare: it.rare || '', variant: !!it.variant,
     mint: it.mint || '', mintMark: it.mintMark || '', mintVariant: !!it.mintVariant, typeKey: it.typeKey || '',
+    error: !!it.error, errorName: it.errorName || '', errorCategory: it.errorCategory || '',
+    rarityTier: it.rarityTier || '', rarityReason: it.rarityReason || '',
     metal: it.metal || 'silver', metalName: it.metalName || METAL_NAME[it.metal] || '', composition: it.composition || '',
     weight: Number.isFinite(Number(it.weight)) ? Number(it.weight) : null,
     diam: Number(it.diam) || 25, thickness: Number.isFinite(Number(it.thickness)) ? Number(it.thickness) : null,
