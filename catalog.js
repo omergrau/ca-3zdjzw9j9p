@@ -38,11 +38,14 @@ const CROWN_REIGNS = [
 ];
 
 const CROWN_DIAM = 38.6;   // mm
+// Mintages 1902-1965 (Royal Mint figures as listed on Wikipedia, "Crown (British coin)"); earlier years are not listed there.
+const CROWN_MINTAGE = { 1902: 256020, 1927: 15030, 1928: 9034, 1929: 4994, 1930: 4847, 1931: 4056, 1932: 2395, 1933: 7132, 1934: 932,
+  1935: 714769, 1936: 2473, 1937: 418699, 1951: 1983540, 1953: 5962621, 1960: 1024038, 1965: 19640000 };
 const CROWNS = [];
 for (const r of CROWN_REIGNS) for (const c of r.coins) {
   const m = c.m || r.m;
   CROWNS.push({ id: c.id || ('c-' + c.y), series: 'crowns', group: r.key, reign: r.key, cypher: r.cypher, y: c.y, tag: c.tag || '', diam: CROWN_DIAM,
-    rare: c.rare || '', metal: m.metal, metalName: m.metalName,
+    rare: c.rare || '', metal: m.metal, metalName: m.metalName, noKey: c.tag === 'פרוף', mintage: CROWN_MINTAGE[c.y] || null,
     title: 'קראון ' + c.y + (c.tag ? ' (' + c.tag + ')' : ''), sub: r.name, design: c.design || r.design });
 }
 
@@ -53,22 +56,22 @@ const MANDATE_DENOMS = [
     composition: '95.5% נחושת, 3% בדיל, 1.5% אבץ', edge: 'חלק',
     years: { 1927: 10000000, 1935: 704000, 1937: 1200000, 1939: 3700000, 1940: 396000, 1941: 1920000, 1942: 4480000,
              1943: 2800000, 1944: 1400000, 1946: 1632000, 1947: 2880000 },
-    melted1947: 'הוטבעו 2,880,000 אך כמעט כולם הותכו; ידועים כ-5 עותקים ועוד כמה במוזיאונים.' },
+    melted1947: 'הוטבעו 2,880,000 אך כמעט כולם הותכו; ידועים כ-5 עותקים ועוד כמה במוזיאונים.', survivors1947: 5 },
   { d: 2, diam: 28, metal: 'bronze', metalName: 'ברונזה', holed: false, km: 'KM# 2', weight: 7.8, thickness: 1.6,
     composition: '95.5% נחושת, 3% בדיל, 1.5% אבץ', edge: 'חלק',
     years: { 1927: 5000000, 1941: 1600000, 1942: 2400000, 1945: 960000, 1946: 960000, 1947: 480000 },
-    melted1947: 'הוטבעו 480,000 אך כמעט כולם הותכו; ידוע עותק אחד.' },
+    melted1947: 'הוטבעו 480,000 אך כמעט כולם הותכו; ידוע עותק אחד.', survivors1947: 1 },
   { d: 5, diam: 20, metal: 'cuni', metalName: 'קופרו-ניקל, מחורר', holed: true, km: 'KM# 3', weight: 2.91, thickness: 1.34,
     composition: '75% נחושת, 25% ניקל', edge: 'חלק',
     years: { 1927: 10000000, 1934: 500000, 1935: 2700000, 1939: 2000000, 1941: 400000, 1942: 2700000, 1944: 1000000, 1946: 1000000, 1947: 1000000 },
     war: { 1942: 'bronze', 1944: 'bronze' }, warKm: 'KM# 3a', warWeight: 2.9,
-    melted1947: 'הוטבעו מיליון אך כמעט כולם הותכו; ידועים 3 עותקים.' },
+    melted1947: 'הוטבעו מיליון אך כמעט כולם הותכו; ידועים 3 עותקים.', survivors1947: 3 },
   { d: 10, diam: 27, metal: 'cuni', metalName: 'קופרו-ניקל, מחורר', holed: true, km: 'KM# 4', weight: 6.5, thickness: 1.5,
     composition: '75% נחושת, 25% ניקל', edge: 'חלק',
     years: { 1927: 5000000, 1933: 500000, 1934: 500000, 1935: 1150000, 1937: 750000, 1939: 1000000, 1940: 1500000, 1941: 400000,
              1942: 600000, 1943: 1000000, 1946: 1000000, 1947: 1000000 },
     war: { 1943: 'bronze' }, both: { 1942: 1000000 }, warKm: 'KM# 4a', warWeight: 6.47,
-    melted1947: 'הוטבעו מיליון אך כמעט כולם הותכו; ידוע עותק אחד.' },
+    melted1947: 'הוטבעו מיליון אך כמעט כולם הותכו; ידוע עותק אחד.', survivors1947: 1 },
   { d: 20, diam: 30.5, metal: 'cuni', metalName: 'קופרו-ניקל, מחורר', holed: true, km: 'KM# 5', weight: 11.33, thickness: 2.2,
     composition: '75% נחושת, 25% ניקל', edge: 'חלק',
     years: { 1927: 1500000, 1933: 250000, 1934: 125000, 1935: 575000, 1940: 200000, 1941: 100000, 1942: 1100000, 1944: 1000000 },
@@ -83,6 +86,35 @@ const MANDATE_DENOMS = [
 // Proof strikes recorded for the 1927 set (66-68 pieces).
 const MANDATE_PROOF_1927 = { 1: 68, 2: 68, 5: 66, 10: 66, 20: 66, 50: 66, 100: 66 };
 
+// Key / Semi-Key, one rule for every album: in each series (a value, split further by type and country where the
+// catalog has them) the Key Date is the circulation date with the lowest mintage and the Semi-Key is the next lowest.
+// Proofs, varieties, errors and coins struck only for sets do not compete. `effective` lets a series count survivors
+// instead of the struck number (the melted 1947 Mandate issues). A series needs 2 dated mintages for a Key and 3 for a Semi-Key.
+const SET_ONLY = /לסטים|בסטים|sets? only|שלא למחזור|לא הונפק למחזור|מהדורת אספנים|כסף 40%/i;
+function markSeriesKeys(list, seriesOf = it => [it.group, it.country || '', it.typeKey || ''].join('|')) {
+  const fmt = n => n.toLocaleString('en-US');
+  const series = new Map();
+  for (const it of list) {
+    it.rarityTier = ''; it.rarityReason = '';
+    if (it.proof || it.noKey || it.variant || it.error) continue;
+    const n = it.effective != null ? it.effective : (it.mintageCirculated != null ? it.mintageCirculated : it.mintage);
+    if (!(n > 0) || SET_ONLY.test((it.design || it.note || '') + ' ' + (it.tag || '') + ' ' + (it.title || ''))) continue;
+    const k = seriesOf(it);
+    if (!series.has(k)) series.set(k, []);
+    series.get(k).push([n, it]);
+  }
+  for (const rows of series.values()) {
+    if (rows.length < 2) continue;
+    const values = [...new Set(rows.map(r => r[0]))].sort((a, b) => a - b);
+    for (const [n, it] of rows) {
+      const shown = it.effective != null ? (it.effectiveText || fmt(n)) : fmt(n) + ' מטבעות';
+      if (n === values[0]) { it.rarityTier = 'key'; it.rarityReason = 'Key Date של הסדרה: הכמות הנמוכה ביותר (' + shown + ').'; }
+      else if (rows.length >= 3 && n === values[1]) { it.rarityTier = 'semi-key'; it.rarityReason = 'Semi-Key: הכמות השנייה הנמוכה בסדרה (' + shown + ').'; }
+    }
+  }
+  return list;
+}
+
 const MANDATE = [];
 for (const den of MANDATE_DENOMS) for (const [ys, mintage] of Object.entries(den.years)) {
   const y = Number(ys);
@@ -91,19 +123,13 @@ for (const den of MANDATE_DENOMS) for (const [ys, mintage] of Object.entries(den
     const isAlt = variants.length > 1 && metal === 'bronze';
     const war = metal !== den.metal;
     const count = isAlt ? den.both[y] : mintage;
-    let rare = '', rarityTier = '', rarityReason = '';
-    if (y === 1947) {
-      rare = den.melted1947 || 'רוב ההנפקה הותכה, נדיר מאוד';
-      rarityTier = 'key'; rarityReason = 'Key: הנפקת 1947 הותכה כמעט כולה עם סיום המנדט.';
-    } else if (count <= 400000) {
-      rare = count.toLocaleString('en-US') + ' מטבעות בלבד';
-      rarityTier = 'key'; rarityReason = 'Key Date: ' + count.toLocaleString('en-US') + ' מטבעות בלבד.';
-    } else if (count <= 750000) {
-      rarityTier = 'semi-key'; rarityReason = 'Semi-Key: ' + count.toLocaleString('en-US') + ' מטבעות.';
-    }
+    const rare = y === 1947 ? (den.melted1947 || 'רוב ההנפקה הותכה, נדיר מאוד') : '';
+    // the 1947 issues were melted almost entirely: rank them by the few known survivors
+    const effective = y === 1947 && den.survivors1947 ? den.survivors1947 : null;
     const metalName = metal === den.metal ? den.metalName : (METAL_NAME[metal] + (den.holed ? ', מחורר (הנפקת מלחמה)' : ''));
     MANDATE.push({ id: 'm-' + den.d + '-' + y + (isAlt ? 'b' : ''), series: 'mandate', group: 'd' + den.d, d: den.d, y, metal, metalName, diam: den.diam,
-      holed: den.holed, tag: variants.length > 1 ? METAL_NAME[metal] : '', rare, variant: isAlt, rarityTier, rarityReason,
+      holed: den.holed, tag: variants.length > 1 ? METAL_NAME[metal] : '', rare, variant: isAlt, effective,
+      effectiveText: effective ? 'הותך; ידועים ' + effective + ' עותקים בלבד' : '',
       mintage: count, mintageProof: y === 1927 ? MANDATE_PROOF_1927[den.d] : null,
       composition: war ? 'ברונזה' : den.composition, weight: war ? den.warWeight : den.weight, thickness: den.thickness,
       catalog: war ? den.warKm : den.km, edge: den.edge, mint: 'המטבעה המלכותית, לונדון',
@@ -111,6 +137,8 @@ for (const den of MANDATE_DENOMS) for (const [ys, mintage] of Object.entries(den
       sub: 'מנדט בריטי, פלשתינה (א"י)' });
   }
 }
+markSeriesKeys(MANDATE);
+markSeriesKeys(CROWNS, () => 'crowns');   // the crowns are one series across all reigns
 const MANDATE_YEARS = [...new Set(MANDATE.map(c => c.y))].sort((a, b) => a - b);
 
 // The catalog library: ready-made checklists anyone can add to their album. Which catalogs a person
@@ -197,6 +225,8 @@ async function loadCatalogFile(key) {
     commemorative: !!it.commemorative, designId: it.designId || '', issueDate: it.issueDate || '',
     title: it.label, sub: cat.name + (it.variant ? ' · וריאנט' : ''), design: it.note || '',
   }));
+  markSeriesKeys(cat.list);
+  for (const it of cat.list) it.rare = it.rarityTier ? it.rarityReason.replace(/^[^(]*\(|\)\.$/g, '') : '';
   return cat;
 }
 
