@@ -93,8 +93,8 @@ const GRADES = ['', 'G', 'VG', 'F', 'VF', 'XF', 'AU', 'UNC', 'פרוף'];
 //                items: [{ id, group, y, label, metal, diam, variant?, mint?, mintMark?, mintVariant?, typeKey?, rare?, tag?, note?, holed? }] }
 // Register one here with { src } and it appears in the library; its coins load on demand.
 const CATALOG_FILES = {
-  pruta: { src: 'catalogs/pruta.json', name: 'מטבעות הפרוטה', sub: '1949–1960, תש"ט–תשט"ו', groupLabel: 'ערך',
-    about: 'סדרת הפרוטה: כל ערך בכל שנה, כולל וריאנט הפנינה של 1949. מקור: Numista.' },
+  pruta: { src: 'catalogs/pruta.json', name: 'מטבעות הפרוטה', sub: '1948–1960, תש״ח–תשי״ז', groupLabel: 'ערך',
+    about: '25 המיל של 1948 וסדרת הפרוטה: כל ערך בכל שנה, וריאנטים (פנינה, שפה, שרשרת), מטבעות הכסף ו-Key Dates.' },
   lira: { src: 'catalogs/lira.json', name: 'אגורות ולירות', sub: '1960–1980, תש"ך–תש"ם', groupLabel: 'ערך',
     about: 'סדרת האגורה והלירה של מדינת ישראל. מטבעות מחזור לפי ערך, עם הכנה לשנים, וריאנטים ומטבעות.' },
   oldshekel: { src: 'catalogs/old-shekel.json', name: 'השקל הישן', sub: '1980–1985, תש"ם–תשמ"ה', groupLabel: 'ערך',
@@ -127,6 +127,8 @@ async function loadCatalogFile(key) {
   Object.assign(cat, { name: data.name || cat.name, sub: data.sub || cat.sub, about: data.about || cat.about,
     theme: data.theme || cat.theme, groupLabel: data.groupLabel || cat.groupLabel, groups: data.groups || [],
     countries: data.countries || [], sourceAttribution: data.sourceAttribution || '', catalogVersion: data.catalogVersion || '' });
+  // missing measurements stay missing (Number(null) would show as 0)
+  const num = v => v == null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v);
   cat.list = rawItems.map(it => ({
     id: key + '-' + it.id, series: key, group: it.group, country: it.country || '', denomination: it.denomination || '',
     y: it.y, tag: it.tag || '', rare: it.rare || '', variant: !!it.variant,
@@ -134,8 +136,8 @@ async function loadCatalogFile(key) {
     error: !!it.error, errorName: it.errorName || '', errorCategory: it.errorCategory || '',
     rarityTier: it.rarityTier || '', rarityReason: it.rarityReason || '',
     metal: it.metal || 'silver', metalName: it.metalName || METAL_NAME[it.metal] || '', composition: it.composition || '',
-    weight: Number.isFinite(Number(it.weight)) ? Number(it.weight) : null,
-    diam: Number(it.diam) || 25, thickness: Number.isFinite(Number(it.thickness)) ? Number(it.thickness) : null,
+    weight: num(it.weight),
+    diam: Number(it.diam) || 25, thickness: num(it.thickness),
     mintage: it.mintage == null ? null : Number(it.mintage), mintageText: it.mintageText || '',
     mintageCirculated: it.mintageCirculated == null ? null : Number(it.mintageCirculated),
     mintageBU: it.mintageBU == null ? null : Number(it.mintageBU),
