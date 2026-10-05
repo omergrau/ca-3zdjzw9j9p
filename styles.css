@@ -791,3 +791,9 @@ body[data-series="file"] { --velvet: var(--file-velvet); --velvet-2: var(--file-
 .key-badge.semi-key{background:#b8a98b;color:#211b14}
 .error-badge{right:-8px;bottom:-4px;background:#7d1b2b;color:#fff0e6}
 .matrix .key-badge,.matrix .error-badge{transform:scale(.82)}
+
+/* more metals: bimetallic (bronze centre in a nickel ring), gold-coloured, copper and steel */
+.slot.own.m-bimetal .coin, .back-holder.m-bimetal .window .coin { background: radial-gradient(circle at 50% 50%, var(--bronze-a) 0, var(--bronze-b) 52%, var(--bronze-c) 57%, var(--cuni-a) 59%, var(--cuni-b) 80%, var(--cuni-c)); }
+.slot.own.m-ngold .coin, .back-holder.m-ngold .window .coin, .slot.own.m-gold .coin, .back-holder.m-gold .window .coin { background: radial-gradient(circle at 32% 28%, #fff3b8, #e2b648 55%, #9a7420); }
+.slot.own.m-copper .coin, .back-holder.m-copper .window .coin { background: radial-gradient(circle at 32% 28%, #f6c3a1, #c77446 55%, #7c3d1d); }
+.slot.own.m-steel .coin, .back-holder.m-steel .window .coin { background: radial-gradient(circle at 32% 28%, #f1f3f6, #a9b0ba 55%, #6d7480); }

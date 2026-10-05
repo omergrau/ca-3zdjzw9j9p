@@ -4,7 +4,7 @@
 const S925 = { metal: 'silver', metalName: 'כסף 925' };
 const S500 = { metal: 'silver', metalName: 'כסף 500' };
 const CUNI = { metal: 'cuni', metalName: 'קופרו-ניקל' };
-const METAL_NAME = { bronze: 'ברונזה', cuni: 'קופרו-ניקל', silver: 'כסף', alu: 'אלומיניום' };
+const METAL_NAME = { bronze: 'ברונזה', cuni: 'קופרו-ניקל', silver: 'כסף', alu: 'אלומיניום', bimetal: 'דו-מתכתי', gold: 'זהב', ngold: 'זהב נורדי', copper: 'נחושת', steel: 'פלדה' };
 
 const CROWN_REIGNS = [
   { key: 'g3', cypher: 'GIIIR', name: "ג'ורג' השלישי", years: '1818–1820', design: "ג'ורג' הקדוש והדרקון (פיסטרוצ'י)", m: S925,
@@ -136,8 +136,8 @@ const CATALOG_FILES = {
     about: 'סדרת האגורה והלירה של מדינת ישראל. מטבעות מחזור לפי ערך, עם הכנה לשנים, וריאנטים ומטבעות.' },
   oldshekel: { src: 'catalogs/old-shekel.json', name: 'השקל הישן', sub: '1980–1985, תש"ם–תשמ"ה', groupLabel: 'ערך',
     about: 'סדרת האגורות החדשות והשקל הישן. תשעה עריכים בסדרת המחזור.' },
-  newshekel: { src: 'catalogs/new-shekel.json', name: 'השקל החדש', sub: '1985–היום', groupLabel: 'ערך',
-    about: 'מטבעות המחזור של השקל החדש, כולל עריכים שבוטלו ועריכים שנוספו לאורך השנים.' },
+  newshekel: { src: 'catalogs/new-shekel.json', name: 'השקל החדש', sub: '1985–היום, התשמ״ה–', groupLabel: 'ערך',
+    about: 'כל מטבעות המחזור של השקל החדש לפי שנה, מטבעות החנוכה והזיכרון, וריאנטים, טעויות יישור ו-Key Dates.' },
 };
 for (const [key, f] of Object.entries(CATALOG_FILES)) CATALOGS[key] = Object.assign({ list: null, groups: [], theme: 'file', groupLabel: 'קבוצה' }, f);
 
