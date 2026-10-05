@@ -6,6 +6,7 @@ NUMBER_TEMPLATE = re.compile(r'\{\{(?:число|num|formatnum|nts)\|([\d.,\s]+)
 def clean(s):
     s = re.sub(r'<ref[^>]*/>|<ref.*?</ref>', '', s, flags=re.S)
     s = NUMBER_TEMPLATE.sub(lambda m: m.group(1), s)
+    s = re.sub(r'\{\{val\|(?:[^|}]*=[^|}]*\|)*([\d.]+)[^}]*\}\}', lambda m: m.group(1), s, flags=re.I)
     s = re.sub(r'\{\{sortname\|([^|}]*)\|([^|}]*)[^}]*\}\}', lambda m: m.group(1) + ' ' + m.group(2), s, flags=re.I)
     s = s.replace('&nbsp;', ' ').replace(' ', ' ')
     s = re.sub(r'\{\{(?:efn|refn|sfn|r|cn|citation needed)[^}]*\}\}', '', s, flags=re.I)
