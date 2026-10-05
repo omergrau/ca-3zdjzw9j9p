@@ -1,8 +1,10 @@
 # Builds the US coin catalog (catalogs/us.json + shards per denomination in catalogs/us/) from tools/data/us_sources.json.
 # One item per type, year and mint. Proofs and collector issues are kept with proof: true (hidden unless chosen in the
 # album settings). Major catalogued varieties and famous errors are added from a curated list (see VARIETIES).
-import io, json, os, re
+import io, json, os, re, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+from us_notes_he import note_he
 SRC = os.path.join(HERE, 'data', 'us_sources.json')
 OUTDIR = os.path.join(HERE, '..', 'catalogs')
 
@@ -250,8 +252,8 @@ def main():
             reason = ('Key Date' if tier == 'key' else 'Semi-Key') + (': ' + '{:,}'.format(n) + ' מטבעות.' if n else '.')
         note_bits = []
         if c and not proof and not desc and not re.fullmatch(r'Proof|Proof only', c) and c != extra and 'Women Quarters' not in c:
-            note_bits.append('הערת המקור: ' + c)
-        also = [MINT_HE.get(m, m) for m in r.get('alsoAt', []) if m and m != 'P']
+            note_bits.append('הערת המקור: ' + note_he(c).rstrip('.') + '.')
+        also = list(dict.fromkeys(MINT_HE.get(m, m) for m in r.get('alsoAt', []) if m and m != 'P'))
         if also: note_bits.append('כולל מטבעות שהוטבעו ב' + ' וב'.join(also) + ' ללא סימן מטבעה (זהים למטבעות פילדלפיה).')
         if off_metal:
             tier = 'key'; reason = 'Key: טעות מתכת מפורסמת; ' + c
