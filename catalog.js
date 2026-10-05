@@ -95,6 +95,12 @@ const GRADES = ['', 'G', 'VG', 'F', 'VF', 'XF', 'AU', 'UNC', 'פרוף'];
 const CATALOG_FILES = {
   pruta: { src: 'catalogs/pruta.json', name: 'מטבעות הפרוטה', sub: '1949–1960, תש"ט–תשט"ו', groupLabel: 'ערך',
     about: 'סדרת הפרוטה: כל ערך בכל שנה, כולל וריאנט הפנינה של 1949. מקור: Numista.' },
+  lira: { src: 'catalogs/lira.json', name: 'אגורות ולירות', sub: '1960–1980, תש"ך–תש"ם', groupLabel: 'ערך',
+    about: 'סדרת האגורה והלירה של מדינת ישראל. מטבעות מחזור לפי ערך, עם הכנה לשנים, וריאנטים ומטבעות.' },
+  oldshekel: { src: 'catalogs/old-shekel.json', name: 'השקל הישן', sub: '1980–1985, תש"ם–תשמ"ה', groupLabel: 'ערך',
+    about: 'סדרת האגורות החדשות והשקל הישן. תשעה עריכים בסדרת המחזור.' },
+  newshekel: { src: 'catalogs/new-shekel.json', name: 'השקל החדש', sub: '1985–היום', groupLabel: 'ערך',
+    about: 'מטבעות המחזור של השקל החדש, כולל עריכים שבוטלו ועריכים שנוספו לאורך השנים.' },
 };
 for (const [key, f] of Object.entries(CATALOG_FILES)) CATALOGS[key] = Object.assign({ list: null, groups: [], theme: 'file', groupLabel: 'קבוצה' }, f);
 
