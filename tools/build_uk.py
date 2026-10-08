@@ -54,6 +54,7 @@ def add(group, y, label, mintage, raw, metal, diam, weight, note='', tag='', pro
               mintage=mintage if not so or mintage else None, mintageText='' if mintage and not so else clean(raw)[:80], tag=tag,
               proof=proof, commemorative=commemorative, rarityTier=tier, rarityReason=reason, rare=reason.split(': ', 1)[-1] if tier else '',
               note=(note + ' ' if note else '') + 'דיוקן: ' + monarch(y) + '.', orientation='יישור מדליה ↑↑',
+              typeKey='|'.join((group, design or '', monarch(y), metal[0])),
               _portrait=PORTRAIT_HE.get(portrait.lower().strip(), portrait), _reverse=design, _source=source)
     items.append(it)
 

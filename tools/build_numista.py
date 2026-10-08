@@ -32,6 +32,34 @@ CONFIGS = {
     ),
 }
 
+RU_UNITS = [(r'Polushka', 'פולושקה'), (r'Denga|Denezhka', 'דנגה'), (r'Kopecks?|Kopeks?|Kopeyka|Kopeek', 'קופייקה'), (r'Altyn', 'אלטין'),
+            (r'Grivennik', 'גריבניק'), (r'Polupoltinnik', 'פולופולטיניק'), (r'Poltina|Poltinnik', 'פולטינה'), (r'Polupoltina', 'פולופולטינה'),
+            (r'Roubles?|Rubles?', 'רובל'), (r'Chervonets', 'צ׳רבונץ'), (r'Imperial', 'אימפריאל'), (r'Poluimperial', 'פולואימפריאל'),
+            (r'Ducat', 'דוקט'), (r'Grivna', 'גריבנה'), (r'Para', 'פארה'), (r'Zlot', 'זלוטי'), (r'Groszy|Grosz', 'גרוש')]
+RU_RULERS = [('Ivan IV', 'ivan4', 'איוואן הרביעי (האיום)'), ('Peter I ', 'peter1', 'פיוטר הראשון (הגדול)'), ('Peter I (', 'peter1', 'פיוטר הראשון (הגדול)'),
+             ('Catherine I ', 'catherine1', 'יקטרינה הראשונה'), ('Catherine I (', 'catherine1', 'יקטרינה הראשונה'), ('Peter II', 'peter2', 'פיוטר השני'),
+             ('Anna', 'anna', 'אנה'), ('Ivan VI', 'ivan6', 'איוואן השישי'), ('Elizabeth', 'elizabeth', 'אליזבטה'), ('Peter III', 'peter3', 'פיוטר השלישי'),
+             ('Catherine II', 'catherine2', 'יקטרינה השנייה (הגדולה)'), ('Paul I', 'paul1', 'פאבל הראשון'), ('Alexander I ', 'alexander1', 'אלכסנדר הראשון'),
+             ('Alexander I (', 'alexander1', 'אלכסנדר הראשון'), ('Nicholas I ', 'nicholas1', 'ניקולאי הראשון'), ('Nicholas I (', 'nicholas1', 'ניקולאי הראשון'),
+             ('Alexander II ', 'alexander2', 'אלכסנדר השני'), ('Alexander II (', 'alexander2', 'אלכסנדר השני'), ('Alexander III', 'alexander3', 'אלכסנדר השלישי'),
+             ('Nicholas II', 'nicholas2', 'ניקולאי השני'), ('Provisional', 'provisional', 'הממשלה הזמנית (1917)'), ('Russian Republic', 'provisional', 'הממשלה הזמנית (1917)'),
+             ('Russian Socialist', 'rsfsr', 'הרפובליקה הסובייטית הרוסית (1917–1922)'), ('RSFSR', 'rsfsr', 'הרפובליקה הסובייטית הרוסית (1917–1922)'),
+             ('Soviet Union', 'ussr', 'ברית המועצות'), ('USSR', 'ussr', 'ברית המועצות'), ('Union of Soviet', 'ussr', 'ברית המועצות'),
+             ('Russian Federation', 'rf', 'הפדרציה הרוסית'), ('Federation', 'rf', 'הפדרציה הרוסית')]
+RU_MINTS = {'Saint Petersburg': 'סנקט פטרבורג', 'St. Petersburg': 'סנקט פטרבורג', 'Leningrad': 'לנינגרד', 'Moscow': 'מוסקבה', 'Ekaterinburg': 'יקטרינבורג',
+            'Yekaterinburg': 'יקטרינבורג', 'Suzun': 'סוזון', 'Kolyvan': 'קוליבן', 'Warsaw': 'ורשה', 'Tiflis': 'טביליסי', 'Birmingham': 'בירמינגהם',
+            'Osaka': 'אוסקה', 'Paris': 'פריז', 'Brussels': 'בריסל', 'Izhora': 'איז׳ורה', 'Sestroretsk': 'סטרורצק'}
+for _key, _name, _sub, _about in (
+        ('ussr', 'ברית המועצות', '1921–1991, מקופייקה ועד רובל',
+         'מטבעות הרפובליקה הסובייטית הרוסית וברית המועצות: כל ערך וכל שנה, כולל רובלי ההנצחה למחזור, עם כמות ההטבעה כשידועה.'),
+        ('russia', 'הפדרציה הרוסית', '1992–היום, מקופייקה ועד 25 רובל',
+         'מטבעות רוסיה מ-1992: כל ערך, שנה ומטבעה (מוסקבה / סנקט פטרבורג), ומטבעות ההנצחה למחזור.'),
+        ('russian_empire', 'האימפריה הרוסית', 'עד 1917, מפולושקה ועד אימפריאל',
+         'מטבעות האימפריה הרוסית לפי צאר ושנה: נחושת, כסף וזהב, כולל מטבעות המטבעות המקומיות.')):
+    CONFIGS[_key] = dict(src=_key + '_numista.json', out=_key.replace('_', '-') + '.json', id={'ussr': 'su', 'russia': 'ru', 'russian_empire': 're'}[_key],
+                         name=_name, sub=_sub, about=_about, rulerLabel='👑 לפי שליט / תקופה', rulersLabel='שליטים ותקופות',
+                         currency={'Rouble': 1, 'Ruble': 1, 'Kopeck': 0.01}, units=RU_UNITS, rulers=RU_RULERS, mints=RU_MINTS)
+
 def fnum(s):
     s = s.strip().replace('⁄', '/')
     m = re.fullmatch(r'(\d+)?([½¼¾⅛⅜⅞⅒])', s)
@@ -135,7 +163,7 @@ def build(key):
             if comment: note.append('הערת המקור: ' + comment + '.')
             if nonc: note.append('הוטבע שלא למחזור (מטבע אספנים / השקעה).')
             items.append({k: v for k, v in dict(
-                id=id_, group=gkey, country=rkey, y=y, label=label, metal=met, metalName=metname, composition=f.get('Composition', ''),
+                id=id_, group=gkey, country=rkey, typeKey=x['id'], y=y, label=label, metal=met, metalName=metname, composition=f.get('Composition', ''),
                 diam=mm(f.get('Diameter')) or 20, weight=mm(f.get('Weight')), thickness=mm(f.get('Thickness')), mintage=n,
                 catalog=', '.join(refs), edge=(x.get('edge') or '').split(' ©')[0][:80], mint=mint_he, proof=nonc, commemorative=comm,
                 tag='לא למחזור' if nonc else ('הנצחה' if comm else ''), note=' '.join(note)).items()

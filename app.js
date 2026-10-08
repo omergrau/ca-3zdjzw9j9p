@@ -908,7 +908,8 @@ function openSheet(id, msg) {
   add('משקל', item.weight != null ? item.weight + ' גרם' : '');
   add('קוטר', item.diam ? item.diam + ' מ״מ' : '');
   add('עובי', item.thickness != null ? item.thickness + ' מ״מ' : '');
-  add('כמות הנפקה', item.mintageText || (item.mintage != null ? fmtNum(item.mintage) : ''));
+  const anyMintage = item.mintageText || item.mintage != null || item.mintageCirculated != null || item.mintageProof != null;
+  add('כמות הנפקה', item.mintageText || (item.mintage != null ? fmtNum(item.mintage) : (anyMintage ? '' : 'לא פורסמה')));
   add('מחזור', item.mintageCirculated != null ? fmtNum(item.mintageCirculated) : '');
   add('BU', item.mintageBU != null ? fmtNum(item.mintageBU) : '');
   add('Proof', item.mintageProof != null ? fmtNum(item.mintageProof) : '');

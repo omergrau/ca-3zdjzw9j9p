@@ -118,7 +118,9 @@ def main():
                 if cc == 'va' and mark == 'SV': note = 'הנפקת "כס פנוי" (Sede Vacante) של 2005.'
                 if setonly: note = (note + ' ' if note else '') + 'הוטבע לסטים בלבד.'
                 label = '%s · %s %d%s' % (GNAME[g], COUNTRY_HE[cc], y, (' ' + tag) if tag else '')
-                add(cc, dict(id=id_, group=g, y=y, label=label, mintage=n, mintageCirculated=circ, mintageProof=proof,
+                newmap = g not in ('c1', 'c2', 'c5') and y >= (2008 if cc in ('cy', 'mt') else 2007)
+                tkey = '|'.join((g, design_note(cc, g, y), 'map2007' if newmap else ''))
+                add(cc, dict(id=id_, group=g, y=y, label=label, typeKey=tkey, mintage=n, mintageCirculated=circ, mintageProof=proof,
                              mintageText='' if n else ('לסטים בלבד' if setonly else 'טרם פורסמה' if v == 'tba' else ''), mint=mint, mintMark=mm, mintVariant=mintv,
                              variant=variant, tag=tag, rarityTier=t, rarityReason=reason,
                              rare=reason.split(': ', 1)[-1] if t else '', note=note))
@@ -146,14 +148,14 @@ def main():
                 count = lst[k - 1] if len(lst) >= k else None
                 id_ = base_id + '-' + m.lower()
                 while id_ in seen: id_ += 'x'
-                add(cc, dict(id=id_, group='cc', y=y, label='2 יורו הנצחה · גרמניה %d %s — %s' % (y, m, subj),
+                add(cc, dict(id=id_, group='cc', y=y, typeKey=base_id, label='2 יורו הנצחה · גרמניה %d %s — %s' % (y, m, subj),
                              mintage=count, mintageText='' if count else ('סה״כ לחמש המטבעות: ' + c['volumeText'] if c['volumeText'] else ''),
                              mint=DE_MINTS[m], mintMark=m, mintVariant=m != 'A', variant=False, tag=m, commemorative=True,
                              rarityTier='', rarityReason='', rare='', note=common_note))
             continue
         id_ = base_id
         while id_ in seen: id_ += 'x'
-        add(cc, dict(id=id_, group='cc', y=y, label='2 יורו הנצחה · %s %d — %s' % (COUNTRY_HE[cc], y, subj),
+        add(cc, dict(id=id_, group='cc', y=y, typeKey=base_id, label='2 יורו הנצחה · %s %d — %s' % (COUNTRY_HE[cc], y, subj),
                      mintage=n, mintageText='' if n else c['volumeText'], mint='', mintMark='', mintVariant=False, variant=False,
                      tag='משותף' if c['common'] else '', commemorative=True, rarityTier=t, rarityReason=reason,
                      rare=reason.split(': ', 1)[-1] if t else '', note=common_note))

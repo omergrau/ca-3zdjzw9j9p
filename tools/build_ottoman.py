@@ -161,7 +161,7 @@ def main():
             if mint_he: note.append('מטבעה: ' + mint_he + '.')
             if comment: note.append('הערת המקור: ' + comment + '.')
             if nonc: note.append('הוטבע שלא למחזור (מטבע זהב לוקס/הצגה).')
-            it = dict(id=id_, group=gkey, country=rkey, y=y, label=label, metal=met, metalName=metname, composition=f.get('Composition', ''),
+            it = dict(id=id_, group=gkey, country=rkey, typeKey=x['id'], y=y, label=label, metal=met, metalName=metname, composition=f.get('Composition', ''),
                       diam=mm(f.get('Diameter')) or 20, weight=mm(f.get('Weight')), thickness=mm(f.get('Thickness')), mintage=n,
                       catalog=f.get('References', ''), edge=(x.get('edge') or '').split(' ©')[0], mint=mint_he, proof=nonc, commemorative=comm,
                       rarityTier=tier, rarityReason=reason, rare=reason.split(': ', 1)[-1] if tier else '', note=' '.join(note),

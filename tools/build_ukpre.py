@@ -55,7 +55,7 @@ def add(g, y, n, raw, note='', variant_tag=''):
         elif n <= 500000: tier, reason = 'semi-key', 'Semi-Key: %s מטבעות בלבד.' % '{:,}'.format(n)
     elif notcirc and not proof:
         tier, reason = 'key', 'Key: לא הונפק למחזור; ידועים עותקים בודדים.'
-    items.append(dict(id=id_, group=g, y=y, label=label, metal=metal[0], metalName=metal[1], composition=metal[2], diam=d, weight=w,
+    items.append(dict(id=id_, group=g, y=y, label=label, typeKey='|'.join((g, monarch(y), metal[1], variant_tag if variant_tag in ('אנגלי', 'סקוטי') else '')), metal=metal[0], metalName=metal[1], composition=metal[2], diam=d, weight=w,
                       mintage=n, mintageText='' if n else raw[:80], proof=proof, variant=bool(variant_tag) and not proof,
                       tag=variant_tag, rarityTier=tier, rarityReason=reason, rare=reason.split(': ', 1)[-1] if tier else '',
                       note=('הערת המקור: ' + note + '. ' if note else '') + 'מלך/מלכה: ' + monarch(y) + '.', orientation='יישור מדליה ↑↑'))

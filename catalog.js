@@ -86,8 +86,8 @@ const MANDATE_DENOMS = [
 // Proof strikes recorded for the 1927 set (66-68 pieces).
 const MANDATE_PROOF_1927 = { 1: 68, 2: 68, 5: 66, 10: 66, 20: 66, 50: 66, 100: 66 };
 
-// Key / Semi-Key, one rule for every album: in each series (a value, split further by type and country where the
-// catalog has them) the Key Date is the circulation date with the lowest mintage and the Semi-Key is the next lowest.
+// Key / Semi-Key, one rule for every album: within each coin type (same value and design: the catalog's typeKey, per
+// country) the Key Date is the circulation date with the lowest mintage and the Semi-Key is the next lowest.
 // Proofs, varieties, errors and coins struck only for sets do not compete. `effective` lets a series count survivors
 // instead of the struck number (the melted 1947 Mandate issues). A series needs 2 dated mintages for a Key and 3 for a Semi-Key.
 const SET_ONLY = /לסטים|בסטים|sets? only|שלא למחזור|לא הונפק למחזור|מהדורת אספנים|כסף 40%/i;
@@ -137,8 +137,8 @@ for (const den of MANDATE_DENOMS) for (const [ys, mintage] of Object.entries(den
       sub: 'מנדט בריטי, פלשתינה (א"י)' });
   }
 }
-markSeriesKeys(MANDATE);
-markSeriesKeys(CROWNS, () => 'crowns');   // the crowns are one series across all reigns
+markSeriesKeys(MANDATE, it => it.group + '|' + it.metal);   // the bronze war issues are their own type
+markSeriesKeys(CROWNS, it => it.group + '|' + it.tag);   // a type = reign and design (the 1935 jubilee crown is its own)
 const MANDATE_YEARS = [...new Set(MANDATE.map(c => c.y))].sort((a, b) => a - b);
 
 // The catalog library: ready-made checklists anyone can add to their album. Which catalogs a person
