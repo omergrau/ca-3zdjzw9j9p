@@ -108,87 +108,91 @@ def number(s):
 def prices(row):
     return [fnum(p) if p else None for p in (row[3] if len(row) > 3 else '').split('/')]
 
-data = json.load(io.open(SRC, encoding='utf8'))
-groups, rulers, items, ids = {}, {}, [], set()
-for x in data:
-    f = x['f']
-    den, akce = denomination(x)
-    gkey = re.sub(r'[^0-9a-z]+', '-', (f.get('Value') or x['t']).split(' (')[0].split(' = ')[0].lower()).strip('-') or 'x'
-    g = groups.setdefault(den, {'key': gkey, 'name': den, 'akce': []}); g['akce'].append(akce); gkey = g['key']
-    rkey, rhe = ruler(x)
-    span = re.search(r'\((\d{3,4})', f.get('Sultan') or '')
-    rulers.setdefault(rkey, {'key': rkey, 'name': rhe, 'start': int(span.group(1)) if span else 9999})
-    if rkey == 'interregnum': rulers[rkey]['start'] = 1402
-    met, metname = metal(f.get('Composition'))
-    extra = x['t'].split(' - ', 1)[1] if ' - ' in x['t'] else ''
-    for pre, _, _ in SULTANS: extra = extra.replace(pre.strip(), '', 1) if extra.startswith(pre.strip()) else extra
-    extra = re.sub(r'^(Reşâd|Reshat|Vahideddin|The Magnificent|Kirişçi)\s*', '', extra).strip(' ,;-')
-    mint_he = next((h for k, h in MINTS.items() if k in (x.get('mint') or '') or k in extra), '')
-    nonc = f.get('Type') == 'Non-circulating coins'
-    comm = f.get('Type') == 'Circulating commemorative coins'
-    rows = x['rows'] or [[f.get('Year') or '', '', '', '']]
-    # rarity baseline: the median of each price column across the type's dates
-    cols = list(zip(*[prices(r) for r in rows])) if len(rows) > 2 else []
-    med = [statistics.median([v for v in c if v]) if sum(1 for v in c if v) >= 3 else None for c in cols]
-    for ri, r in enumerate(rows):
-        date = (r[0] or '').replace('\xa0', ' ').strip()
-        dm = re.match(r'^(\d{3,4}|ND)\s*(?:\((\d{3,4})(?:-(\d{3,4}))?\))?\s*(\S+)?', date)
-        hijri, greg, regnal = (dm.group(1), dm.group(2), (dm.group(4) or '').translate(AR_DIGITS)) if dm else ('', None, '')
-        if not greg and hijri and hijri != 'ND': greg = str(round(int(hijri) * 0.97 + 622))
-        y = int(greg) if greg else None
-        if y is None:
-            ys = re.search(r'\((\d{3,4})', f.get('Year') or '') or re.search(r'\((\d{3,4})', f.get('Sultan') or '')
-            y = int(ys.group(1)) if ys else (rulers[rkey]['start'] if rulers[rkey]['start'] < 9999 else None)
-        n = number(r[1]) if len(r) > 1 else None
-        when = (hijri + ('/' + regnal if regnal and regnal.isdigit() else '') + (' (' + greg + ')' if greg else '')) if hijri else ''
-        label = den + (' ' + when if when else '') + (' — ' + mint_he if mint_he and 'קונסטנטינופול' not in mint_he else '')
-        comment = re.sub(r'[؀-ۿ\s()/\d-]+(?=$|\s)', ' ', r[2] if len(r) > 2 else '').strip()
-        comment = re.sub(r'^\(?mintage in \d{4}\)?\s*', '', comment).strip()
-        tier = reason = ''
-        if n and not nonc:
-            if n <= 25000: tier, reason = 'key', 'Key: %s מטבעות בלבד.' % '{:,}'.format(n)
-            elif n <= 150000: tier, reason = 'semi-key', 'Semi-Key: %s מטבעות בלבד.' % '{:,}'.format(n)
-        if not tier and med and not nonc:
-            ratio = max([p / m for p, m in zip(prices(r), med) if p and m] or [0])
-            if ratio >= 5: tier, reason = 'key', 'Key: מחירו גבוה פי %d ויותר מהשנים הרגילות של אותו סוג (Numista).' % int(ratio)
-            elif ratio >= 2.5: tier, reason = 'semi-key', 'Semi-Key: מחירו גבוה פי %.1f מהשנים הרגילות של אותו סוג (Numista).' % ratio
-        base = 'ot-%s-%s' % (x['id'], re.sub(r'[^0-9a-z]+', '-', (hijri + '-' + regnal + '-' + (greg or '')).lower()).strip('-') or str(ri))
-        id_ = base
-        while id_ in ids: id_ += 'x'
-        ids.add(id_)
-        note = ['סוג: ' + x['t'] + ' (Numista N#' + x['id'] + ').', 'סולטן: ' + rhe + '.']
-        if mint_he: note.append('מטבעה: ' + mint_he + '.')
-        if comment: note.append('הערת המקור: ' + comment + '.')
-        if nonc: note.append('הוטבע שלא למחזור (מטבע זהב לוקס/הצגה).')
-        it = dict(id=id_, group=gkey, country=rkey, y=y, label=label, metal=met, metalName=metname, composition=f.get('Composition', ''),
-                  diam=mm(f.get('Diameter')) or 20, weight=mm(f.get('Weight')), thickness=mm(f.get('Thickness')), mintage=n,
-                  catalog=f.get('References', ''), edge=(x.get('edge') or '').split(' ©')[0], mint=mint_he, proof=nonc, commemorative=comm,
-                  rarityTier=tier, rarityReason=reason, rare=reason.split(': ', 1)[-1] if tier else '', note=' '.join(note),
-                  tag='לא למחזור' if nonc else ('הנצחה' if comm else ''))
-        items.append(it)
+def main():
+    data = json.load(io.open(SRC, encoding='utf8'))
+    groups, rulers, items, ids = {}, {}, [], set()
+    for x in data:
+        f = x['f']
+        den, akce = denomination(x)
+        gkey = re.sub(r'[^0-9a-z]+', '-', (f.get('Value') or x['t']).split(' (')[0].split(' = ')[0].lower()).strip('-') or 'x'
+        g = groups.setdefault(den, {'key': gkey, 'name': den, 'akce': []}); g['akce'].append(akce); gkey = g['key']
+        rkey, rhe = ruler(x)
+        span = re.search(r'\((\d{3,4})', f.get('Sultan') or '')
+        rulers.setdefault(rkey, {'key': rkey, 'name': rhe, 'start': int(span.group(1)) if span else 9999})
+        if rkey == 'interregnum': rulers[rkey]['start'] = 1402
+        met, metname = metal(f.get('Composition'))
+        extra = x['t'].split(' - ', 1)[1] if ' - ' in x['t'] else ''
+        for pre, _, _ in SULTANS: extra = extra.replace(pre.strip(), '', 1) if extra.startswith(pre.strip()) else extra
+        extra = re.sub(r'^(Reşâd|Reshat|Vahideddin|The Magnificent|Kirişçi)\s*', '', extra).strip(' ,;-')
+        mint_he = next((h for k, h in MINTS.items() if k in (x.get('mint') or '') or k in extra), '')
+        nonc = f.get('Type') == 'Non-circulating coins'
+        comm = f.get('Type') == 'Circulating commemorative coins'
+        rows = x['rows'] or [[f.get('Year') or '', '', '', '']]
+        # rarity baseline: the median of each price column across the type's dates
+        cols = list(zip(*[prices(r) for r in rows])) if len(rows) > 2 else []
+        med = [statistics.median([v for v in c if v]) if sum(1 for v in c if v) >= 3 else None for c in cols]
+        for ri, r in enumerate(rows):
+            date = (r[0] or '').replace('\xa0', ' ').strip()
+            dm = re.match(r'^(\d{3,4}|ND)\s*(?:\((\d{3,4})(?:-(\d{3,4}))?\))?\s*(\S+)?', date)
+            hijri, greg, regnal = (dm.group(1), dm.group(2), (dm.group(4) or '').translate(AR_DIGITS)) if dm else ('', None, '')
+            if not greg and hijri and hijri != 'ND': greg = str(round(int(hijri) * 0.97 + 622))
+            y = int(greg) if greg else None
+            if y is None:
+                ys = re.search(r'\((\d{3,4})', f.get('Year') or '') or re.search(r'\((\d{3,4})', f.get('Sultan') or '')
+                y = int(ys.group(1)) if ys else (rulers[rkey]['start'] if rulers[rkey]['start'] < 9999 else None)
+            n = number(r[1]) if len(r) > 1 else None
+            when = (hijri + ('/' + regnal if regnal and regnal.isdigit() else '') + (' (' + greg + ')' if greg else '')) if hijri else ''
+            label = den + (' ' + when if when else '') + (' — ' + mint_he if mint_he and 'קונסטנטינופול' not in mint_he else '')
+            comment = re.sub(r'[؀-ۿ\s()/\d-]+(?=$|\s)', ' ', r[2] if len(r) > 2 else '').strip()
+            comment = re.sub(r'^\(?mintage in \d{4}\)?\s*', '', comment).strip()
+            tier = reason = ''
+            if n and not nonc:
+                if n <= 25000: tier, reason = 'key', 'Key: %s מטבעות בלבד.' % '{:,}'.format(n)
+                elif n <= 150000: tier, reason = 'semi-key', 'Semi-Key: %s מטבעות בלבד.' % '{:,}'.format(n)
+            if not tier and med and not nonc:
+                ratio = max([p / m for p, m in zip(prices(r), med) if p and m] or [0])
+                if ratio >= 5: tier, reason = 'key', 'Key: מחירו גבוה פי %d ויותר מהשנים הרגילות של אותו סוג (Numista).' % int(ratio)
+                elif ratio >= 2.5: tier, reason = 'semi-key', 'Semi-Key: מחירו גבוה פי %.1f מהשנים הרגילות של אותו סוג (Numista).' % ratio
+            base = 'ot-%s-%s' % (x['id'], re.sub(r'[^0-9a-z]+', '-', (hijri + '-' + regnal + '-' + (greg or '')).lower()).strip('-') or str(ri))
+            id_ = base
+            while id_ in ids: id_ += 'x'
+            ids.add(id_)
+            note = ['סוג: ' + x['t'] + ' (Numista N#' + x['id'] + ').', 'סולטן: ' + rhe + '.']
+            if mint_he: note.append('מטבעה: ' + mint_he + '.')
+            if comment: note.append('הערת המקור: ' + comment + '.')
+            if nonc: note.append('הוטבע שלא למחזור (מטבע זהב לוקס/הצגה).')
+            it = dict(id=id_, group=gkey, country=rkey, y=y, label=label, metal=met, metalName=metname, composition=f.get('Composition', ''),
+                      diam=mm(f.get('Diameter')) or 20, weight=mm(f.get('Weight')), thickness=mm(f.get('Thickness')), mintage=n,
+                      catalog=f.get('References', ''), edge=(x.get('edge') or '').split(' ©')[0], mint=mint_he, proof=nonc, commemorative=comm,
+                      rarityTier=tier, rarityReason=reason, rare=reason.split(': ', 1)[-1] if tier else '', note=' '.join(note),
+                      tag='לא למחזור' if nonc else ('הנצחה' if comm else ''))
+            items.append(it)
 
-glist = sorted(groups.values(), key=lambda g: (statistics.median(g['akce']), g['name']))
-# denominations sharing a key (spelling variants) collapse into the first group
-seen, gout = {}, []
-for g in glist:
-    if g['key'] in seen: continue
-    seen[g['key']] = True; gout.append({'key': g['key'], 'name': g['name']})
-order = {g['key']: i for i, g in enumerate(gout)}
-rout = sorted(rulers.values(), key=lambda r: (r['start'], r['name']))
-items.sort(key=lambda i: (order[i['group']], i['y'] or 0, i['id']))
-for it in items:
-    for k in [k for k, v in it.items() if v in ('', None, False) and k not in ('id', 'group', 'y', 'label')]: del it[k]
-out = {
-    'name': 'האימפריה העות׳מאנית', 'sub': '1326–1923, מאקצ׳ה ועד 500 קורוש',
-    'about': 'מטבעות האימפריה העות׳מאנית מאורהאן ועד מהמט השישי: אקצ׳ה, מנגיר, פארה, קורוש ומטבעות הזהב, לכל תאריך הג׳רי ושנת מלכות, '
-             'עם המטבעה, המתכת, כמויות ההטבעה (כשידועות) ו-Key Dates. אפשר לסדר לפי סולטן.',
-    'theme': 'file', 'groupLabel': 'ערך', 'groups': gout,
-    'countries': [{'key': r['key'], 'name': r['name']} for r in rout],
-    'countryLabel': '👑 לפי סולטן', 'countriesLabel': 'סולטנים',
-    'sources': ['Numista — Ottoman Empire type pages'],
-    'sourceAttribution': 'נתונים: Numista (en.numista.com)', 'catalogVersion': '2026-10-05-1', 'items': items,
-}
-with io.open(OUT, 'w', encoding='utf8') as fh:
-    json.dump(out, fh, ensure_ascii=False, separators=(',', ':'))
-print('ottoman:', len(items), 'items,', len(gout), 'groups,', len(rout), 'rulers; key', sum(i.get('rarityTier') == 'key' for i in items),
-      'semi', sum(i.get('rarityTier') == 'semi-key' for i in items), 'proof', sum(bool(i.get('proof')) for i in items))
+    glist = sorted(groups.values(), key=lambda g: (statistics.median(g['akce']), g['name']))
+    # denominations sharing a key (spelling variants) collapse into the first group
+    seen, gout = {}, []
+    for g in glist:
+        if g['key'] in seen: continue
+        seen[g['key']] = True; gout.append({'key': g['key'], 'name': g['name']})
+    order = {g['key']: i for i, g in enumerate(gout)}
+    rout = sorted(rulers.values(), key=lambda r: (r['start'], r['name']))
+    items.sort(key=lambda i: (order[i['group']], i['y'] or 0, i['id']))
+    for it in items:
+        for k in [k for k, v in it.items() if v in ('', None, False) and k not in ('id', 'group', 'y', 'label')]: del it[k]
+    out = {
+        'name': 'האימפריה העות׳מאנית', 'sub': '1326–1923, מאקצ׳ה ועד 500 קורוש',
+        'about': 'מטבעות האימפריה העות׳מאנית מאורהאן ועד מהמט השישי: אקצ׳ה, מנגיר, פארה, קורוש ומטבעות הזהב, לכל תאריך הג׳רי ושנת מלכות, '
+                 'עם המטבעה, המתכת, כמויות ההטבעה (כשידועות) ו-Key Dates. אפשר לסדר לפי סולטן.',
+        'theme': 'file', 'groupLabel': 'ערך', 'groups': gout,
+        'countries': [{'key': r['key'], 'name': r['name']} for r in rout],
+        'countryLabel': '👑 לפי סולטן', 'countriesLabel': 'סולטנים',
+        'sources': ['Numista — Ottoman Empire type pages'],
+        'sourceAttribution': 'נתונים: Numista (en.numista.com)', 'catalogVersion': '2026-10-05-1', 'items': items,
+    }
+    with io.open(OUT, 'w', encoding='utf8') as fh:
+        json.dump(out, fh, ensure_ascii=False, separators=(',', ':'))
+    print('ottoman:', len(items), 'items,', len(gout), 'groups,', len(rout), 'rulers; key', sum(i.get('rarityTier') == 'key' for i in items),
+          'semi', sum(i.get('rarityTier') == 'semi-key' for i in items), 'proof', sum(bool(i.get('proof')) for i in items))
+
+if __name__ == '__main__':
+    main()
