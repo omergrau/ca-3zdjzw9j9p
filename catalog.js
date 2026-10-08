@@ -179,6 +179,16 @@ const CATALOG_FILES = {
 };
 for (const [key, f] of Object.entries(CATALOG_FILES)) CATALOGS[key] = Object.assign({ list: null, groups: [], theme: 'file', groupLabel: 'קבוצה' }, f);
 
+// Reference pictures (catalogs/images/<key>.json, made by tools/add_images.py): one free picture per coin type.
+async function attachImages(key, list) {
+  try {
+    const res = await fetch('catalogs/images/' + key + '.json', { cache: 'no-cache' });
+    if (!res.ok) return;
+    const map = await res.json();
+    for (const it of list) { const img = map[it.typeKey] || map[it.group]; if (img) it.img = img; }
+  } catch (e) { /* pictures are optional */ }
+}
+
 async function loadCatalogFile(key) {
   const cat = CATALOGS[key];
   if (!cat || !cat.src || cat.list) return cat;
@@ -226,6 +236,7 @@ async function loadCatalogFile(key) {
     title: it.label, sub: cat.name + (it.variant ? ' · וריאנט' : ''), design: it.note || '',
   }));
   markSeriesKeys(cat.list);
+  await attachImages(key, cat.list);
   for (const it of cat.list) it.rare = it.rarityTier ? it.rarityReason.replace(/^[^(]*\(|\)\.$/g, '') : '';
   return cat;
 }

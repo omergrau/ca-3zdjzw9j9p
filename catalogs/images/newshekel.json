@@ -1,0 +1,122 @@
+{
+"a1": {
+"u": "https://upload.wikimedia.org/wikipedia/commons/4/47/1_Israeli_agora_in_1985_Reverse.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+"page": "https://commons.wikimedia.org/wiki/File:1_Israeli_agora_in_1985_Reverse.jpg",
+"lic": "CC BY-SA 4.0",
+"by": "Adambps1900",
+"pair": false,
+"f": "1 Israeli agora in 1985 Reverse.jpg"
+},
+"a10": {
+"u": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1f/10_Israeli_agorot_reverse.jpg/330px-10_Israeli_agorot_reverse.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+"page": "https://commons.wikimedia.org/wiki/File:10_Israeli_agorot_reverse.jpg",
+"lic": "CC BY-SA 3.0",
+"by": "Dmitry-spb",
+"pair": false,
+"f": "10 Israeli agorot reverse.jpg"
+},
+"a10-n": {
+"u": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1f/10_Israeli_agorot_reverse.jpg/330px-10_Israeli_agorot_reverse.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+"page": "https://commons.wikimedia.org/wiki/File:10_Israeli_agorot_reverse.jpg",
+"lic": "CC BY-SA 3.0",
+"by": "Dmitry-spb",
+"pair": false,
+"f": "10 Israeli agorot reverse.jpg"
+},
+"s05": {
+"u": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/48/Nis_0.5_sheqel.jpg/330px-Nis_0.5_sheqel.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+"page": "https://commons.wikimedia.org/wiki/File:Nis_0.5_sheqel.jpg",
+"lic": "CC BY-SA 4.0",
+"by": "علاء",
+"pair": true,
+"f": "Nis 0.5 sheqel.jpg"
+},
+"s05-n": {
+"u": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/48/Nis_0.5_sheqel.jpg/330px-Nis_0.5_sheqel.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+"page": "https://commons.wikimedia.org/wiki/File:Nis_0.5_sheqel.jpg",
+"lic": "CC BY-SA 4.0",
+"by": "علاء",
+"pair": true,
+"f": "Nis 0.5 sheqel.jpg"
+},
+"s1-cuni": {
+"u": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bb/1_new_sheqel_1993_reverse.JPG/330px-1_new_sheqel_1993_reverse.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+"page": "https://commons.wikimedia.org/wiki/File:1_new_sheqel_1993_reverse.JPG",
+"lic": "CC BY-SA 3.0",
+"by": "Дмитрий Никонов",
+"pair": false,
+"f": "1 new sheqel 1993 reverse.JPG"
+},
+"s1-steel": {
+"u": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bb/1_new_sheqel_1993_reverse.JPG/330px-1_new_sheqel_1993_reverse.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+"page": "https://commons.wikimedia.org/wiki/File:1_new_sheqel_1993_reverse.JPG",
+"lic": "CC BY-SA 3.0",
+"by": "Дмитрий Никонов",
+"pair": false,
+"f": "1 new sheqel 1993 reverse.JPG"
+},
+"s1-n": {
+"u": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2d/Nis_1_sheqel.png/330px-Nis_1_sheqel.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+"page": "https://commons.wikimedia.org/wiki/File:Nis_1_sheqel.png",
+"lic": "Public domain",
+"by": "Wikimedia Commons",
+"pair": true,
+"f": "Nis 1 sheqel.png"
+},
+"s2": {
+"u": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/Israeli_2_New-Shekel_coins.jpg/330px-Israeli_2_New-Shekel_coins.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+"page": "https://commons.wikimedia.org/wiki/File:Israeli_2_New-Shekel_coins.jpg",
+"lic": "CC BY-SA 4.0",
+"by": "Ortmozkin2",
+"pair": true,
+"f": "Israeli 2 New-Shekel coins.jpg"
+},
+"s2-n": {
+"u": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/Israeli_2_New-Shekel_coins.jpg/330px-Israeli_2_New-Shekel_coins.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+"page": "https://commons.wikimedia.org/wiki/File:Israeli_2_New-Shekel_coins.jpg",
+"lic": "CC BY-SA 4.0",
+"by": "Ortmozkin2",
+"pair": true,
+"f": "Israeli 2 New-Shekel coins.jpg"
+},
+"s5": {
+"u": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c5/Nis_5_sheqel.png/330px-Nis_5_sheqel.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+"page": "https://commons.wikimedia.org/wiki/File:Nis_5_sheqel.png",
+"lic": "Public domain",
+"by": "No machine-readable author provided. EdoM assumed (based on copyright claims).",
+"pair": true,
+"f": "Nis 5 sheqel.png"
+},
+"s5-n": {
+"u": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c5/Nis_5_sheqel.png/330px-Nis_5_sheqel.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+"page": "https://commons.wikimedia.org/wiki/File:Nis_5_sheqel.png",
+"lic": "Public domain",
+"by": "No machine-readable author provided. EdoM assumed (based on copyright claims).",
+"pair": true,
+"f": "Nis 5 sheqel.png"
+},
+"s10": {
+"u": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f1/10_Israeli_New_Shekels_Coin_%2810_NIS%29.JPG/330px-10_Israeli_New_Shekels_Coin_%2810_NIS%29.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+"page": "https://commons.wikimedia.org/wiki/File:10_Israeli_New_Shekels_Coin_(10_NIS).JPG",
+"lic": "CC BY-SA 4.0",
+"by": "Revital Salomon",
+"pair": false,
+"f": "10 Israeli New Shekels Coin (10 NIS).JPG"
+},
+"s10-n": {
+"u": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f1/10_Israeli_New_Shekels_Coin_%2810_NIS%29.JPG/330px-10_Israeli_New_Shekels_Coin_%2810_NIS%29.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+"page": "https://commons.wikimedia.org/wiki/File:10_Israeli_New_Shekels_Coin_(10_NIS).JPG",
+"lic": "CC BY-SA 4.0",
+"by": "Revital Salomon",
+"pair": false,
+"f": "10 Israeli New Shekels Coin (10 NIS).JPG"
+},
+"c-rambam": {
+"u": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/11/1_New_Sheqel_Rambam_Reverse.png/330px-1_New_Sheqel_Rambam_Reverse.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+"page": "https://commons.wikimedia.org/wiki/File:1_New_Sheqel_Rambam_Reverse.png",
+"lic": "CC BY-SA 4.0",
+"by": "Paweł Pokrzywiński",
+"pair": false,
+"f": "1 New Sheqel Rambam Reverse.png"
+}
+}

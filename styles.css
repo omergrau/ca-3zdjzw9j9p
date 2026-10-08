@@ -803,3 +803,14 @@ body[data-series="file"] { --velvet: var(--file-velvet); --velvet-2: var(--file-
 .cz-countries { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 4px 10px; max-height: 260px; overflow: auto; padding: 6px; border: 1px solid var(--line); border-radius: 12px; }
 /* euro coin colours: 1 euro has a silver centre in a gold ring (the opposite of 2 euro) */
 .slot.own.m-bimetal1 .coin, .back-holder.m-bimetal1 .window .coin { background: radial-gradient(circle at 50% 50%, var(--cuni-a) 0, var(--cuni-b) 52%, var(--cuni-c) 57%, #f1d27a 59%, #d4ab43 80%, #9a7420); }
+
+/* ---------- reference pictures (Wikimedia Commons, one per coin type) ---------- */
+.coin > b { font: inherit; position: relative; z-index: 1; }
+.coin.has-ref img.ref { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; opacity: .38; filter: grayscale(.6); pointer-events: none; }
+.coin.has-ref.pair img.ref { object-position: 0% 50%; }
+.slot.own .coin.has-ref img.ref { opacity: .85; filter: none; }
+.coin.has-ref > b { text-shadow: 0 0 3px rgba(255, 255, 255, .9), 0 0 6px rgba(255, 255, 255, .7); }
+.ref-fig { margin: 10px 0 0; display: grid; gap: 6px; justify-items: center; }
+.ref-fig img { max-width: 100%; max-height: 180px; border-radius: 12px; object-fit: contain; background: rgba(0, 0, 0, .04); }
+.ref-fig figcaption { font-size: 12px; opacity: .75; text-align: center; line-height: 1.4; }
+.ref-fig a { color: inherit; }

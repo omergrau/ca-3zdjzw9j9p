@@ -23,7 +23,7 @@ CONFIGS = {
         currency={'Akçe': 1 / 120 / 40, 'Piastre': 1 / 40, 'Pound': 1},  # value in pounds; ratios are given per currency unit
         units=[(r'Milli[eè]mes?', 'מיל'), (r'Piastres?|Qirsh|Qurush', 'קרש'), (r'Pounds?', 'לירה'), (r'Para', 'פארה'),
                (r'Sultani', 'סולטאני'), (r'Akce|Akçe', 'אקצ׳ה'), (r'Mangh?ir', 'מנגיר'), (r'Medin[i]?', 'מדין'), (r'Fals|Falus', 'פלס'),
-               (r'Mahbub|Zeri Mahbub', 'זרי מחבוב'), (r'Findik', 'פינדיק'), (r'Beshlik', 'בשליק'), (r'Altin|Altın', 'אלטין')],
+               (r'Mahbub|Ma[hḥ]b[uū]b|Zeri|Zari', 'זרי מחבוב'), (r'Findik', 'פינדיק'), (r'Beshlik', 'בשליק'), (r'Altin|Altın', 'אלטין')],
         rulers=[('Hussein Kamel', 'husseinkamel', 'הסולטן חוסיין כאמל'), ('Fuad', 'fuad', 'פואד הראשון'), ('Farouk', 'farouk', 'המלך פארוק'),
                 ('Republic (1953', 'rep1953', 'הרפובליקה (1953–1958)'), ('United Arab Republic', 'uar', 'הרפובליקה הערבית המאוחדת (1958–1971)'),
                 ('Arab Republic of Egypt', 'are', 'הרפובליקה הערבית של מצרים (1971–)')],
@@ -95,7 +95,7 @@ def ruler(cfg, f, title):
     years = [int(y) for y in re.findall(r'\((\d{3,4})', raw)]
     start = min(years) if years else 9999
     for pre, key, he in cfg['rulers']:
-        if raw1.startswith(pre): return key, he, start
+        if raw1.startswith(pre) or (' ' + pre.strip()) in (' ' + raw1): return key, he, start
     s = raw1
     for k, v in FIX_SULTAN.items():
         if s.startswith(k): s = v
@@ -117,7 +117,7 @@ def denomination(cfg, f, title):
     qm = re.match(r'^([\d½¼¾⅛⅜⅞⅒/⁄.,]+)\s+(.*)$', name)
     qty, unit = (qm.group(1), qm.group(2)) if qm else ('1', name)
     he = next((h for r, h in cfg['units'] if re.search(r, unit, re.I)), unit)
-    q = qty.replace('1⁄2', '½').replace('⁄', '/')
+    q = re.sub(r'^1⁄2$', '½', qty).replace('⁄', '/')
     label = he if q == '1' else q + ' ' + he
     rank = (ratio if ratio is not None else (fnum(qty) or 1)) * factor
     key = re.sub(r'[^0-9a-z]+', '-', (q + '-' + unit).lower().replace('½', 'h').replace('/', '-')).strip('-')
@@ -151,7 +151,10 @@ def build(key):
             y = int(greg) if greg else (start if start < 9999 else None)
             when = (first + ('/' + tail if tail.isdigit() else '') + (' (' + greg + ')' if hijri and greg else '')) if first and first != 'ND' else 'ללא תאריך'
             n = number(row[1]) if len(row) > 1 else None
-            comment = re.sub(r'[؀-ۿ]+', ' ', row[2] if len(row) > 2 else '')
+            raw_comment = row[2] if len(row) > 2 else ''
+            row_proof = bool(re.search(r'proof', raw_comment, re.I))
+            comment = re.sub(r'[؀-ۿ]+', ' ', raw_comment)
+            comment = re.sub(r'\(?\s*mintage in \d{4}\s*\)?|Year\s*,\s*Minting Year\s*\d+|no regnal year', ' ', comment, flags=re.I)
             comment = re.sub(r'^[\s\d/()–-]+|[\s;,–-]+$', '', re.sub(r'\s+', ' ', comment)).strip()
             label = den + ' ' + when + (' — ' + extra if comm and extra else '') + (' — ' + comment if comment and len(comment) < 40 else '')
             base = '%s-%s-%s' % (cfg['id'], x['id'], re.sub(r'[^0-9a-z]+', '-', (date + '-' + comment).lower()).strip('-')[:40] or str(ri))
@@ -165,8 +168,8 @@ def build(key):
             items.append({k: v for k, v in dict(
                 id=id_, group=gkey, country=rkey, typeKey=x['id'], y=y, label=label, metal=met, metalName=metname, composition=f.get('Composition', ''),
                 diam=mm(f.get('Diameter')) or 20, weight=mm(f.get('Weight')), thickness=mm(f.get('Thickness')), mintage=n,
-                catalog=', '.join(refs), edge=(x.get('edge') or '').split(' ©')[0][:80], mint=mint_he, proof=nonc, commemorative=comm,
-                tag='לא למחזור' if nonc else ('הנצחה' if comm else ''), note=' '.join(note)).items()
+                catalog=', '.join(refs), edge=(x.get('edge') or '').split(' ©')[0][:80], mint=mint_he, proof=nonc or row_proof, commemorative=comm,
+                tag='לא למחזור' if nonc else ('פרוף' if row_proof else ('הנצחה' if comm else '')), note=' '.join(note)).items()
                 if v not in ('', None, False) or k in ('id', 'group', 'y', 'label')})
     glist = sorted(groups.values(), key=lambda g: (statistics.median(g['rank']), g['name']))
     seen, gout = set(), []

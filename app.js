@@ -68,8 +68,10 @@ function findItem(id) { for (const c of st.collections) { const it = allItems(c.
 /* ---------- rendering ---------- */
 function coinEl(item) {
   const photo = st.owned.has(item.id) && st.photos.get(item.id);
-  const coin = el('span', { class: 'coin' + (item.holed ? ' holed' : '') + (photo ? ' has-photo' : '') }, [String(item.y || '·')]);
+  const ref = !photo && item.img;   // a free reference picture of the type (Wikimedia Commons) when there is no own photo
+  const coin = el('span', { class: 'coin' + (item.holed ? ' holed' : '') + (photo ? ' has-photo' : '') + (ref ? ' has-ref' + (item.img.pair ? ' pair' : '') : '') }, [el('b', { text: String(item.y || '·') })]);
   if (photo) coin.append(el('img', { src: photo, alt: '', loading: 'lazy', decoding: 'async' }));
+  else if (ref) coin.append(el('img', { class: 'ref', src: item.img.u, alt: '', loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' }));
   if (item.rare) coin.append(el('span', { class: 'rare-dot', title: item.rare }));
   if (item.rarityTier) coin.append(el('span', { class: 'key-badge ' + item.rarityTier, text: item.rarityTier === 'key' ? 'KEY' : 'SEMI', title: item.rarityReason || (item.rarityTier === 'key' ? 'Key Date' : 'Semi-Key Date') }));
   if (item.error) coin.append(el('span', { class: 'error-badge', text: 'ERR', title: item.errorName || 'טעות הטבעה מוכרת' }));
@@ -928,6 +930,11 @@ function openSheet(id, msg) {
   body.append(facts);
   body.append(el('div', { class: 'status ' + (rec ? 'yes' : 'no'), text: rec ? '✓ באלבום' : 'עוד לא באלבום' }));
   if (item.rare) body.append(el('div', { class: 'rare-note' }, [el('span', { 'aria-hidden': 'true', text: '◆' }), item.rare]));
+  if (item.img) body.append(el('figure', { class: 'ref-fig' }, [
+    el('img', { src: item.img.u, alt: 'תמונה להמחשה של ' + item.title, loading: 'lazy', referrerpolicy: 'no-referrer' }),
+    el('figcaption', {}, ['תמונה להמחשה (סוג המטבע, לא בהכרח השנה הזו): ' + item.img.by + ' · ' + item.img.lic + ' · ',
+      el('a', { href: item.img.page, target: '_blank', rel: 'noopener', text: 'Wikimedia Commons' })]),
+  ]));
 
   const f = el('form', { class: 'fields' });
   let grade = rec?.grade || '';
