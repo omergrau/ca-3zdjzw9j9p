@@ -110,7 +110,7 @@ def run_search(key):
             name = f[5:].lower()
             if not re.search(r'[.](jpe?g|png|gif|webp|tiff?)$', name): continue
             if any(not re.search(w, name) for w in words): continue
-            if re.search(r'scale|size|beetle|reference|scattered|collection|stack|hand|wallet|banknote|note[^a-z]|medal|token|fake|counterfeit|pattern|edge|princess|empress|portrait|painting|mould|die |triple crown|horse|jewel|regalia|tiara|medieval|findid|defaced|votes|mule|double florin|third farthing|amcyc', name): continue
+            if re.search(r'scale|size|beetle|reference|scattered|collection|stack|hand|wallet|banknote|note[^a-z]|medal|token|fake|counterfeit|pattern|edge|princess|empress|portrait|painting|mould|die |triple crown|horse|jewel|regalia|tiara|medieval|findid|defaced|votes|mule|double florin|third farthing|amcyc|diagnostic|graphic|trial|artwork|sketch|drawing|plaster|galvano|protest|stamped|bullion|oz[ .]', name): continue
             yrs = [int(n) for n in re.findall(r'(?<![0-9])(1[5-9][0-9][0-9]|20[0-9][0-9])(?![0-9])', name)]
             s = 10
             if not yrs and key in NEED_YEAR: continue
