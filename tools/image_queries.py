@@ -105,3 +105,21 @@ def euro():
     return out
 
 JOBS = {'us': us, 'ukdec': ukdec, 'ukpre': ukpre, 'mandate': mandate, 'crowns': crowns, 'euro': euro}
+
+def numista_album(key, src, country):
+    """Albums built from Numista types: search by the type's English title (kept in the item note)."""
+    def job():
+        out = {}
+        for k, t in _types(_items(os.path.join(CAT, src))).items():
+            m = re.search(r'סוג: (.+?) \(Numista', t['note'])
+            if not m: continue
+            title = m.group(1)
+            value = re.match(r'^([\d½¼¾⅛⅒⁄/]+)?\s*([A-Za-z]+)', title)
+            words = [re.escape(value.group(2).lower()[:5])] if value else []
+            if value and value.group(1): words.append(r'(^|[^0-9])' + re.escape(value.group(1).replace('⁄', '/')) + r'([^0-9]|$)')
+            out[k] = (title + ' ' + country + ' coin', words, t['years'])
+        return out
+    return job
+
+JOBS['egypt'] = numista_album('egypt', 'egypt.json', 'Egypt')
+JOBS['ottoman'] = numista_album('ottoman', 'ottoman.json', 'Ottoman')

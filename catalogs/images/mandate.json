@@ -1,0 +1,26 @@
+{
+"d2": {
+"u": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Two_Mils_Palestine_1927.jpg/330px-Two_Mils_Palestine_1927.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+"page": "https://commons.wikimedia.org/wiki/File:Two_Mils_Palestine_1927.jpg",
+"lic": "Public domain",
+"by": "A Franzén",
+"pair": true,
+"f": "Two Mils Palestine 1927.jpg"
+},
+"d10": {
+"u": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/aa/10_Mils_Palestine_back_%281937%29.jpg/330px-10_Mils_Palestine_back_%281937%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+"page": "https://commons.wikimedia.org/wiki/File:10_Mils_Palestine_back_(1937).jpg",
+"lic": "Public domain",
+"by": "Wikimedia Commons",
+"pair": false,
+"f": "10 Mils Palestine back (1937).jpg"
+},
+"d20": {
+"u": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/60/20_palestinian_mils.png/330px-20_palestinian_mils.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+"page": "https://commons.wikimedia.org/wiki/File:20_palestinian_mils.png",
+"lic": "CC BY-SA 4.0",
+"by": "Ayoubze",
+"pair": true,
+"f": "20 palestinian mils.png"
+}
+}

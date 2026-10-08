@@ -1,0 +1,66 @@
+{
+"g3": {
+"u": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/74/Great_Britain%2C_crown%2C_1818%2C_George_III.jpg/330px-Great_Britain%2C_crown%2C_1818%2C_George_III.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+"page": "https://commons.wikimedia.org/wiki/File:Great_Britain,_crown,_1818,_George_III.jpg",
+"lic": "CC0",
+"by": "Петров Эдуард",
+"pair": true,
+"f": "Great Britain, crown, 1818, George III.jpg"
+},
+"g4": {
+"u": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/1821_George_IV_Crown_%28obverse%29_File_Pic.JPG/330px-1821_George_IV_Crown_%28obverse%29_File_Pic.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+"page": "https://commons.wikimedia.org/wiki/File:1821_George_IV_Crown_(obverse)_File_Pic.JPG",
+"lic": "CC BY-SA 3.0",
+"by": "Mandtplatt",
+"pair": false,
+"f": "1821 George IV Crown (obverse) File Pic.JPG"
+},
+"w4": {
+"u": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ab/1831_crown_obverse.jpg/330px-1831_crown_obverse.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+"page": "https://commons.wikimedia.org/wiki/File:1831_crown_obverse.jpg",
+"lic": "Public domain",
+"by": "Heritage Auctions for the photo, William Wyon designed the coin",
+"pair": false,
+"f": "1831 crown obverse.jpg"
+},
+"vgo": {
+"u": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0c/Great_Britain%2C_gothic_crown%2C_1847%2C_Victoria.jpg/330px-Great_Britain%2C_gothic_crown%2C_1847%2C_Victoria.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+"page": "https://commons.wikimedia.org/wiki/File:Great_Britain,_gothic_crown,_1847,_Victoria.jpg",
+"lic": "CC BY-SA 4.0",
+"by": "Петров Эдуард",
+"pair": true,
+"f": "Great Britain, gothic crown, 1847, Victoria.jpg"
+},
+"voh": {
+"u": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/50/1_crown_Victoria_1893.png/330px-1_crown_Victoria_1893.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+"page": "https://commons.wikimedia.org/wiki/File:1_crown_Victoria_1893.png",
+"lic": "CC BY-SA 4.0",
+"by": "Windrain",
+"pair": true,
+"f": "1 crown Victoria 1893.png"
+},
+"e7": {
+"u": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/1_Crown_Edward_VII_of_England_1902.png/330px-1_Crown_Edward_VII_of_England_1902.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+"page": "https://commons.wikimedia.org/wiki/File:1_Crown_Edward_VII_of_England_1902.png",
+"lic": "CC0",
+"by": "VuBrain",
+"pair": true,
+"f": "1 Crown Edward VII of England 1902.png"
+},
+"g5": {
+"u": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d6/1934_George_V_%27wreath%27_Crown_%28reverse%29_UNC.JPG/330px-1934_George_V_%27wreath%27_Crown_%28reverse%29_UNC.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+"page": "https://commons.wikimedia.org/wiki/File:1934_George_V_%27wreath%27_Crown_(reverse)_UNC.JPG",
+"lic": "Public domain",
+"by": "Royal Mint; photograph by Mandtplatt at en.wikipedia",
+"pair": false,
+"f": "1934 George V 'wreath' Crown (reverse) UNC.JPG"
+},
+"g6": {
+"u": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/George_VI_1937_proof_crown_%28reverse%29.jpg/330px-George_VI_1937_proof_crown_%28reverse%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+"page": "https://commons.wikimedia.org/wiki/File:George_VI_1937_proof_crown_(reverse).jpg",
+"lic": "CC BY-SA 4.0",
+"by": "Lamashtu2006",
+"pair": false,
+"f": "George VI 1937 proof crown (reverse).jpg"
+}
+}
