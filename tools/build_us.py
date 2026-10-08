@@ -296,6 +296,13 @@ def main():
     if dup: print('labels still identical (numbered):', len(dup))
     if unmatched:
         print('UNMATCHED captions:'); [print('  ', k, n) for k, n in sorted(unmatched.items())]
+    # programs with a new design every issue (states, parks, presidents...): each design is its own coin type
+    MULTI = {'q-st', 'q-dc', 'q-atb', 'q-aw', 'd1-pres', 'd1-inn', 'd1-na', 'n-ww'}
+    for it in items:
+        if it.get('typeKey') in MULTI:
+            m = re.search(r' — (.+?) (?:1[789]|20)\d\d', it['label'])
+            design = m.group(1) if m else (str(it['y']) if it['typeKey'] == 'd1-na' and it['y'] >= 2009 else '')
+            if design: it['typeKey'] += '-' + slug(design)
     # write: one shard per group
     os.makedirs(os.path.join(OUTDIR, 'us'), exist_ok=True)
     shards, order = [], {g: k for k, (g, _) in enumerate(GROUPS)}

@@ -139,6 +139,7 @@ for (const den of MANDATE_DENOMS) for (const [ys, mintage] of Object.entries(den
 }
 markSeriesKeys(MANDATE, it => it.group + '|' + it.metal);   // the bronze war issues are their own type
 markSeriesKeys(CROWNS, it => it.group + '|' + it.tag);   // a type = reign and design (the 1935 jubilee crown is its own)
+attachImages('mandate', MANDATE); attachImages('crowns', CROWNS);   // optional pictures, arrive after the first render
 const MANDATE_YEARS = [...new Set(MANDATE.map(c => c.y))].sort((a, b) => a - b);
 
 // The catalog library: ready-made checklists anyone can add to their album. Which catalogs a person
@@ -172,6 +173,8 @@ const CATALOG_FILES = {
     about: 'כל מטבעות המחזור של ארה״ב לפי סוג, שנה ומטבעה, כולל מדינות, פארקים, וריאנטים ושגיאות מפורסמים ומטבעות פרוף.' },
   ottoman: { src: 'catalogs/ottoman.json', name: 'האימפריה העות׳מאנית', sub: '1326–1923, מאקצ׳ה ועד 500 קורוש', groupLabel: 'ערך',
     about: 'מטבעות האימפריה העות׳מאנית מאורהאן ועד מהמט השישי, לכל תאריך ושנת מלכות, עם מטבעה, מתכת ו-Key Dates. אפשר לסדר לפי סולטן.' },
+  egypt: { src: 'catalogs/egypt.json', name: 'מצרים', sub: '1517–היום, מהתקופה העות׳מאנית ועד הרפובליקה', groupLabel: 'ערך',
+    about: 'מטבעות מצרים: התקופה העות׳מאנית, הסולטנות, הממלכה והרפובליקה, כולל מטבעות ההנצחה למחזור. אפשר לסדר לפי שליט.' },
   euro: { src: 'catalogs/euro.json', name: 'יורו', sub: '1999–היום, כל מדינות גוש האירו', groupLabel: 'ערך',
     about: 'כל מטבעות האירו של 25 המדינות לפי ערך ושנה, סימני המטבעה של גרמניה וכל מטבעות ההנצחה של 2 יורו.' },
   newshekel: { src: 'catalogs/new-shekel.json', name: 'השקל החדש', sub: '1985–היום, התשמ״ה–', groupLabel: 'ערך',
@@ -185,7 +188,7 @@ async function attachImages(key, list) {
     const res = await fetch('catalogs/images/' + key + '.json', { cache: 'no-cache' });
     if (!res.ok) return;
     const map = await res.json();
-    for (const it of list) { const img = map[it.typeKey] || map[it.group]; if (img) it.img = img; }
+    for (const it of list) { const img = map[it.country + '§' + (it.typeKey || it.group)] || map[it.typeKey] || map[it.group]; if (img) it.img = img; }
   } catch (e) { /* pictures are optional */ }
 }
 

@@ -23,7 +23,7 @@ CONFIGS = {
         currency={'Akçe': 1 / 120 / 40, 'Piastre': 1 / 40, 'Pound': 1},  # value in pounds; ratios are given per currency unit
         units=[(r'Milli[eè]mes?', 'מיל'), (r'Piastres?|Qirsh|Qurush', 'קרש'), (r'Pounds?', 'לירה'), (r'Para', 'פארה'),
                (r'Sultani', 'סולטאני'), (r'Akce|Akçe', 'אקצ׳ה'), (r'Mangh?ir', 'מנגיר'), (r'Medin[i]?', 'מדין'), (r'Fals|Falus', 'פלס'),
-               (r'Mahbub|Ma[hḥ]b[uū]b|Zeri|Zari', 'זרי מחבוב'), (r'Findik', 'פינדיק'), (r'Beshlik', 'בשליק'), (r'Altin|Altın', 'אלטין')],
+               (r'Mahbub|Ma[hḥ]b[uū]b|Zeri|Zari', 'זרי מחבוב'), (r'Findik', 'פינדיק'), (r'Beshlik', 'בשליק'), (r'Altin|Altın', 'אלטין'), (r'Jadid|Cedid', 'ג׳דיד')],
         rulers=[('Hussein Kamel', 'husseinkamel', 'הסולטן חוסיין כאמל'), ('Fuad', 'fuad', 'פואד הראשון'), ('Farouk', 'farouk', 'המלך פארוק'),
                 ('Republic (1953', 'rep1953', 'הרפובליקה (1953–1958)'), ('United Arab Republic', 'uar', 'הרפובליקה הערבית המאוחדת (1958–1971)'),
                 ('Arab Republic of Egypt', 'are', 'הרפובליקה הערבית של מצרים (1971–)')],
@@ -156,6 +156,8 @@ def build(key):
             comment = re.sub(r'[؀-ۿ]+', ' ', raw_comment)
             comment = re.sub(r'\(?\s*mintage in \d{4}\s*\)?|Year\s*,\s*Minting Year\s*\d+|no regnal year', ' ', comment, flags=re.I)
             comment = re.sub(r'^[\s\d/()–-]+|[\s;,–-]+$', '', re.sub(r'\s+', ' ', comment)).strip()
+            comment = re.sub(r'\b(hijri|gregorian|islamic date|christian date|ah|ad)\b|[()]', ' ', comment, flags=re.I)
+            comment = re.sub(r'^[\s\d/;,.:–-]+|[\s;,.:–-]+$', '', re.sub(r'\s+', ' ', comment)).strip()
             label = den + ' ' + when + (' — ' + extra if comm and extra else '') + (' — ' + comment if comment and len(comment) < 40 else '')
             base = '%s-%s-%s' % (cfg['id'], x['id'], re.sub(r'[^0-9a-z]+', '-', (date + '-' + comment).lower()).strip('-')[:40] or str(ri))
             id_ = base

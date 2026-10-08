@@ -95,5 +95,44 @@ def run(key):
     print(key + ': pictures for', len(out), 'of', n, 'types')
     for k, v in list(out.items())[:400]: print('  ', k, '->', v['f'][:70], '|', v['lic'])
 
+
+# ---- search mode: albums without Hebrew value words in their labels (see image_queries.py) ----
+NEED_YEAR = {'ukpre', 'crowns'}
+
+def run_search(key):
+    from commons import search
+    from image_queries import JOBS as QJOBS
+    jobs = QJOBS[key]()
+    cands = {}
+    for k, (q, words, years) in jobs.items():
+        best = []
+        for f in search(q):
+            name = f[5:].lower()
+            if not re.search(r'[.](jpe?g|png|gif|webp|tiff?)$', name): continue
+            if any(not re.search(w, name) for w in words): continue
+            if re.search(r'scale|size|beetle|reference|scattered|collection|stack|hand|wallet|banknote|note[^a-z]|medal|token|fake|counterfeit|pattern|edge|princess|empress|portrait|painting|mould|die |triple crown|horse|jewel|regalia|tiara|medieval|findid|defaced|votes|mule|double florin|third farthing|amcyc', name): continue
+            yrs = [int(n) for n in re.findall(r'(?<![0-9])(1[5-9][0-9][0-9]|20[0-9][0-9])(?![0-9])', name)]
+            s = 10
+            if not yrs and key in NEED_YEAR: continue
+            if yrs:
+                if years and any(y in years for y in yrs): s += 8
+                elif years and not any(min(years) - 1 <= y <= max(years) + 1 for y in yrs): continue
+            if re.search(r'revers|obvers|averse|both', name): s += 1
+            best.append((s, f))
+        best.sort(key=lambda x: -x[0])
+        if best: cands[k] = [f for s, f in best[:4]]
+    meta = info({f for v in cands.values() for f in v})
+    out = {}
+    for k, fs in cands.items():
+        f = next((f for f in fs if f in meta), None)
+        if f:
+            m = meta[f]
+            out[k] = dict(u=m['thumb'], page=m['page'], lic=m['license'], by=m['credit'], pair=m['ratio'] > 1.5, f=f[5:])
+    os.makedirs(os.path.join(CAT, 'images'), exist_ok=True)
+    with io.open(os.path.join(CAT, 'images', key + '.json'), 'w', encoding='utf8') as fh:
+        json.dump(out, fh, ensure_ascii=False, indent=0)
+    print(key + ': pictures for', len(out), 'of', len(jobs), 'types')
+    for k, v in list(out.items())[:60]: print('  ', k, '->', v['f'][:70], '|', v['lic'])
+
 if __name__ == '__main__':
-    for k in sys.argv[1:]: run(k)
+    for k in sys.argv[1:]: (run if k in JOBS else run_search)(k)

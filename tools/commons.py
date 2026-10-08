@@ -46,6 +46,11 @@ def walk(root, depth=3, skip=re.compile(r'ancient|banknote|medal|token|commemora
             todo += [(c, d + 1) for c in members(cat, 'subcat') if not skip.search(c)]
     return files
 
+def search(q, limit=25):
+    """File titles matching a Commons full-text search"""
+    d = api(dict(action='query', list='search', srsearch=q, srnamespace=6, srlimit=limit))
+    return [r['title'] for r in d.get('query', {}).get('search', [])]
+
 def info(titles, width=320):
     """file title -> {thumb, page, license, credit} for freely licensed files"""
     out = {}
