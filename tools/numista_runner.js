@@ -75,3 +75,17 @@ window.__export = async (store, from = 0, n = 1e9) => {
   let b = ''; for (let i = 0; i < buf.length; i++) b += String.fromCharCode(buf[i]);
   window.__b64 = btoa(b); return all.length + ' items, ' + window.__b64.length + ' chars';
 };
+// compact export: drops page fields the builders never read (technique, designer...); `ids` limits it to some types
+window.__slim = x => {
+  const DROP = ['Technique', 'Orientation', 'Demonetized', 'Number', 'Shape', 'Engraver', 'Designer', 'Series', 'Commemorated topic'];
+  return { id: x.id, t: x.t, rows: x.rows, edge: (x.edge || '').split(' ©')[0].slice(0, 80), mint: (x.mint || '').slice(0, 80),
+    f: Object.fromEntries(Object.entries(x.f).filter(([k]) => !DROP.includes(k))
+      .map(([k, v]) => [k, k === 'References' ? (v.match(/(KM#\s*[\w.]+|Schön#\s*[\w.]+)/g) || []).join(', ') : v])) };
+};
+window.__exportSlim = async (store, ids) => {
+  const all = JSON.parse(localStorage.getItem(store) || '{}');
+  const vals = (ids || Object.keys(all)).filter(k => all[k]).map(k => __slim(all[k]));
+  const buf = new Uint8Array(await new Response(new Blob([JSON.stringify(vals)]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+  let b = ''; for (let i = 0; i < buf.length; i++) b += String.fromCharCode(buf[i]);
+  window.__b64 = btoa(b); return [vals.length, window.__b64.length];
+};
