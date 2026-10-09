@@ -136,7 +136,7 @@ def build():
     for it in items:
         if it.get('mintage'): seen.setdefault((it['typeKey'], it['mintage']), []).append(it)
     for (_, n), rows in seen.items():
-        if len({r['y'] for r in rows}) > 1:
+        if len({r['y'] for r in rows}) > 1 and len(str(n).rstrip('0')) >= 4:   # round figures (200,000) do repeat for real
             for r in rows:
                 del r['mintage']
                 r['note'] += ' כמות ההטבעה ' + format(n, ',') + ' היא סך משותף לשנים ' + ', '.join(sorted({str(x['y']) for x in rows})) + '.'

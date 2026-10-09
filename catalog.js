@@ -195,6 +195,8 @@ const CATALOG_FILES = {
     about: 'מטבעות קפריסין תחת השלטון הבריטי, לפי מלך ושנה.' },
   japan: { region: 'asia', src: 'catalogs/japan.json', name: 'יפן', sub: '1870–היום, מרין ועד 500 ין', groupLabel: 'ערך',
     about: 'מטבעות יפן המודרנית מתקופת מייג׳י ועד רייווה: רין, סן וין, מטבעות הזהב והכסף של מייג׳י ומטבעות ההנצחה, עם כמות ההטבעה של כל שנה.' },
+  newfoundland: { region: 'brcolonies', src: 'catalogs/newfoundland.json', name: 'ניו פאונדלנד', sub: '1865–1947, הדומיניון הבריטי', groupLabel: 'ערך',
+    about: 'מטבעות ניו פאונדלנד לפני הצטרפותה לקנדה: סנט עד 50 סנט ומטבע הזהב של 2 דולר, לפי מלך ושנה, עם כמות ההטבעה של כל שנה.' },
   euro: { region: 'europe', src: 'catalogs/euro.json', name: 'יורו', sub: '1999–היום, כל מדינות גוש האירו', groupLabel: 'ערך',
     about: 'כל מטבעות האירו של 25 המדינות לפי ערך ושנה, סימני המטבעה של גרמניה וכל מטבעות ההנצחה של 2 יורו.' },
   newshekel: { region: 'israel', src: 'catalogs/new-shekel.json', name: 'השקל החדש', sub: '1985–היום, התשמ״ה–', groupLabel: 'ערך',
