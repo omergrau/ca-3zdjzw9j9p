@@ -282,6 +282,9 @@ def build(key):
                 catalog=', '.join(refs), edge=(x.get('edge') or '').split(' ©')[0][:80], mint=mint_he, proof=nonc or row_proof, commemorative=comm,
                 tag='לא למחזור' if nonc else ('פרוף' if row_proof else ('הנצחה' if comm else '')), note=' '.join(note)).items()
                 if v not in ('', None, False) or k in ('id', 'group', 'y', 'label')})
+    if key == 'ussr':   # Numista leaves most Soviet commemorative mintages empty; the Wikipedia list has them
+        from enrich_ussr import enrich
+        print('  ussr commemoratives given a mintage from Wikipedia:', enrich(items))
     used_g, used_r = {i['group'] for i in items}, {i['country'] for i in items}   # dates cut by `until` may leave a group or ruler empty
     groups = {k: g for k, g in groups.items() if g['key'] in used_g}
     rulers = {k: r for k, r in rulers.items() if k in used_r}
