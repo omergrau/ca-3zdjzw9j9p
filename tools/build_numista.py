@@ -101,9 +101,63 @@ for _key, _src, _id, _name, _sub, _about, _cur, _to in (
          {'Dollar': 1, 'Cent': 0.01}, 1967),
         ('br_cyprus', 'chypre', 'cp', 'קפריסין הבריטית', '1879–1955, מגרוש ועד 45 גרוש',
          'מטבעות קפריסין תחת השלטון הבריטי, לפי מלך ושנה.', {'Piastre': 1, 'Shilling': 9, 'Mil': 0.009}, 1959)):
-    CONFIGS[_key] = dict(src=_key + '_numista.json', out=_key.replace('_', '-') + '.json', id=_id, name=_name, sub=_sub, about=_about,
+    CONFIGS[_key] = dict(src='br_colonies_numista.json', ids='br_colonies_ids.json', out=_key.replace('_', '-') + '.json', id=_id, name=_name, sub=_sub, about=_about,
                          numista=_src, until=_to, rulerLabel='👑 לפי מלך / תקופה', rulersLabel='מלכים ותקופות',
                          currency=_cur, units=BR_UNITS, rulers=BR_RULERS, mints=BR_MINTS)
+
+# French colonies and protectorates: one album each, split by French regime (and by sultan / bey in the protectorates).
+FR_UNITS = [(r'Centimes?', 'סנטים'), (r'Francs?', 'פרנק'), (r'D[ée]cimes?', 'דסים'), (r'Sous?\b', 'סו'), (r'Liards?', 'ליאר'),
+            (r'Piastres?', 'פיאסטר'), (r'Cents?\b', 'סנט'), (r'Sap[eè]ques?', 'ספק'), (r'Rials?|Riyals?', 'ריאל'), (r'Mazunas?|Mouzounas?', 'מזונה'),
+            (r'Dirhams?', 'דירהם'), (r'Kharubs?|Caroubes?', 'חרוב'), (r'Fanons?', 'פנון'), (r'Doudous?|Cash', 'דודו'), (r'Roupies?|Rupees?', 'רופי'),
+            (r'Fels|Falus', 'פלס'), (r'Nasri', 'נסרי'), (r'Budju|Boudjou', 'בוג׳ו'), (r'Mahbub', 'מחבוב'), (r'Sultani', 'סולטאני'),
+            (r'Para', 'פארה'), (r'Livres?', 'ליברה'), (r'Ecus?|Écus?', 'אקו'), (r'Kurush|Qirsh', 'קרש')]
+FR_RULERS = [('Louis XV', 'louis15', 'לואי ה-15'), ('Louis XVI', 'louis16', 'לואי ה-16'), ('Napoleon I', 'napoleon1', 'נפוליאון הראשון'),
+             ('Louis XVIII', 'louis18', 'לואי ה-18'), ('Charles X', 'charles10', 'שארל ה-10'), ('Louis Philippe', 'louisphilippe', 'לואי פיליפ'),
+             ('Second Republic', 'rep2', 'הרפובליקה השנייה'), ('Napoleon III', 'napoleon3', 'נפוליאון השלישי'),
+             ('Third Republic', 'rep3', 'הרפובליקה השלישית (1870–1940)'), ('French State', 'vichy', 'משטר וישי (1940–1944)'),
+             ('Free France', 'freefrance', 'צרפת החופשית'), ('Provisional Government', 'gprf', 'הממשלה הזמנית (1944–1947)'),
+             ('Fourth Republic', 'rep4', 'הרפובליקה הרביעית (1947–1958)'), ('Fifth Republic', 'rep5', 'הרפובליקה החמישית (1958–)'),
+             ('Abdelaziz', 'abdelaziz', 'הסולטן עבד אל-עזיז'), ('Abd al-Aziz', 'abdelaziz', 'הסולטן עבד אל-עזיז'), ('Abdelhafid', 'abdelhafid', 'הסולטן עבד אל-חפיט'),
+             ('Yusuf', 'yusuf', 'הסולטן יוסף'), ('Youssef', 'yusuf', 'הסולטן יוסף'), ('Mohammed V', 'mohammed5', 'מוחמד החמישי'),
+             ('Muhammad V an-Nasir', 'nasir', 'מוחמד אל-נאסר (ביי תוניס)'), ('Muhammad V', 'mohammed5', 'מוחמד החמישי'), ('Hassan I', 'hassan1', 'הסולטן חסן הראשון'),
+             ('Ali III', 'ali3', 'עלי השלישי (ביי תוניס)'), ('Muhammad V an-Nasir', 'nasir', 'מוחמד אל-נאסר (ביי תוניס)'),
+             ('Muhammad VI', 'habib', 'מוחמד אל-חביב (ביי תוניס)'), ('Ahmad II', 'ahmad2', 'אחמד השני (ביי תוניס)'), ('Muhammad VII', 'moncef', 'מוחמד אל-מונסף (ביי תוניס)'),
+             ('Muhammad VIII', 'lamine', 'מוחמד אל-אמין (ביי תוניס)'), ('Muhammad III', 'sadok', 'מוחמד א-סאדק (ביי תוניס)')]
+FR_MINTS = {'Paris': 'פריז', 'Beaumont': 'Beaumont-le-Roger', 'Pessac': 'פסאק', 'Hanoi': 'האנוי', 'Pretoria': 'פרטוריה', 'Philadelphia': 'פילדלפיה',
+            'Algiers': 'אלג׳יר', 'Tunis': 'תוניס', 'Fez': 'פאס', 'Rabat': 'רבאט', 'Bombay': 'בומביי', 'Brussels': 'בריסל', 'Birmingham': 'בירמינגהם',
+            'Osaka': 'אוסקה', 'Saint-Louis': 'סן לואי'}
+for _key, _src, _id, _name, _sub, _about, _cur, _to in (
+        ('fr_algeria', 'algerie', 'dz', 'אלג׳יריה', 'עד 1962, מהעות׳מאנים ועד אלג׳יריה הצרפתית',
+         'מטבעות אלג׳יריה: תקופת הדאים העות׳מאנים ואלג׳יריה הצרפתית, עד העצמאות ב-1962.', {'Franc': 1, 'Budju': 1}, 1962),
+        ('fr_tunisia', 'tunisie', 'tn', 'תוניסיה (הפרוטקטורט)', 'עד 1956, ביי תוניס תחת צרפת',
+         'מטבעות תוניסיה בתקופת הביים והפרוטקטורט הצרפתי, לפי ביי ושנה, עד העצמאות ב-1956.', {'Franc': 1, 'Piastre': 1, 'Kharub': 1 / 16}, 1957),
+        ('fr_morocco', 'maroc', 'mo', 'מרוקו (הפרוטקטורט)', 'עד 1956, הסולטנים והפרוטקטורט',
+         'מטבעות מרוקו לפני העצמאות: הסולטנים חסן הראשון, עבד אל-עזיז, יוסף ומוחמד החמישי, כולל תקופת הפרוטקטורט הצרפתי.',
+         {'Franc': 1, 'Rial': 1, 'Dirham': 0.1, 'Mazuna': 1 / 400}, 1956),
+        ('fr_indochina', 'indochine', 'ic', 'הודו-סין הצרפתית', '1879–1954, וייטנאם, לאוס וקמבודיה',
+         'מטבעות הודו-סין הצרפתית: ספק, סנט ופיאסטר, לפי משטר ושנה.', {'Piastre': 1, 'Cent': 0.01, 'Sapèque': 1 / 500}, 1954),
+        ('fr_west_africa', 'aof', 'ao', 'מערב אפריקה הצרפתית', '1944–1959', 'המטבע המשותף של מערב אפריקה הצרפתית.', {'Franc': 1}, 1959),
+        ('fr_equatorial', 'aef', 'ae', 'אפריקה המשוונית הצרפתית', '1942–1958', 'מטבעות אפריקה המשוונית הצרפתית (צ׳אד, גבון, קונגו, אובנגי-שארי).', {'Franc': 1}, 1959),
+        ('fr_cameroon', 'cameroon_french', 'cm', 'קמרון הצרפתית', '1924–1958', 'מטבעות קמרון תחת המנדט הצרפתי.', {'Franc': 1}, 1960),
+        ('fr_togo', 'togo', 'tg', 'טוגו הצרפתית', '1924–1956', 'מטבעות טוגו תחת המנדט הצרפתי.', {'Franc': 1}, 1960),
+        ('fr_madagascar', 'madagascar', 'mg', 'מדגסקר הצרפתית', '1943–1958', 'מטבעות מדגסקר הצרפתית.', {'Franc': 1}, 1959),
+        ('fr_somaliland', 'french_somaliland_period', 'so', 'סומליה הצרפתית', '1948–1967', 'מטבעות חוף הסומלים הצרפתי (היום ג׳יבוטי).', {'Franc': 1}, 1967),
+        ('fr_reunion', 'reunion_period', 're2', 'ראוניון', '1816–1973', 'מטבעות האי ראוניון.', {'Franc': 1}, 1975),
+        ('fr_west_indies', 'colonies_francaises', 'wi', 'המושבות הצרפתיות', '1670–1896, מושבות כלליות', 'מטבעות "Colonies Françaises" ששימשו בכל המושבות.',
+         {'Sou': 1 / 20, 'Livre': 1, 'Franc': 1}, 1900),
+        ('fr_guadeloupe', 'guadeloupe', 'gp', 'גוואדלופ', '1903–1921', 'מטבעות גוואדלופ.', {'Franc': 1}, 1950),
+        ('fr_martinique', 'martinique', 'mq', 'מרטיניק', '1897–1922', 'מטבעות מרטיניק.', {'Franc': 1}, 1950),
+        ('fr_guiana', 'french-guiana', 'gf', 'גיאנה הצרפתית', '1789–1846', 'מטבעות גיאנה הצרפתית.', {'Sou': 1 / 20, 'Franc': 1}, 1950),
+        ('fr_new_caledonia', 'nouvelle-caledonie', 'nc', 'קלדוניה החדשה', '1949–היום', 'מטבעות קלדוניה החדשה.', {'Franc': 1}, 2100),
+        ('fr_oceania', 'etablissements_francais_oceanie_period', 'oc', 'אוקיאניה הצרפתית', '1949–1957', 'מטבעות היישובים הצרפתיים באוקיאניה (פולינזיה).', {'Franc': 1}, 1957),
+        ('fr_new_hebrides', 'new_hebrides_period', 'nh', 'הברידים החדשים', '1966–1980', 'מטבעות הקונדומיניום הצרפתי-בריטי (היום ונואטו).', {'Franc': 1}, 1980),
+        ('fr_india', 'india-french', 'fi', 'הודו הצרפתית', 'עד 1954, פונדיצ׳רי', 'מטבעות ההתיישבויות הצרפתיות בהודו.', {'Rupee': 1, 'Fanon': 1 / 8}, 1954),
+        ('fr_syria', 'syrie', 'sy', 'סוריה (המנדט הצרפתי)', '1921–1946', 'מטבעות סוריה תחת המנדט הצרפתי, עד העצמאות.', {'Piastre': 1}, 1946),
+        ('fr_lebanon', 'liban', 'lb', 'לבנון (המנדט הצרפתי)', '1924–1943', 'מטבעות לבנון תחת המנדט הצרפתי, עד העצמאות.', {'Piastre': 1}, 1943),
+        ('fr_comoros', 'comores', 'km', 'קומורו', '1890–1975', 'מטבעות קומורו תחת צרפת.', {'Franc': 1, 'Centime': 0.01}, 1975)):
+    CONFIGS[_key] = dict(src='fr_colonies_numista.json', ids='fr_colonies_ids.json', out=_key.replace('_', '-') + '.json', id=_id, name=_name, sub=_sub,
+                         about=_about, numista=_src, until=_to, rulerLabel='👑 לפי משטר / שליט', rulersLabel='משטרים ושליטים',
+                         currency=_cur, units=FR_UNITS, rulers=FR_RULERS, mints=FR_MINTS)
 
 PLURAL = {'קופייקה': 'קופייקות', 'פולושקה': 'פולושקות', 'דנגה': 'דנגות', 'אנה': 'אנות', 'פרת׳ינג': 'פרת׳ינגים'}
 
@@ -136,13 +190,16 @@ def metal(comp):
     return 'copper', 'נחושת'
 
 def ruler(cfg, f, title):
-    raw = f.get('King') or f.get('Queen') or f.get('Sultan') or f.get('Ruler') or f.get('Emperor') or f.get('Period') or f.get('Issuer') or ''
+    raw = f.get('King') or f.get('Queen') or f.get('Sultan') or f.get('Ruler') or f.get('Emperor') or f.get('Period') or ''
+    if not raw:   # no ruler on the page: the issuer may name the period (RSFSR), when it is a known one
+        iss = f.get('Issuer', '')
+        raw = iss if any(re.search(r'(^|\s)' + re.escape(p.strip()) + r'(?![A-Za-z])', iss) for p, _, _ in cfg['rulers']) else ''
     first = re.match(r'^(.*?\(\d{3,4}[^)]*\))', raw)
     raw1 = first.group(1) if first else raw
     years = [int(y) for y in re.findall(r'\((\d{3,4})', raw)]
     start = min(years) if years else 9999
     for pre, key, he in cfg['rulers']:
-        if raw1.startswith(pre) or (' ' + pre.strip()) in (' ' + raw1): return key, he, start
+        if re.search(r'(^|\s)' + re.escape(pre.strip()) + r'(?![A-Za-z])', raw1): return key, he, start
     s = raw1
     for k, v in FIX_SULTAN.items():
         if s.startswith(k): s = v
@@ -173,6 +230,9 @@ def denomination(cfg, f, title):
 def build(key):
     cfg = CONFIGS[key]
     data = json.load(io.open(os.path.join(HERE, 'data', cfg['src']), encoding='utf8'))
+    if cfg.get('ids'):   # one data file for several issuers: keep this issuer's types
+        keep = {str(i) for i in json.load(io.open(os.path.join(HERE, 'data', cfg['ids']), encoding='utf8'))[cfg['numista']]}
+        data = [x for x in data if str(x['id']) in keep]
     groups, rulers, items, ids = {}, {}, [], set()
     for x in data:
         f = x.get('f') or x.get('feat') or {}
