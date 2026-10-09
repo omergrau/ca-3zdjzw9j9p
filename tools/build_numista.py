@@ -24,7 +24,7 @@ CONFIGS = {
         units=[(r'Milli[eè]mes?', 'מיל'), (r'Piastres?|Qirsh|Qurush', 'קרש'), (r'Pounds?', 'לירה'), (r'Para', 'פארה'),
                (r'Sultani', 'סולטאני'), (r'Akce|Akçe', 'אקצ׳ה'), (r'Mangh?ir', 'מנגיר'), (r'Medin[i]?', 'מדין'), (r'Fals|Falus', 'פלס'),
                (r'Mahbub|Ma[hḥ]b[uū]b|Zeri|Zari', 'זרי מחבוב'), (r'Findik', 'פינדיק'), (r'Beshlik', 'בשליק'), (r'Altin|Altın', 'אלטין'), (r'Jadid|Cedid', 'ג׳דיד')],
-        rulers=[('Hussein Kamel', 'husseinkamel', 'הסולטן חוסיין כאמל'), ('Fuad', 'fuad', 'פואד הראשון'), ('Farouk', 'farouk', 'המלך פארוק'),
+        rulers=[('Ali Bey al-Kabir', 'alibey', 'עלי ביי אל-כביר (מושל ממלוכי)'), ('Hussein Kamel', 'husseinkamel', 'הסולטן חוסיין כאמל'), ('Fuad', 'fuad', 'פואד הראשון'), ('Farouk', 'farouk', 'המלך פארוק'),
                 ('Republic (1953', 'rep1953', 'הרפובליקה (1953–1958)'), ('United Arab Republic', 'uar', 'הרפובליקה הערבית המאוחדת (1958–1971)'),
                 ('Arab Republic of Egypt', 'are', 'הרפובליקה הערבית של מצרים (1971–)')],
         mints={'Cairo': 'קהיר', 'Misr': 'מצרים (קהיר)', 'London': 'לונדון', 'Royal Mint': 'המטבעה המלכותית', 'Birmingham': 'בירמינגהם',
@@ -118,6 +118,9 @@ FR_RULERS = [('Louis XV', 'louis15', 'לואי ה-15'), ('Louis XVI', 'louis16',
              ('Third Republic', 'rep3', 'הרפובליקה השלישית (1870–1940)'), ('French State', 'vichy', 'משטר וישי (1940–1944)'),
              ('Free France', 'freefrance', 'צרפת החופשית'), ('Provisional Government', 'gprf', 'הממשלה הזמנית (1944–1947)'),
              ('Fourth Republic', 'rep4', 'הרפובליקה הרביעית (1947–1958)'), ('Fifth Republic', 'rep5', 'הרפובליקה החמישית (1958–)'),
+             ('Sidi Muhammad III', 'mohammed3ma', 'הסולטן מוחמד השלישי (מרוקו)'), ('Moulay ‘Abd al-Rahman', 'abdalrahman', 'הסולטן עבד א-רחמן'),
+             ('Moulay al-Hasan I', 'hassan1', 'הסולטן חסן הראשון'), ('Abd al-Hafid', 'abdelhafid', 'הסולטן עבד אל-חפיט'),
+             ('Moulay Ismail', 'ismail', 'הסולטן מולאי איסמעיל'), ('Moulay Sulayman', 'sulayman', 'הסולטן מולאי סולימאן'),
              ('Abdelaziz', 'abdelaziz', 'הסולטן עבד אל-עזיז'), ('Abd al-Aziz', 'abdelaziz', 'הסולטן עבד אל-עזיז'), ('Abdelhafid', 'abdelhafid', 'הסולטן עבד אל-חפיט'),
              ('Yusuf', 'yusuf', 'הסולטן יוסף'), ('Youssef', 'yusuf', 'הסולטן יוסף'), ('Mohammed V', 'mohammed5', 'מוחמד החמישי'),
              ('Muhammad V an-Nasir', 'nasir', 'מוחמד אל-נאסר (ביי תוניס)'), ('Muhammad V', 'mohammed5', 'מוחמד החמישי'), ('Hassan I', 'hassan1', 'הסולטן חסן הראשון'),
@@ -200,7 +203,7 @@ def metal(comp):
     return 'copper', 'נחושת'
 
 def ruler(cfg, f, title):
-    raw = f.get('King') or f.get('Queen') or f.get('Sultan') or f.get('Ruler') or f.get('Emperor') or f.get('Period') or ''
+    raw = f.get('King') or f.get('Queen') or f.get('Sultan') or f.get('Ruler') or f.get('Emperor') or f.get('Ruling authority') or f.get('Period') or ''
     if not raw:   # no ruler on the page: the issuer may name the period (RSFSR), when it is a known one
         iss = f.get('Issuer', '')
         raw = iss if any(re.search(r'(^|\s)' + re.escape(p.strip()) + r'(?![A-Za-z])', iss) for p, _, _ in cfg['rulers']) else ''
