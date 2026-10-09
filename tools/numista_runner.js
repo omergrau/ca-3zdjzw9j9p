@@ -1,8 +1,11 @@
 // Paste into a Numista tab (javascript_exec). Collects list pages and type pages with same-origin fetch, one request
 // at a time, paced by a Worker timer (not throttled in hidden tabs). Results live in localStorage — export them to
 // tools/data often (__export), the browser pane can lose its storage.
-window.__sleepW = window.__sleepW || new Worker(URL.createObjectURL(new Blob(['onmessage=e=>setTimeout(()=>postMessage(1),e.data)'])));
-window.__sleep = ms => new Promise(r => { __sleepW.onmessage = r; __sleepW.postMessage(ms); });
+// each wait has its own id, so several loops (a run and a chain waiting for it) can sleep at once
+window.__sleepW2 = window.__sleepW2 || new Worker(URL.createObjectURL(new Blob(['onmessage=e=>setTimeout(()=>postMessage(e.data[0]),e.data[1])'])));
+window.__sleepN = window.__sleepN || 0; window.__sleepCb = window.__sleepCb || {};
+__sleepW2.onmessage = e => { const f = __sleepCb[e.data]; delete __sleepCb[e.data]; f && f(); };
+window.__sleep = ms => new Promise(r => { const id = ++__sleepN; __sleepCb[id] = r; __sleepW2.postMessage([id, ms]); });
 window.__T = e => (e ? e.textContent : '').replace(/\s+/g, ' ').trim();
 window.__parse = (html, id) => {
   const doc = new DOMParser().parseFromString(html, 'text/html');
