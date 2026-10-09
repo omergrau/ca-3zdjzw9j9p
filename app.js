@@ -1606,9 +1606,12 @@ function libraryContent(onDone) {
             onclick: async () => { await addCatalog(key); onDone && onDone(); } }),
     ]);
   };
+  // one folding section per category; a catalog listed in two categories shows in both
   const cards = REGIONS.flatMap(([r, title]) => {
-    const list = Object.entries(CATALOGS).filter(([, c]) => (c.region || 'other') === r);
-    return list.length ? [el('div', { class: 'catalog-region', text: title }), ...list.map(card)] : [];
+    const list = Object.entries(CATALOGS).filter(([, c]) => [].concat(c.region || 'other').includes(r));
+    return list.length ? [el('details', { class: 'catalog-region-box' }, [
+      el('summary', { class: 'catalog-region' }, [el('span', { text: title }), el('small', { text: list.length + (list.length === 1 ? ' אלבום' : ' אלבומים') })]),
+      ...list.map(card)])] : [];
   });
   const name = el('input', { id: 'l-name', placeholder: 'למשל: שטרות שואה, מטבעות ירושלים' });
   const sub = el('input', { id: 'l-sub', placeholder: 'תיאור קצר (לא חובה)' });

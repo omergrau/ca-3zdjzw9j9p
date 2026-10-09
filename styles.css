@@ -816,4 +816,9 @@ body[data-series="file"] { --velvet: var(--file-velvet); --velvet-2: var(--file-
 .ref-fig a { color: inherit; }
 .col-row.merge-pick { justify-content: flex-start; cursor: pointer; }
 .col-row.merge-pick input { width: 18px; height: 18px; accent-color: var(--gold, #b8902f); }
-.catalog-list .catalog-region { padding: 9px 12px 5px; font-size: 12px; font-weight: 700; letter-spacing: .02em; color: var(--ink-dim, #776); background: var(--paper-2, rgba(0,0,0,.035)); border-bottom: 1px solid var(--line); }
+.catalog-list .catalog-region { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 14px; font-size: 15px; font-weight: 700; cursor: pointer; list-style: none; background: var(--paper-2, rgba(0,0,0,.035)); border-bottom: 1px solid var(--line); }
+.catalog-list .catalog-region::-webkit-details-marker { display: none; }
+.catalog-list .catalog-region::before { content: '‹'; display: inline-block; margin-inline-end: 8px; transition: transform .15s; color: var(--ink-dim, #776); }
+.catalog-list details[open] > .catalog-region::before { transform: rotate(-90deg); }
+.catalog-list .catalog-region span { flex: 1; }
+.catalog-list .catalog-region small { font-size: 12px; font-weight: 500; color: var(--ink-dim, #776); }

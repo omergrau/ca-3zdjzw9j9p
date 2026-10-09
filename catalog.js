@@ -140,7 +140,7 @@ const CATALOGS = {
   crowns: { region: 'britain', name: 'קראונים בריטיים', sub: '1818–1965, חמישה שילינג', list: CROWNS, theme: 'crowns', groupLabel: 'מלך',
     groups: CROWN_REIGNS.map(r => ({ key: r.key, name: r.name + ' (' + r.years + ')' })),
     about: '43 קראונים מג\'ורג\' השלישי ועד אליזבת השנייה, כולל פרופים ושנים נדירות.' },
-  mandate: { region: 'israel', name: 'מטבעות המנדט', sub: '1927–1946, כל הערכים והשנים', list: MANDATE, theme: 'mandate', groupLabel: 'ערך',
+  mandate: { region: ['israel', 'brmandate'], name: 'מטבעות המנדט', sub: '1927–1946, כל הערכים והשנים', list: MANDATE, theme: 'mandate', groupLabel: 'ערך',
     groups: MANDATE_DENOMS.map(d => ({ key: 'd' + d.d, name: d.d + (d.d === 1 ? ' מיל' : ' מילים') + ' · ' + d.metalName.split(',')[0] })),
     about: '59 מטבעות: 1, 2, 5, 10, 20, 50 ו-100 מיל, 1927–1946 (בלי 1947, שכמעט כולה הותכה).' },
 };
@@ -161,13 +161,13 @@ const CATALOG_FILES = {
     about: 'פרת׳ינג, חצי פני, פני, 6 פני, שילינג (אנגלי וסקוטי), פלורין וחצי קראון לפי שנה, עם המלך והמתכת של כל שנה.' },
   ukdec: { region: 'britain', src: 'catalogs/uk-decimal.json', name: 'בריטניה — מטבעות עשרוניים', sub: '1968–היום, ½ פני עד 2 לירות', groupLabel: 'ערך',
     about: 'מטבעות הליש״ט העשרוניים לפי שנה, כל עיצובי 50 הפני, סדרת A–Z, הלירה העגולה ובת 12 הצלעות ומטבעות 2 לירות להנצחה.' },
-  canada: { region: 'americas', src: 'catalogs/canada.json', name: 'קנדה', sub: '1858–היום, מסנט ועד 2 דולר', groupLabel: 'ערך',
+  canada: { region: ['americas', 'brcolonies'], src: 'catalogs/canada.json', name: 'קנדה', sub: '1858–היום, מסנט ועד 2 דולר', groupLabel: 'ערך',
     about: 'כל מטבעות המחזור של קנדה לפי שנה, עם כמות ההטבעה של כל שנה, וריאנטים מוכרים, סימני מטבעה ומטבעות ההנצחה של הלוני והטוני.' },
   us: { region: 'americas', src: 'catalogs/us.json', name: 'ארצות הברית', sub: '1793–היום, מחצי סנט ועד דולר', groupLabel: 'ערך',
     about: 'כל מטבעות המחזור של ארה״ב לפי סוג, שנה ומטבעה, כולל מדינות, פארקים, וריאנטים ושגיאות מפורסמים ומטבעות פרוף.' },
-  ottoman: { region: 'mideast', src: 'catalogs/ottoman.json', name: 'האימפריה העות׳מאנית', sub: '1326–1923, מאקצ׳ה ועד 500 קורוש', groupLabel: 'ערך',
+  ottoman: { region: ['ottoman', 'mideast'], src: 'catalogs/ottoman.json', name: 'האימפריה העות׳מאנית', sub: '1326–1923, מאקצ׳ה ועד 500 קורוש', groupLabel: 'ערך',
     about: 'מטבעות האימפריה העות׳מאנית מאורהאן ועד מהמט השישי, לכל תאריך ושנת מלכות, עם מטבעה, מתכת ו-Key Dates. אפשר לסדר לפי סולטן.' },
-  egypt: { region: 'mideast', src: 'catalogs/egypt.json', name: 'מצרים', sub: '1517–היום, מהתקופה העות׳מאנית ועד הרפובליקה', groupLabel: 'ערך',
+  egypt: { region: ['mideast', 'ottoman'], src: 'catalogs/egypt.json', name: 'מצרים', sub: '1517–היום, מהתקופה העות׳מאנית ועד הרפובליקה', groupLabel: 'ערך',
     about: 'מטבעות מצרים: התקופה העות׳מאנית, הסולטנות, הממלכה והרפובליקה, כולל מטבעות ההנצחה למחזור. אפשר לסדר לפי שליט.' },
   ussr: { region: 'russia', src: 'catalogs/ussr.json', name: 'ברית המועצות', sub: '1921–1991, מקופייקה ועד רובל', groupLabel: 'ערך',
     about: 'מטבעות הרפובליקה הסובייטית הרוסית וברית המועצות: כל ערך ושנה, 97 רובלי ההנצחה למחזור ומטבעות הפרוף מהסטים. רוב כמויות ההטבעה הסובייטיות לא פורסמו מעולם.' },
@@ -202,9 +202,13 @@ const CATALOG_FILES = {
   newshekel: { region: 'israel', src: 'catalogs/new-shekel.json', name: 'השקל החדש', sub: '1985–היום, התשמ״ה–', groupLabel: 'ערך',
     about: 'כל מטבעות המחזור של השקל החדש לפי שנה, מטבעות החנוכה והזיכרון, וריאנטים, טעויות יישור ו-Key Dates.' },
 };
-// The library lists catalogs by region, in this order.
-const REGIONS = [['israel', 'ישראל וארץ ישראל'], ['britain', 'בריטניה'], ['brcolonies', 'האימפריה הבריטית'], ['europe', 'אירופה'],
-  ['frcolonies', 'האימפריה הצרפתית'], ['russia', 'רוסיה וברית המועצות'], ['mideast', 'המזרח התיכון'], ['asia', 'אסיה'], ['americas', 'אמריקה'], ['ancient', 'העולם העתיק'], ['other', 'עוד']];
+// The library lists catalogs by category (a country, an empire or an era), in this order. A catalog's `region` is one
+// category or a list of them (the Mandate is both Israel's history and a British mandate). Empty categories are hidden.
+const REGIONS = [['israel', 'ישראל וארץ ישראל'], ['brmandate', 'המנדט הבריטי'], ['britain', 'בריטניה'],
+  ['brcolonies', 'האימפריה הבריטית — מושבות ודומיניונים'], ['frcolonies', 'האימפריה הצרפתית — מושבות, פרוטקטורטים ומנדטים'],
+  ['spcolonies', 'האימפריה הספרדית'], ['ptcolonies', 'האימפריה הפורטוגלית'], ['russia', 'רוסיה וברית המועצות'],
+  ['ottoman', 'האימפריה העות׳מאנית'], ['mideast', 'המזרח התיכון'], ['europe', 'אירופה'], ['asia', 'אסיה'], ['americas', 'אמריקה'],
+  ['ancient', 'העולם העתיק'], ['other', 'עוד']];
 for (const [key, f] of Object.entries(CATALOG_FILES)) CATALOGS[key] = Object.assign({ list: null, groups: [], theme: 'file', groupLabel: 'קבוצה' }, f);
 
 // Reference pictures (catalogs/images/<key>.json, made by tools/add_images.py): one free picture per coin type.
