@@ -816,3 +816,4 @@ body[data-series="file"] { --velvet: var(--file-velvet); --velvet-2: var(--file-
 .ref-fig a { color: inherit; }
 .col-row.merge-pick { justify-content: flex-start; cursor: pointer; }
 .col-row.merge-pick input { width: 18px; height: 18px; accent-color: var(--gold, #b8902f); }
+.catalog-list .catalog-region { padding: 9px 12px 5px; font-size: 12px; font-weight: 700; letter-spacing: .02em; color: var(--ink-dim, #776); background: var(--paper-2, rgba(0,0,0,.035)); border-bottom: 1px solid var(--line); }

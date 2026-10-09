@@ -1,0 +1,27 @@
+{
+  "_note": "Numista issuer codes (list pages: https://en.numista.com/catalogue/<code>-<page>.html). Collected 2026-10-09 from /catalogue/pays.php.",
+  "british": {
+    "inde_britannique": "India - British", "ceylon_period": "Ceylon (1597-1972)", "palestine": "British Palestine",
+    "rhodesie_du_sud": "Southern Rhodesia (1932-1955)", "rhodesie_et_nyassaland": "Rhodesia and Nyasaland", "rhodesie": "Rhodesia (1964-1979)",
+    "afrique_du_sud": "South Africa", "boer": "South Africa (pre-Union)", "south_african_republic": "South African Republic", "cape_of_good_hope": "Cape of Good Hope",
+    "afrique_occidentale_britannique": "British West Africa", "afrique_de_l_est": "East Africa", "gold_coast": "Gold Coast (1821-1957)",
+    "straits": "Straits Settlements", "malaya": "Malaya", "malaya_borneo": "Malaya and British Borneo", "borneo": "North Borneo", "sarawak": "Sarawak",
+    "singapore_colony": "British Singapore", "chypre": "Cyprus", "malte": "Malta", "maurice": "Mauritius", "seychelles": "Seychelles",
+    "jamaique": "Jamaica", "british-west-indies": "British West Indies", "british-guiana-west-indies": "British Guiana and West Indies",
+    "british_honduras_period": "British Honduras (1862-1973)", "trinite": "Trinidad", "bermudes": "Bermuda", "bahamas": "Bahamas", "barbade": "Barbados",
+    "hong_kong": "Hong Kong", "fidji": "Fiji", "nouvelle_guinee": "New Guinea", "iles_salomon": "Solomon Islands", "gilbert_ellice_islands": "Gilbert and Ellice Islands",
+    "zanzibar": "Zanzibar", "ouganda": "Uganda", "kenya": "Kenya", "nigeria": "Nigeria", "sierra_leone": "Sierra Leone", "gambie": "Gambia",
+    "soudan": "Sudan", "irak": "Iraq", "egypte": "Egypt", "ionian-islands": "Ionian Islands (1815-1864)", "newfoundland": "Newfoundland",
+    "canada": "Canada", "australie": "Australia", "nouvelle-zelande": "New Zealand", "irlande": "Ireland", "gibraltar": "Gibraltar",
+    "iles_malouines": "Falkland Islands", "sainte-helene": "Saint Helena", "british-east-indies": "British East Indies"
+  },
+  "french": {
+    "algerie": "Algeria", "tunisie": "Tunisia", "maroc": "Morocco", "indochine": "French Indochina", "cochinchine": "French Cochinchina", "tonkin": "Tonkin",
+    "aof": "French West Africa", "aef": "French Equatorial Africa", "cameroon_french": "French Cameroon (1916-1960)", "togo": "Togo",
+    "madagascar": "Madagascar", "comores": "Comoros", "french_somaliland_period": "French Somaliland (1896-1967)", "reunion_period": "Réunion (1848-date)",
+    "colonies_francaises": "French West Indies", "guadeloupe": "Guadeloupe", "martinique": "Martinique", "french-guiana": "French Guiana",
+    "nouvelle-caledonie": "New Caledonia", "etablissements_francais_oceanie_period": "French Settlements of Oceania (1903-1957)",
+    "new_hebrides_period": "New Hebrides (1906-1980)", "india-french": "India, French", "pondichery": "Pondicherry", "syrie": "Syria", "liban": "Lebanon",
+    "french_sudan": "French Sudan (1921-1958)", "upper_senegal_and_niger_period": "Upper Senegal and Niger (1904-1921)", "senegal": "Senegal"
+  }
+}

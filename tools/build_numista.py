@@ -60,6 +60,51 @@ for _key, _name, _sub, _about in (
                          name=_name, sub=_sub, about=_about, rulerLabel='👑 לפי שליט / תקופה', rulersLabel='שליטים ותקופות',
                          currency={'Rouble': 1, 'Ruble': 1, 'Kopeck': 0.01}, units=RU_UNITS, rulers=RU_RULERS, mints=RU_MINTS)
 
+# British colonies: one album per colony, split by monarch. `until` drops date rows after independence when Numista's
+# issuer also covers the independent state. `numista` is the issuer code the list pages were collected from.
+BR_UNITS = [(r'Mohur', 'מוהר'), (r'Rupees?', 'רופי'), (r'Annas?', 'אנה'), (r'Pice|Paisa', 'פייס'), (r'Pies?\b', 'פאי'), (r'Farthings?', 'פרת׳ינג'),
+            (r'Half ?pennys?|Halfpence', 'חצי פני'), (r'Threepence', 'שלושה פני'), (r'Sixpence', 'שישה פני'), (r'Pennys?|Pence', 'פני'),
+            (r'Shillings?', 'שילינג'), (r'Florins?', 'פלורין'), (r'Half ?Crowns?', 'חצי קראון'), (r'Crowns?', 'קראון'), (r'Sovereigns?', 'סוברין'),
+            (r'Pounds?', 'לירה'), (r'Cents?', 'סנט'), (r'Dollars?', 'דולר'), (r'Mils?\b|Mills?\b', 'מיל'), (r'Piastres?', 'גרוש'),
+            (r'Stuivers?', 'סטויבר'), (r'Rix ?dollars?|Rixdollar', 'ריקסדולר'), (r'Doits?|Duits?', 'דויט'), (r'Fanams?', 'פנם'), (r'Pagodas?', 'פגודה'),
+            (r'Kas\b|Cash\b', 'קאש'), (r'Tenths?', 'עשירית'), (r'Grains?', 'גריין')]
+BR_RULERS = [('East India Company', 'eic', 'חברת הודו המזרחית'), ('George III', 'george3', 'ג׳ורג׳ השלישי'), ('George IV', 'george4', 'ג׳ורג׳ הרביעי'),
+             ('William IV', 'william4', 'ויליאם הרביעי'), ('Victoria', 'victoria', 'המלכה ויקטוריה'), ('Edward VII ', 'edward7', 'אדוארד השביעי'),
+             ('Edward VII (', 'edward7', 'אדוארד השביעי'), ('George V ', 'george5', 'ג׳ורג׳ החמישי'), ('George V (', 'george5', 'ג׳ורג׳ החמישי'),
+             ('Edward VIII', 'edward8', 'אדוארד השמיני'), ('George VI', 'george6', 'ג׳ורג׳ השישי'), ('Elizabeth II', 'elizabeth2', 'המלכה אליזבת השנייה'),
+             ('Dutch East India', 'voc', 'חברת הודו המזרחית ההולנדית'), ('Portug', 'portugal', 'השלטון הפורטוגלי')]
+BR_MINTS = {'Calcutta': 'כלכותה', 'Bombay': 'בומביי', 'Madras': 'מדרס', 'Lahore': 'להור', 'Hyderabad': 'היידראבאד', 'Pretoria': 'פרטוריה',
+            'London': 'לונדון', 'Royal Mint': 'המטבעה המלכותית', 'Birmingham': 'בירמינגהם', 'Heaton': 'Heaton, בירמינגהם', 'Ottawa': 'אוטווה',
+            'Melbourne': 'מלבורן', 'Sydney': 'סידני', 'Perth': 'פרת׳', 'Kings Norton': 'קינגס נורטון', 'Colombo': 'קולומבו', 'Paris': 'פריז'}
+for _key, _src, _id, _name, _sub, _about, _cur, _to in (
+        ('br_india', 'inde_britannique', 'bi', 'הודו הבריטית', '1835–1947, מפאי ועד מוהר',
+         'מטבעות הודו תחת חברת הודו המזרחית והכתר הבריטי: נחושת, כסף וזהב, לפי מלך ושנה, עם כמות ההטבעה כשידועה.',
+         {'Rupee': 1, 'Mohur': 15}, 1947),
+        ('br_ceylon', 'ceylon_period', 'cy', 'ציילון', 'עד 1972, מהשלטון ההולנדי ועד הדומיניון',
+         'מטבעות ציילון (סרי לנקה) מתקופת חברת הודו המזרחית ההולנדית, השלטון הבריטי והדומיניון, עד הרפובליקה ב-1972.',
+         {'Rupee': 1, 'Rixdollar': 1, 'Rix': 1, 'Stuiver': 1 / 48}, 1972),
+        ('br_rhodesia', 'rhodesie_du_sud', 'rh', 'רודזיה הדרומית', '1932–1955, זימבבואה הבריטית',
+         'מטבעות רודזיה הדרומית (היום זימבבואה) תחת ג׳ורג׳ החמישי, ג׳ורג׳ השישי ואליזבת השנייה.', {'Pound': 1, 'Shilling': 1 / 20, 'Penny': 1 / 240}, 1965),
+        ('br_rhod_nyasa', 'rhodesie_et_nyassaland', 'rn', 'רודזיה וניאסלנד', '1955–1964, הפדרציה המרכז-אפריקאית',
+         'מטבעות הפדרציה של רודזיה וניאסלנד (זימבבואה, זמביה ומלאווי של היום) תחת אליזבת השנייה.', {'Pound': 1, 'Shilling': 1 / 20, 'Penny': 1 / 240}, 1964),
+        ('br_south_africa', 'afrique_du_sud', 'za', 'דרום אפריקה', '1923–1960, איחוד דרום אפריקה',
+         'מטבעות איחוד דרום אפריקה, מהפרת׳ינג ועד הסוברין, תחת ג׳ורג׳ החמישי, ג׳ורג׳ השישי ואליזבת השנייה, עד המעבר לראנד ב-1961.',
+         {'Pound': 1, 'Shilling': 1 / 20, 'Penny': 1 / 240}, 1960),
+        ('br_west_africa', 'afrique_occidentale_britannique', 'wa', 'מערב אפריקה הבריטית', '1907–1958, ניגריה, חוף הזהב, סיירה לאון וגמביה',
+         'המטבע המשותף של המושבות הבריטיות במערב אפריקה.', {'Shilling': 1 / 20, 'Penny': 1 / 240, 'Pound': 1}, 1958),
+        ('br_east_africa', 'afrique_de_l_est', 'ea', 'מזרח אפריקה הבריטית', '1906–1964, קניה, אוגנדה וטנגניקה',
+         'המטבע המשותף של מזרח אפריקה הבריטית: סנט ושילינג.', {'Shilling': 1, 'Cent': 0.01, 'Rupee': 1, 'Florin': 1}, 1964),
+        ('br_straits', 'straits', 'ss', 'מושבות המצרים', '1845–1939, סינגפור, פנאנג ומלאקה',
+         'מטבעות מושבות המצרים (Straits Settlements) לפי מלך ושנה.', {'Dollar': 1, 'Cent': 0.01}, 1946),
+        ('br_malaya', 'malaya', 'ma', 'מלאיה הבריטית', '1939–1950', 'מטבעות מלאיה תחת ג׳ורג׳ השישי.', {'Dollar': 1, 'Cent': 0.01}, 1957),
+        ('br_malaya_borneo', 'malaya_borneo', 'mb', 'מלאיה ובורנאו הבריטית', '1953–1961', 'מטבעות מלאיה ובורנאו הבריטית תחת אליזבת השנייה.',
+         {'Dollar': 1, 'Cent': 0.01}, 1967),
+        ('br_cyprus', 'chypre', 'cp', 'קפריסין הבריטית', '1879–1955, מגרוש ועד 45 גרוש',
+         'מטבעות קפריסין תחת השלטון הבריטי, לפי מלך ושנה.', {'Piastre': 1, 'Shilling': 9, 'Mil': 0.009}, 1959)):
+    CONFIGS[_key] = dict(src=_key + '_numista.json', out=_key.replace('_', '-') + '.json', id=_id, name=_name, sub=_sub, about=_about,
+                         numista=_src, until=_to, rulerLabel='👑 לפי מלך / תקופה', rulersLabel='מלכים ותקופות',
+                         currency=_cur, units=BR_UNITS, rulers=BR_RULERS, mints=BR_MINTS)
+
 def fnum(s):
     s = s.strip().replace('⁄', '/')
     m = re.fullmatch(r'(\d+)?([½¼¾⅛⅜⅞⅒])', s)
@@ -149,6 +194,7 @@ def build(key):
             hijri = f.get('Dating', '').startswith('Islamic') and first and first != 'ND'
             if not greg and first and first != 'ND': greg = str(round(int(first) * 0.97 + 622)) if hijri else first
             y = int(greg) if greg else (start if start < 9999 else None)
+            if cfg.get('until') and y and y > cfg['until']: continue   # after independence: another album
             when = (first + ('/' + tail if tail.isdigit() else '') + (' (' + greg + ')' if hijri and greg else '')) if first and first != 'ND' else 'ללא תאריך'
             n = number(row[1]) if len(row) > 1 else None
             raw_comment = row[2] if len(row) > 2 else ''

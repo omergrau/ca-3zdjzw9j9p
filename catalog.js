@@ -137,10 +137,10 @@ const MANDATE_YEARS = [...new Set(MANDATE.map(c => c.y))].sort((a, b) => a - b);
 // The catalog library: ready-made checklists anyone can add to their album. Which catalogs a person
 // collects, and what they own, is personal and lives only on their device (see store.js), never here.
 const CATALOGS = {
-  crowns: { name: 'קראונים בריטיים', sub: '1818–1965, חמישה שילינג', list: CROWNS, theme: 'crowns', groupLabel: 'מלך',
+  crowns: { region: 'britain', name: 'קראונים בריטיים', sub: '1818–1965, חמישה שילינג', list: CROWNS, theme: 'crowns', groupLabel: 'מלך',
     groups: CROWN_REIGNS.map(r => ({ key: r.key, name: r.name + ' (' + r.years + ')' })),
     about: '43 קראונים מג\'ורג\' השלישי ועד אליזבת השנייה, כולל פרופים ושנים נדירות.' },
-  mandate: { name: 'מטבעות המנדט', sub: '1927–1946, כל הערכים והשנים', list: MANDATE, theme: 'mandate', groupLabel: 'ערך',
+  mandate: { region: 'israel', name: 'מטבעות המנדט', sub: '1927–1946, כל הערכים והשנים', list: MANDATE, theme: 'mandate', groupLabel: 'ערך',
     groups: MANDATE_DENOMS.map(d => ({ key: 'd' + d.d, name: d.d + (d.d === 1 ? ' מיל' : ' מילים') + ' · ' + d.metalName.split(',')[0] })),
     about: '59 מטבעות: 1, 2, 5, 10, 20, 50 ו-100 מיל, 1927–1946 (בלי 1947, שכמעט כולה הותכה).' },
 };
@@ -151,27 +151,30 @@ const GRADES = ['', 'G', 'VG', 'F', 'VF', 'XF', 'AU', 'UNC', 'פרוף'];
 //                items: [{ id, group, y, label, metal, diam, variant?, mint?, mintMark?, mintVariant?, typeKey?, rare?, tag?, note?, holed? }] }
 // Register one here with { src } and it appears in the library; its coins load on demand.
 const CATALOG_FILES = {
-  pruta: { src: 'catalogs/pruta.json', name: 'מטבעות הפרוטה', sub: '1948–1960, תש״ח–תשי״ז', groupLabel: 'ערך',
+  pruta: { region: 'israel', src: 'catalogs/pruta.json', name: 'מטבעות הפרוטה', sub: '1948–1960, תש״ח–תשי״ז', groupLabel: 'ערך',
     about: '25 המיל של 1948 וסדרת הפרוטה: כל ערך בכל שנה, וריאנטים (פנינה, שפה, שרשרת), מטבעות הכסף ו-Key Dates.' },
-  lira: { src: 'catalogs/lira.json', name: 'אגורות ולירות', sub: '1960–1980, תש"ך–תש"ם', groupLabel: 'ערך',
+  lira: { region: 'israel', src: 'catalogs/lira.json', name: 'אגורות ולירות', sub: '1960–1980, תש"ך–תש"ם', groupLabel: 'ערך',
     about: 'סדרת האגורה והלירה של מדינת ישראל. מטבעות מחזור לפי ערך, עם הכנה לשנים, וריאנטים ומטבעות.' },
-  oldshekel: { src: 'catalogs/old-shekel.json', name: 'השקל הישן', sub: '1980–1985, תש"ם–תשמ"ה', groupLabel: 'ערך',
+  oldshekel: { region: 'israel', src: 'catalogs/old-shekel.json', name: 'השקל הישן', sub: '1980–1985, תש"ם–תשמ"ה', groupLabel: 'ערך',
     about: 'סדרת האגורות החדשות והשקל הישן. תשעה עריכים בסדרת המחזור.' },
-  ukpre: { src: 'catalogs/uk-predecimal.json', name: 'בריטניה — לפני העשרוני', sub: '1797–1970, פרת׳ינג עד חצי קראון', groupLabel: 'ערך',
+  ukpre: { region: 'britain', src: 'catalogs/uk-predecimal.json', name: 'בריטניה — לפני העשרוני', sub: '1797–1970, פרת׳ינג עד חצי קראון', groupLabel: 'ערך',
     about: 'פרת׳ינג, חצי פני, פני, 6 פני, שילינג (אנגלי וסקוטי), פלורין וחצי קראון לפי שנה, עם המלך והמתכת של כל שנה.' },
-  ukdec: { src: 'catalogs/uk-decimal.json', name: 'בריטניה — מטבעות עשרוניים', sub: '1968–היום, ½ פני עד 2 לירות', groupLabel: 'ערך',
+  ukdec: { region: 'britain', src: 'catalogs/uk-decimal.json', name: 'בריטניה — מטבעות עשרוניים', sub: '1968–היום, ½ פני עד 2 לירות', groupLabel: 'ערך',
     about: 'מטבעות הליש״ט העשרוניים לפי שנה, כל עיצובי 50 הפני, סדרת A–Z, הלירה העגולה ובת 12 הצלעות ומטבעות 2 לירות להנצחה.' },
-  us: { src: 'catalogs/us.json', name: 'ארצות הברית', sub: '1793–היום, מחצי סנט ועד דולר', groupLabel: 'ערך',
+  us: { region: 'americas', src: 'catalogs/us.json', name: 'ארצות הברית', sub: '1793–היום, מחצי סנט ועד דולר', groupLabel: 'ערך',
     about: 'כל מטבעות המחזור של ארה״ב לפי סוג, שנה ומטבעה, כולל מדינות, פארקים, וריאנטים ושגיאות מפורסמים ומטבעות פרוף.' },
-  ottoman: { src: 'catalogs/ottoman.json', name: 'האימפריה העות׳מאנית', sub: '1326–1923, מאקצ׳ה ועד 500 קורוש', groupLabel: 'ערך',
+  ottoman: { region: 'mideast', src: 'catalogs/ottoman.json', name: 'האימפריה העות׳מאנית', sub: '1326–1923, מאקצ׳ה ועד 500 קורוש', groupLabel: 'ערך',
     about: 'מטבעות האימפריה העות׳מאנית מאורהאן ועד מהמט השישי, לכל תאריך ושנת מלכות, עם מטבעה, מתכת ו-Key Dates. אפשר לסדר לפי סולטן.' },
-  egypt: { src: 'catalogs/egypt.json', name: 'מצרים', sub: '1517–היום, מהתקופה העות׳מאנית ועד הרפובליקה', groupLabel: 'ערך',
+  egypt: { region: 'mideast', src: 'catalogs/egypt.json', name: 'מצרים', sub: '1517–היום, מהתקופה העות׳מאנית ועד הרפובליקה', groupLabel: 'ערך',
     about: 'מטבעות מצרים: התקופה העות׳מאנית, הסולטנות, הממלכה והרפובליקה, כולל מטבעות ההנצחה למחזור. אפשר לסדר לפי שליט.' },
-  euro: { src: 'catalogs/euro.json', name: 'יורו', sub: '1999–היום, כל מדינות גוש האירו', groupLabel: 'ערך',
+  euro: { region: 'europe', src: 'catalogs/euro.json', name: 'יורו', sub: '1999–היום, כל מדינות גוש האירו', groupLabel: 'ערך',
     about: 'כל מטבעות האירו של 25 המדינות לפי ערך ושנה, סימני המטבעה של גרמניה וכל מטבעות ההנצחה של 2 יורו.' },
-  newshekel: { src: 'catalogs/new-shekel.json', name: 'השקל החדש', sub: '1985–היום, התשמ״ה–', groupLabel: 'ערך',
+  newshekel: { region: 'israel', src: 'catalogs/new-shekel.json', name: 'השקל החדש', sub: '1985–היום, התשמ״ה–', groupLabel: 'ערך',
     about: 'כל מטבעות המחזור של השקל החדש לפי שנה, מטבעות החנוכה והזיכרון, וריאנטים, טעויות יישור ו-Key Dates.' },
 };
+// The library lists catalogs by region, in this order.
+const REGIONS = [['israel', 'ישראל וארץ ישראל'], ['britain', 'בריטניה'], ['brcolonies', 'האימפריה הבריטית'], ['europe', 'אירופה'],
+  ['frcolonies', 'האימפריה הצרפתית'], ['russia', 'רוסיה וברית המועצות'], ['mideast', 'המזרח התיכון'], ['americas', 'אמריקה'], ['ancient', 'העולם העתיק'], ['other', 'עוד']];
 for (const [key, f] of Object.entries(CATALOG_FILES)) CATALOGS[key] = Object.assign({ list: null, groups: [], theme: 'file', groupLabel: 'קבוצה' }, f);
 
 // Reference pictures (catalogs/images/<key>.json, made by tools/add_images.py): one free picture per coin type.

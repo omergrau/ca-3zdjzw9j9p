@@ -1590,7 +1590,7 @@ async function removeCollection(c) {
   st.collections = st.collections.filter(x => x.id !== c.id); await saveCollections(); render();
 }
 function libraryContent(onDone) {
-  const cards = Object.entries(CATALOGS).map(([key, c]) => {
+  const card = ([key, c]) => {
     const has = !!colById(key);
     const col = colById(key) || { id: key, kind: 'catalog', color: CATALOG_COLOR[key] || 'burgundy' };
     return el('div', { class: 'lib-card catalog-row album-' + albumColor(col) }, [
@@ -1605,6 +1605,10 @@ function libraryContent(onDone) {
         : el('button', { class: 'catalog-add', type: 'button', 'aria-label': 'הוסף ' + c.name, text: '+',
             onclick: async () => { await addCatalog(key); onDone && onDone(); } }),
     ]);
+  };
+  const cards = REGIONS.flatMap(([r, title]) => {
+    const list = Object.entries(CATALOGS).filter(([, c]) => (c.region || 'other') === r);
+    return list.length ? [el('div', { class: 'catalog-region', text: title }), ...list.map(card)] : [];
   });
   const name = el('input', { id: 'l-name', placeholder: 'למשל: שטרות שואה, מטבעות ירושלים' });
   const sub = el('input', { id: 'l-sub', placeholder: 'תיאור קצר (לא חובה)' });
