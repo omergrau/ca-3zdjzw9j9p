@@ -814,3 +814,5 @@ body[data-series="file"] { --velvet: var(--file-velvet); --velvet-2: var(--file-
 .ref-fig img { max-width: 100%; max-height: 180px; border-radius: 12px; object-fit: contain; background: rgba(0, 0, 0, .04); }
 .ref-fig figcaption { font-size: 12px; opacity: .75; text-align: center; line-height: 1.4; }
 .ref-fig a { color: inherit; }
+.col-row.merge-pick { justify-content: flex-start; cursor: pointer; }
+.col-row.merge-pick input { width: 18px; height: 18px; accent-color: var(--gold, #b8902f); }

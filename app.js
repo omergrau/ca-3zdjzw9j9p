@@ -26,8 +26,16 @@ function albumColor(col) {
   return ALBUM_COLORS.includes(col.color) ? col.color : (CATALOG_COLOR[col.id] || (col.kind === 'own' ? 'blue' : 'burgundy'));
 }
 function colById(id) { return st.collections.find(c => c.id === id); }
-function curCol() { return colById(st.tab) || st.collections[0]; }
-function themeOf(col) { return col && col.kind === 'catalog' ? CATALOGS[col.id].theme : 'own'; }
+// A merged album binds several albums into one book: { id: 'mg-…', kind: 'merged', parts: [ids] }. Each part keeps
+// its own coins, settings and order and comes back as it was when the merge is undone; while merged it has
+// `mergedInto` and leaves the tab row.
+function partsOf(id) { const c = colById(id); return c && c.kind === 'merged' ? c.parts.filter(p => colById(p)) : null; }
+function tabCols() { return st.collections.filter(c => !c.mergedInto); }
+function curCol() { const c = colById(st.tab); return (c && c.mergedInto && colById(c.mergedInto)) || c || tabCols()[0]; }
+function themeOf(col) {
+  if (col && col.kind === 'merged') return themeOf(colById(partsOf(col.id)[0]));
+  return col && col.kind === 'catalog' ? CATALOGS[col.id].theme : 'own';
+}
 function extraToItem(id, x) {
   const col = colById(x.series), own = col && col.kind === 'own';
   return { id: 'x-' + id, extraId: id, series: x.series, y: x.year || '', tag: own ? '' : 'תוספת', rare: '', metal: x.metal || 'silver',
@@ -48,6 +56,8 @@ function visibleIn(series) {
   return it => !h.groups.has(it.group) && !h.items.has(it.id) && !(it.country && h.countries.has(it.country)) && (v || !it.variant) && (m || !it.mintVariant) && (e || !it.error) && (p || !it.proof);
 }
 function allItems(series) {
+  const parts = partsOf(series);
+  if (parts) return parts.flatMap(allItems);
   let base = CATALOGS[series] && CATALOGS[series].list && colById(series) ? CATALOGS[series].list.filter(visibleIn(series)) : [];
   const settings = albumSettings(colById(series));
   if (settings.scope === 'one-per-type') {
@@ -96,14 +106,14 @@ function seriesStats(key) {
 function renderStats() {
   const host = $('#stats'); host.textContent = '';
   let have = 0, total = 0;
-  for (const c of st.collections) { const x = seriesStats(c.id); have += x.have; total += x.total; }
+  for (const c of st.collections) { if (c.kind === 'merged') continue; const x = seriesStats(c.id); have += x.have; total += x.total; }
   const stat = (cls, n, t) => el('div', { class: 'stat ' + cls }, [el('b', { text: String(n) }), el('span', { text: t })]);
   host.append(stat('gold', have, 'מטבעות באלבום'), stat('', (total ? Math.round(have / total * 100) : 0) + '%', 'מכל הסדרות'), stat('copper', total - have, 'עוד חסרים'));
 }
 
 function renderTabs() {
   const host = $('#tabs'); host.textContent = '';
-  for (const s of st.collections) {
+  for (const s of tabCols()) {
     const key = s.id, x = seriesStats(key);
     const ring = el('span', { class: 'ring', style: '--p:' + x.pct }, [el('span', { text: x.pct + '%' })]);
     host.append(el('button', { class: 'tab ' + themeOf(s) + ' album-' + albumColor(s), role: 'tab', type: 'button', 'aria-selected': String(st.tab === key),
@@ -187,16 +197,16 @@ function renderGroupedList(view, key) {
   }
   view.append(tray);
 }
-function renderOwnList(view) {
-  const col = curCol(), items = allItems(col.id);
+function renderOwnList(view, key) {
+  const col = colById(key), items = allItems(col.id);
   view.append(el('div', { class: 'tray' }, [
     trayHead(col.name, col.sub || 'אוסף שבנית בעצמך.'),
     items.length ? el('div', { class: 'slots' }, items.map(slotEl))
       : el('p', { class: 'muted', style: 'color:var(--on-velvet-dim)', text: 'עוד אין כאן מטבעות. לחץ "הוסף מטבע" כדי להוסיף את הראשון.' }),
   ]));
 }
-function renderExtras(view) {
-  const extra = allItems(st.tab).filter(i => i.custom);
+function renderExtras(view, key) {
+  const extra = allItems(key).filter(i => i.custom);
   if (!extra.length) return;
   view.append(el('div', { class: 'tray extras' }, [
     el('h3', { text: 'מטבעות שהוספת מחוץ לרשימה' }),
@@ -206,7 +216,7 @@ function renderExtras(view) {
 }
 
 function render() {
-  if (!colById(st.tab) && st.collections.length) st.tab = st.collections[0].id;
+  if (st.collections.length) st.tab = curCol().id;
   const empty = st.ready && !st.collections.length;
   document.body.dataset.series = themeOf(curCol());
   document.body.classList.toggle('no-collections', empty);
@@ -223,11 +233,14 @@ function render() {
     renderAlbum(view, false);
     if (st.reader) { const stg = $('#readerStage'); stg.textContent = ''; renderAlbum(stg, true); layoutReader(); }
   }
-  else if (st.tab === 'crowns') { renderCrowns(view); renderExtras(view); }
-  else if (st.tab === 'mandate') { renderMandate(view); renderExtras(view); }
-  else if (CATALOGS[st.tab]) { renderGroupedList(view, st.tab); renderExtras(view); }
-  else renderOwnList(view);
+  else for (const key of partsOf(st.tab) || [st.tab]) renderListOf(view, key);
   st.justAdded = null;
+}
+function renderListOf(view, key) {
+  if (key === 'crowns') { renderCrowns(view); renderExtras(view, key); }
+  else if (key === 'mandate') { renderMandate(view); renderExtras(view, key); }
+  else if (CATALOGS[key]) { renderGroupedList(view, key); renderExtras(view, key); }
+  else renderOwnList(view, key);
 }
 
 /* ---------- album pages (sheets of pockets with coin holders) ---------- */
@@ -276,6 +289,11 @@ function yearSpan(items) {
 }
 // Sections of the album, in order. A section starts on a new page; `years` sections title each page by its years.
 function albumSections(series) {
+  const parts = partsOf(series);
+  if (parts) return parts.flatMap(p => {   // each album in turn, its pages titled with its name
+    const name = colById(p).name;
+    return albumSections(p).map(sec => Object.assign({}, sec, { part: name, title: sec.title === name ? name : name + ' · ' + sec.title }));
+  });
   const extras = allItems(series).filter(i => i.custom);
   const col = colById(series), s = sortOf(series), years = s.by === 'year';
   if (col && col.kind === 'own') return extras.length ? [{ title: col.name, items: years ? [...extras].sort(byYear) : extras, years }] : [];
@@ -295,7 +313,7 @@ function albumSections(series) {
 }
 function renderSort() {
   const box = $('#sortBox'), col = curCol();
-  box.hidden = st.view !== 'album' || !col;
+  box.hidden = st.view !== 'album' || !col || col.kind === 'merged';   // a merged book keeps each album's own order
   if (box.hidden) return;
   const series = col.id, s = sortOf(series);
   box.replaceChildren(
@@ -348,7 +366,7 @@ function reignSpan(items) {
    (or the inside of the cover for p = 0). Turning forward lifts the left page over the spine to the right. */
 function pageFront(p, i) {
   const have = p.items.filter(it => st.owned.has(it.id)).length;
-  const meta = (st.tab === 'crowns' && !p.items[0].custom ? reignSpan(p.items) + ' · ' : '') + have + '/' + p.items.length + ' באוסף';
+  const meta = (p.items[0].series === 'crowns' && !p.items[0].custom ? reignSpan(p.items) + ' · ' : '') + have + '/' + p.items.length + ' באוסף';
   const grid = el('div', { class: 'pg-grid', style: 'grid-template-columns:repeat(' + p.sheet.cols + ',minmax(0,1fr));grid-template-rows:repeat(' + p.sheet.rows + ',minmax(0,1fr))' },
     p.items.map(it => holderEl(it, p.sheet)));
   for (let k = p.items.length; k < p.sheet.pockets; k++) grid.append(el('span', { class: 'pocket empty', 'aria-hidden': 'true' }));
@@ -613,7 +631,8 @@ function railMarks(pages) {
   const s = sortOf(st.tab), out = [];
   pages.forEach((p, i) => {
     const extra = p.items[0] && p.items[0].custom && p.sec.title === 'מטבעות שהוספת';
-    const label = extra ? 'תוספות'
+    const label = p.sec.part ? p.sec.part
+      : extra ? 'תוספות'
       : p.sec.years && !s.country ? String(yearSpan(p.items)).split('–')[0]
       : p.sec.title.split(' · ')[0].replace(/\s*\(.*\)\s*$/, '');
     if (label && (!out.length || out[out.length - 1].label !== label)) out.push({ label, p: i });
@@ -1362,8 +1381,8 @@ function openAdder() {
   const body = $('#adderBody'); body.textContent = '';
   body.append(el('h2', { text: 'הוספת מטבע לאוסף' }));
   if (!st.collections.length) { openLibrary(); return; }
-  const seriesSel = el('select', { id: 'a-series' }, st.collections.map(c => el('option', { value: c.id, text: c.name })));
-  seriesSel.value = curCol().id;
+  const seriesSel = el('select', { id: 'a-series' }, st.collections.filter(c => c.kind !== 'merged').map(c => el('option', { value: c.id, text: c.name })));
+  seriesSel.value = (partsOf(curCol().id) || [curCol().id])[0];
   const coinSel = el('select', { id: 'a-coin' });
   const fillCoins = () => {
     coinSel.textContent = '';
@@ -1409,7 +1428,7 @@ function openAdder() {
     el('div', { class: 'row2' }, [el('div', { class: 'field' }, [el('label', { for: 'a-year', text: 'שנה' }), year]), el('div', { class: 'field' }, [el('label', { for: 'a-metal', text: 'מתכת' }), metal])]),
     el('div', { class: 'field' }, [el('label', { for: 'a-diam', text: 'קוטר (מ"מ), קובע את גודל הכיס באלבום' }), diam]),
     addCustom, msg2);
-  if (curCol().kind === 'own') setTimeout(() => label.focus(), 50);
+  if (colById(seriesSel.value).kind === 'own') setTimeout(() => label.focus(), 50);
   $('#adder').showModal();
 }
 
@@ -1448,8 +1467,12 @@ function openMenu(msg, section) {
       ])
     );
   } else if (section === 'collections') {
-    const colRows = st.collections.map(c => {
-      const row = el('div', { class: 'col-row' }, [el('span', { text: c.name + (c.kind === 'own' ? ' (אוסף משלך)' : '') })]);
+    const colRows = tabCols().map(c => {
+      const row = el('div', { class: 'col-row' }, [el('span', { text: c.name + (c.kind === 'own' ? ' (אוסף משלך)' : c.kind === 'merged' ? ' (מאוחד: ' + partsOf(c.id).map(p => colById(p).name).join(' + ') + ')' : '') })]);
+      if (c.kind === 'merged') {
+        row.append(el('button', { class: 'btn', type: 'button', text: 'פצל', onclick: async () => { await splitAlbum(c); openMenu('האלבומים חזרו להיות נפרדים.', 'collections'); } }));
+        return row;
+      }
       const rm = el('button', { class: 'btn danger', type: 'button', text: 'הסר', onclick: () => {
         row.replaceChildren(el('span', { text: c.kind === 'own' ? 'להסיר את "' + c.name + '" ואת כל המטבעות שבו?' : 'להסיר את "' + c.name + '" מהאלבום?' }),
           el('button', { class: 'btn danger', type: 'button', text: 'כן, הסר', onclick: async () => { await removeCollection(c); openMenu('האוסף הוסר.', 'collections'); } }),
@@ -1458,7 +1481,26 @@ function openMenu(msg, section) {
       row.append(rm); return row;
     });
     body.append(head('האוספים שלי'), ...(colRows.length ? colRows : [el('p', { class: 'muted', text: 'עוד אין אוספים.' })]),
-      el('button', { class: 'btn primary menu-wide', type: 'button', text: '+ אוסף חדש', onclick: () => { close(); openLibrary(); } }));
+      el('button', { class: 'btn primary menu-wide', type: 'button', text: '+ אוסף חדש', onclick: () => { close(); openLibrary(); } }),
+      tabCols().length > 1 ? el('button', { class: 'btn menu-wide', type: 'button', text: '⧉ איחוד אלבומים', onclick: () => openMenu('', 'merge') }) : null);
+  } else if (section === 'merge') {
+    // Pick two or more albums; they become one book. A merged album picked again is unpacked into its parts.
+    const picks = tabCols().map(c => ({ c, box: el('input', { type: 'checkbox', id: 'mg-' + c.id }) }));
+    const name = el('input', { id: 'mg-name', placeholder: 'למשל: ישראל, כל התקופות' });
+    const msgEl = el('div', { class: 'msg' });
+    const chosen = () => picks.filter(x => x.box.checked).map(x => x.c);
+    for (const x of picks) x.box.addEventListener('change', () => { if (!name.dataset.typed) name.value = chosen().map(c => c.name).join(' + '); });
+    name.addEventListener('input', () => { name.dataset.typed = '1'; });
+    body.append(head('איחוד אלבומים'),
+      el('p', { class: 'muted', text: 'האלבומים שתבחר יהפכו לספר אחד, זה אחרי זה, כל אחד בסדר שלו. המטבעות, התמונות וההגדרות לא משתנים, ואפשר לפצל בחזרה מתי שתרצה.' }),
+      ...picks.map(x => el('label', { class: 'col-row merge-pick', for: 'mg-' + x.c.id }, [x.box, el('span', { text: x.c.name })])),
+      el('div', { class: 'field' }, [el('label', { for: 'mg-name', text: 'שם האלבום המאוחד' }), name]),
+      el('button', { class: 'btn primary menu-wide', type: 'button', text: 'אחד', onclick: async () => {
+        const cols = chosen();
+        if (cols.length < 2) { msgEl.className = 'msg err'; msgEl.textContent = 'בחר לפחות שני אלבומים.'; return; }
+        await mergeAlbums(cols, name.value.trim() || cols.map(c => c.name).join(' + '));
+        close(); toast('האלבומים אוחדו לספר אחד');
+      } }), msgEl);
   } else if (section === 'backup') {
     const have = st.owned.size;
     const msgEl = el('div', { class: 'msg' + (msg ? ' ok' : ''), text: msg || '' });
@@ -1520,6 +1562,24 @@ async function addOwnCollection(name, sub) {
   st.collections.push({ id, kind: 'own', name, sub, color: ALBUM_COLORS[used % ALBUM_COLORS.length] }); await saveCollections();
   st.tab = id; try { localStorage.setItem('album.tab', id); } catch (e) {}
   render(); toast('האוסף "' + name + '" נוצר');
+}
+async function mergeAlbums(cols, name) {
+  const parts = cols.flatMap(c => c.kind === 'merged' ? partsOf(c.id) : [c.id]);
+  const id = 'mg-' + newId().slice(0, 8);
+  const at = st.collections.indexOf(cols[0]);
+  const merged = { id, kind: 'merged', name, sub: parts.map(p => colById(p).name).join(' · '), parts, color: albumColor(cols[0]) };
+  st.collections.splice(at, 0, merged);
+  st.collections = st.collections.filter(c => !(c.kind === 'merged' && cols.includes(c)));
+  for (const p of parts) colById(p).mergedInto = id;
+  st.tab = id; try { localStorage.setItem('album.tab', id); } catch (e) {}
+  await saveCollections(); render();
+}
+async function splitAlbum(c) {
+  const parts = partsOf(c.id);
+  for (const p of parts) delete colById(p).mergedInto;
+  if (st.tab === c.id) st.tab = parts[0];
+  st.collections = st.collections.filter(x => x.id !== c.id);
+  await saveCollections(); render();
 }
 async function removeCollection(c) {
   if (c.kind === 'own') {
@@ -1625,7 +1685,13 @@ async function loadCollections() {
     cols = used ? Object.keys(CATALOGS).map(k => ({ id: k, kind: 'catalog', name: CATALOGS[k].name, sub: CATALOGS[k].sub })) : [];
     await Store.put('meta', 'collections', cols);
   }
-  st.collections = cols.filter(c => c.kind === 'own' || CATALOGS[c.id]);
+  st.collections = cols.filter(c => c.kind === 'own' || c.kind === 'merged' || CATALOGS[c.id]);
+  // a merged album needs two parts that still exist; otherwise it falls apart into them
+  for (const m of st.collections.filter(c => c.kind === 'merged')) {
+    m.parts = m.parts.filter(p => colById(p));
+    if (m.parts.length < 2) st.collections = st.collections.filter(c => c !== m);
+  }
+  for (const c of st.collections) if (c.mergedInto && !colById(c.mergedInto)) delete c.mergedInto;
   let colorsChanged = false;
   st.collections.forEach((c, i) => {
     if (!ALBUM_COLORS.includes(c.color)) {
