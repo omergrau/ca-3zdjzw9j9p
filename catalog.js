@@ -55,23 +55,19 @@ const MANDATE_DENOMS = [
   { d: 1, diam: 21, metal: 'bronze', metalName: 'ברונזה', holed: false, km: 'KM# 1', weight: 3.23, thickness: 1.36,
     composition: '95.5% נחושת, 3% בדיל, 1.5% אבץ', edge: 'חלק',
     years: { 1927: 10000000, 1935: 704000, 1937: 1200000, 1939: 3700000, 1940: 396000, 1941: 1920000, 1942: 4480000,
-             1943: 2800000, 1944: 1400000, 1946: 1632000, 1947: 2880000 },
-    melted1947: 'הוטבעו 2,880,000 אך כמעט כולם הותכו; ידועים כ-5 עותקים ועוד כמה במוזיאונים.', survivors1947: 5 },
+             1943: 2800000, 1944: 1400000, 1946: 1632000 } },
   { d: 2, diam: 28, metal: 'bronze', metalName: 'ברונזה', holed: false, km: 'KM# 2', weight: 7.8, thickness: 1.6,
     composition: '95.5% נחושת, 3% בדיל, 1.5% אבץ', edge: 'חלק',
-    years: { 1927: 5000000, 1941: 1600000, 1942: 2400000, 1945: 960000, 1946: 960000, 1947: 480000 },
-    melted1947: 'הוטבעו 480,000 אך כמעט כולם הותכו; ידוע עותק אחד.', survivors1947: 1 },
+    years: { 1927: 5000000, 1941: 1600000, 1942: 2400000, 1945: 960000, 1946: 960000 } },
   { d: 5, diam: 20, metal: 'cuni', metalName: 'קופרו-ניקל, מחורר', holed: true, km: 'KM# 3', weight: 2.91, thickness: 1.34,
     composition: '75% נחושת, 25% ניקל', edge: 'חלק',
-    years: { 1927: 10000000, 1934: 500000, 1935: 2700000, 1939: 2000000, 1941: 400000, 1942: 2700000, 1944: 1000000, 1946: 1000000, 1947: 1000000 },
-    war: { 1942: 'bronze', 1944: 'bronze' }, warKm: 'KM# 3a', warWeight: 2.9,
-    melted1947: 'הוטבעו מיליון אך כמעט כולם הותכו; ידועים 3 עותקים.', survivors1947: 3 },
+    years: { 1927: 10000000, 1934: 500000, 1935: 2700000, 1939: 2000000, 1941: 400000, 1942: 2700000, 1944: 1000000, 1946: 1000000 },
+    war: { 1942: 'bronze', 1944: 'bronze' }, warKm: 'KM# 3a', warWeight: 2.9 },
   { d: 10, diam: 27, metal: 'cuni', metalName: 'קופרו-ניקל, מחורר', holed: true, km: 'KM# 4', weight: 6.5, thickness: 1.5,
     composition: '75% נחושת, 25% ניקל', edge: 'חלק',
     years: { 1927: 5000000, 1933: 500000, 1934: 500000, 1935: 1150000, 1937: 750000, 1939: 1000000, 1940: 1500000, 1941: 400000,
-             1942: 600000, 1943: 1000000, 1946: 1000000, 1947: 1000000 },
-    war: { 1943: 'bronze' }, both: { 1942: 1000000 }, warKm: 'KM# 4a', warWeight: 6.47,
-    melted1947: 'הוטבעו מיליון אך כמעט כולם הותכו; ידוע עותק אחד.', survivors1947: 1 },
+             1942: 600000, 1943: 1000000, 1946: 1000000 },
+    war: { 1943: 'bronze' }, both: { 1942: 1000000 }, warKm: 'KM# 4a', warWeight: 6.47 },
   { d: 20, diam: 30.5, metal: 'cuni', metalName: 'קופרו-ניקל, מחורר', holed: true, km: 'KM# 5', weight: 11.33, thickness: 2.2,
     composition: '75% נחושת, 25% ניקל', edge: 'חלק',
     years: { 1927: 1500000, 1933: 250000, 1934: 125000, 1935: 575000, 1940: 200000, 1941: 100000, 1942: 1100000, 1944: 1000000 },
@@ -89,7 +85,7 @@ const MANDATE_PROOF_1927 = { 1: 68, 2: 68, 5: 66, 10: 66, 20: 66, 50: 66, 100: 6
 // Key / Semi-Key, one rule for every album: within each coin type (same value and design: the catalog's typeKey, per
 // country) the Key Date is the circulation date with the lowest mintage and the Semi-Key is the next lowest.
 // Proofs, varieties, errors and coins struck only for sets do not compete. `effective` lets a series count survivors
-// instead of the struck number (the melted 1947 Mandate issues). A series needs 2 dated mintages for a Key and 3 for a Semi-Key.
+// instead of the struck number. A series needs 2 dated mintages for a Key and 3 for a Semi-Key.
 const SET_ONLY = /לסטים|בסטים|sets? only|שלא למחזור|לא הונפק למחזור|מהדורת אספנים|כסף 40%/i;
 function markSeriesKeys(list, seriesOf = it => [it.group, it.country || '', it.typeKey || ''].join('|')) {
   const fmt = n => n.toLocaleString('en-US');
@@ -123,13 +119,9 @@ for (const den of MANDATE_DENOMS) for (const [ys, mintage] of Object.entries(den
     const isAlt = variants.length > 1 && metal === 'bronze';
     const war = metal !== den.metal;
     const count = isAlt ? den.both[y] : mintage;
-    const rare = y === 1947 ? (den.melted1947 || 'רוב ההנפקה הותכה, נדיר מאוד') : '';
-    // the 1947 issues were melted almost entirely: rank them by the few known survivors
-    const effective = y === 1947 && den.survivors1947 ? den.survivors1947 : null;
     const metalName = metal === den.metal ? den.metalName : (METAL_NAME[metal] + (den.holed ? ', מחורר (הנפקת מלחמה)' : ''));
     MANDATE.push({ id: 'm-' + den.d + '-' + y + (isAlt ? 'b' : ''), series: 'mandate', group: 'd' + den.d, d: den.d, y, metal, metalName, diam: den.diam,
-      holed: den.holed, tag: variants.length > 1 ? METAL_NAME[metal] : '', rare, variant: isAlt, effective,
-      effectiveText: effective ? 'הותך; ידועים ' + effective + ' עותקים בלבד' : '',
+      holed: den.holed, tag: variants.length > 1 ? METAL_NAME[metal] : '', variant: isAlt,
       mintage: count, mintageProof: y === 1927 ? MANDATE_PROOF_1927[den.d] : null,
       composition: war ? 'ברונזה' : den.composition, weight: war ? den.warWeight : den.weight, thickness: den.thickness,
       catalog: war ? den.warKm : den.km, edge: den.edge, mint: 'המטבעה המלכותית, לונדון',
@@ -148,9 +140,9 @@ const CATALOGS = {
   crowns: { name: 'קראונים בריטיים', sub: '1818–1965, חמישה שילינג', list: CROWNS, theme: 'crowns', groupLabel: 'מלך',
     groups: CROWN_REIGNS.map(r => ({ key: r.key, name: r.name + ' (' + r.years + ')' })),
     about: '43 קראונים מג\'ורג\' השלישי ועד אליזבת השנייה, כולל פרופים ושנים נדירות.' },
-  mandate: { name: 'מטבעות המנדט', sub: '1927–1947, כל הערכים והשנים', list: MANDATE, theme: 'mandate', groupLabel: 'ערך',
+  mandate: { name: 'מטבעות המנדט', sub: '1927–1946, כל הערכים והשנים', list: MANDATE, theme: 'mandate', groupLabel: 'ערך',
     groups: MANDATE_DENOMS.map(d => ({ key: 'd' + d.d, name: d.d + (d.d === 1 ? ' מיל' : ' מילים') + ' · ' + d.metalName.split(',')[0] })),
-    about: '64 מטבעות: 1, 2, 5, 10, 20, 50 ו-100 מיל בכל שנות ההטבעה.' },
+    about: '59 מטבעות: 1, 2, 5, 10, 20, 50 ו-100 מיל, 1927–1946 (בלי 1947, שכמעט כולה הותכה).' },
 };
 const GRADES = ['', 'G', 'VG', 'F', 'VF', 'XF', 'AU', 'UNC', 'פרוף'];
 
