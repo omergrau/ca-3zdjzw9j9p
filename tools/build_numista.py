@@ -65,14 +65,15 @@ for _key, _name, _sub, _about in (
 BR_UNITS = [(r'Mohur', 'מוהר'), (r'Rupees?', 'רופי'), (r'Annas?', 'אנה'), (r'Pice|Paisa', 'פייס'), (r'Pies?\b', 'פאי'), (r'Farthings?', 'פרת׳ינג'),
             (r'Half ?pennys?|Halfpence', 'חצי פני'), (r'Threepence', 'שלושה פני'), (r'Sixpence', 'שישה פני'), (r'Pennys?|Pence', 'פני'),
             (r'Shillings?', 'שילינג'), (r'Florins?', 'פלורין'), (r'Half ?Crowns?', 'חצי קראון'), (r'Crowns?', 'קראון'), (r'Sovereigns?', 'סוברין'),
-            (r'Pounds?', 'לירה'), (r'Cents?', 'סנט'), (r'Dollars?', 'דולר'), (r'Mils?\b|Mills?\b', 'מיל'), (r'Piastres?', 'גרוש'),
-            (r'Stuivers?', 'סטויבר'), (r'Rix ?dollars?|Rixdollar', 'ריקסדולר'), (r'Doits?|Duits?', 'דויט'), (r'Fanams?', 'פנם'), (r'Pagodas?', 'פגודה'),
+            (r'Rix ?dollars?|Rixdollar', 'ריקסדולר'), (r'Pounds?', 'לירה'), (r'Cents?', 'סנט'), (r'Dollars?', 'דולר'), (r'Mils?\b|Mills?\b', 'מיל'), (r'Piastres?', 'גרוש'),
+            (r'Stuivers?|Stivers?', 'סטויבר'), (r'Bazarucos?', 'בזרוקו'), (r'Tangas?', 'טנגה'), (r'Doits?|Duits?', 'דויט'), (r'Fanams?', 'פנם'), (r'Pagodas?', 'פגודה'),
             (r'Kas\b|Cash\b', 'קאש'), (r'Tenths?', 'עשירית'), (r'Grains?', 'גריין')]
 BR_RULERS = [('East India Company', 'eic', 'חברת הודו המזרחית'), ('George III', 'george3', 'ג׳ורג׳ השלישי'), ('George IV', 'george4', 'ג׳ורג׳ הרביעי'),
              ('William IV', 'william4', 'ויליאם הרביעי'), ('Victoria', 'victoria', 'המלכה ויקטוריה'), ('Edward VII ', 'edward7', 'אדוארד השביעי'),
              ('Edward VII (', 'edward7', 'אדוארד השביעי'), ('George V ', 'george5', 'ג׳ורג׳ החמישי'), ('George V (', 'george5', 'ג׳ורג׳ החמישי'),
              ('Edward VIII', 'edward8', 'אדוארד השמיני'), ('George VI', 'george6', 'ג׳ורג׳ השישי'), ('Elizabeth II', 'elizabeth2', 'המלכה אליזבת השנייה'),
-             ('Dutch East India', 'voc', 'חברת הודו המזרחית ההולנדית'), ('Portug', 'portugal', 'השלטון הפורטוגלי')]
+             ('Dutch East India', 'voc', 'חברת הודו המזרחית ההולנדית'), ('Dutch occupation', 'voc', 'השלטון ההולנדי'),
+             ('Portuguese occupation', 'portugal', 'השלטון הפורטוגלי'), ('Independent States', 'indep', 'המדינות העצמאיות (1964)')]
 BR_MINTS = {'Calcutta': 'כלכותה', 'Bombay': 'בומביי', 'Madras': 'מדרס', 'Lahore': 'להור', 'Hyderabad': 'היידראבאד', 'Pretoria': 'פרטוריה',
             'London': 'לונדון', 'Royal Mint': 'המטבעה המלכותית', 'Birmingham': 'בירמינגהם', 'Heaton': 'Heaton, בירמינגהם', 'Ottawa': 'אוטווה',
             'Melbourne': 'מלבורן', 'Sydney': 'סידני', 'Perth': 'פרת׳', 'Kings Norton': 'קינגס נורטון', 'Colombo': 'קולומבו', 'Paris': 'פריז'}
@@ -281,6 +282,9 @@ def build(key):
                 catalog=', '.join(refs), edge=(x.get('edge') or '').split(' ©')[0][:80], mint=mint_he, proof=nonc or row_proof, commemorative=comm,
                 tag='לא למחזור' if nonc else ('פרוף' if row_proof else ('הנצחה' if comm else '')), note=' '.join(note)).items()
                 if v not in ('', None, False) or k in ('id', 'group', 'y', 'label')})
+    used_g, used_r = {i['group'] for i in items}, {i['country'] for i in items}   # dates cut by `until` may leave a group or ruler empty
+    groups = {k: g for k, g in groups.items() if g['key'] in used_g}
+    rulers = {k: r for k, r in rulers.items() if k in used_r}
     glist = sorted(groups.values(), key=lambda g: (statistics.median(g['rank']), g['name']))
     seen, gout = set(), []
     for g in glist:

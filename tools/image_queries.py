@@ -123,3 +123,11 @@ def numista_album(key, src, country):
 
 JOBS['egypt'] = numista_album('egypt', 'egypt.json', 'Egypt')
 JOBS['ottoman'] = numista_album('ottoman', 'ottoman.json', 'Ottoman')
+JOBS['ussr'] = numista_album('ussr', 'ussr.json', 'Soviet Union')
+for _k, _f, _c in (('br_india', 'br-india.json', 'British India'), ('br_ceylon', 'br-ceylon.json', 'Ceylon'),
+                   ('br_rhodesia', 'br-rhodesia.json', 'Southern Rhodesia'), ('br_rhod_nyasa', 'br-rhod-nyasa.json', 'Rhodesia and Nyasaland'),
+                   ('br_south_africa', 'br-south-africa.json', 'South Africa'), ('br_west_africa', 'br-west-africa.json', 'British West Africa'),
+                   ('br_east_africa', 'br-east-africa.json', 'East Africa'), ('br_straits', 'br-straits.json', 'Straits Settlements'),
+                   ('br_malaya', 'br-malaya.json', 'Malaya'), ('br_malaya_borneo', 'br-malaya-borneo.json', 'Malaya and British Borneo'),
+                   ('br_cyprus', 'br-cyprus.json', 'Cyprus')):
+    JOBS[_k] = numista_album(_k, _f, _c)

@@ -23,7 +23,9 @@ def api(params):
             continue
     else:
         raise RuntimeError('Commons API failed: ' + q[:120] + ' -> ' + out[:200])
-    with open(path, 'w', encoding='utf8') as f: json.dump(data, f)
+    tmp = path + '.%d.tmp' % os.getpid()   # write then rename: a crash or a second run never leaves half a file
+    with open(tmp, 'w', encoding='utf8') as f: json.dump(data, f)
+    os.replace(tmp, path)
     return data
 
 def members(cat, kind):
