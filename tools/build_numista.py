@@ -105,6 +105,8 @@ for _key, _src, _id, _name, _sub, _about, _cur, _to in (
                          numista=_src, until=_to, rulerLabel='👑 לפי מלך / תקופה', rulersLabel='מלכים ותקופות',
                          currency=_cur, units=BR_UNITS, rulers=BR_RULERS, mints=BR_MINTS)
 
+PLURAL = {'קופייקה': 'קופייקות', 'פולושקה': 'פולושקות', 'דנגה': 'דנגות', 'אנה': 'אנות', 'פרת׳ינג': 'פרת׳ינגים'}
+
 def fnum(s):
     s = s.strip().replace('⁄', '/')
     m = re.fullmatch(r'(\d+)?([½¼¾⅛⅜⅞⅒])', s)
@@ -134,7 +136,7 @@ def metal(comp):
     return 'copper', 'נחושת'
 
 def ruler(cfg, f, title):
-    raw = f.get('King') or f.get('Queen') or f.get('Sultan') or f.get('Ruler') or f.get('Emperor') or f.get('Period') or ''
+    raw = f.get('King') or f.get('Queen') or f.get('Sultan') or f.get('Ruler') or f.get('Emperor') or f.get('Period') or f.get('Issuer') or ''
     first = re.match(r'^(.*?\(\d{3,4}[^)]*\))', raw)
     raw1 = first.group(1) if first else raw
     years = [int(y) for y in re.findall(r'\((\d{3,4})', raw)]
@@ -163,7 +165,7 @@ def denomination(cfg, f, title):
     qty, unit = (qm.group(1), qm.group(2)) if qm else ('1', name)
     he = next((h for r, h in cfg['units'] if re.search(r, unit, re.I)), unit)
     q = re.sub(r'^1⁄2$', '½', qty).replace('⁄', '/')
-    label = he if q == '1' else q + ' ' + he
+    label = he if q == '1' else q + ' ' + (PLURAL.get(he, he) if (fnum(q) or 0) > 1 else he)
     rank = (ratio if ratio is not None else (fnum(qty) or 1)) * factor
     key = re.sub(r'[^0-9a-z]+', '-', (q + '-' + unit).lower().replace('½', 'h').replace('/', '-')).strip('-')
     return label, rank, key
