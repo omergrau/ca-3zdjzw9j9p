@@ -3,7 +3,9 @@
 // collections: the albums this person keeps, in order: { id, kind: 'catalog' | 'own', name, sub }.
 // A catalog collection's id is the catalog key; an own collection's coins are all "extras".
 const st = { tab: '', view: 'album', filter: 'all', collections: [], owned: new Map(), extras: new Map(), photos: new Map(), ready: false };
-try { st.tab = localStorage.getItem('album.tab') || ''; const v = localStorage.getItem('album.view'); if (v === 'list' || v === 'album') st.view = v; } catch (e) {}
+// page: 'home' (statistics), 'shelf' (my albums as covers) or 'album' (one album open)
+st.page = 'home';
+try { st.page = localStorage.getItem('album.page') || 'home'; st.tab = localStorage.getItem('album.tab') || ''; const v = localStorage.getItem('album.view'); if (v === 'list' || v === 'album') st.view = v; } catch (e) {}
 
 const $ = s => document.querySelector(s);
 const el = (tag, attrs = {}, kids = []) => {
@@ -114,13 +116,159 @@ function renderStats() {
   host.append(stat('gold', have, 'מטבעות באלבום'), stat('', (total ? Math.round(have / total * 100) : 0) + '%', 'מכל הסדרות'), stat('copper', total - have, 'עוד חסרים'));
 }
 
+function goPage(page, id) {
+  st.page = page; if (id) st.tab = id;
+  try { localStorage.setItem('album.page', page); if (id) localStorage.setItem('album.tab', id); } catch (e) {}
+  if (st.reader) exitReader(false);
+  render(); window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ---------- the phone's back button ----------
+   Every open layer has its own history entry, so back closes the top layer instead of leaving the app:
+   any <dialog> (showModal is wrapped below, so new dialogs need nothing), the full-screen reader, and the
+   pages above home (home ‹ my albums ‹ an album, kept in step by syncPages() on every render). Another new
+   full-screen view registers with `const layer = Back.open(closeFn)` and calls `Back.drop(layer)` when it
+   closes by itself. At home, back first says "press again to leave". */
+const Back = (() => {
+  const stack = [];                 // open layers, top last; each owns one history entry (they are interchangeable)
+  let skip = 0;                     // popstates caused by our own history.back()
+  let owed = 0;                     // entries not pushed yet: browsers skip entries pushed without a tap, so they wait for one
+  let guard = 0;                    // the entry under everything that turns a back at home into a warning
+  const flush = () => {
+    if (skip || !(navigator.userActivation ? navigator.userActivation.isActive : true)) return;
+    for (; owed > 0; owed--) try { history.pushState({ album: 1 }, ''); } catch (e) { owed = 0; }
+  };
+  const want = () => { owed++; flush(); };
+  // any tap (capture phase, before the tap's own handler opens something) pushes what is still owed
+  document.addEventListener('click', () => { if (!guard) { guard = 1; owed++; } flush(); }, true);
+  function open(close) { const layer = { close }; stack.push(layer); want(); return layer; }
+  function drop(layer) {
+    const i = stack.indexOf(layer); if (i < 0) return;   // already closed by back
+    stack.splice(i, 1);
+    if (owed) { owed--; return; }                        // its entry was never pushed
+    skip++; history.back();
+  }
+  window.addEventListener('popstate', () => {
+    if (skip) { skip--; flush(); return; }
+    const layer = stack.pop();
+    if (layer) { layer.close(); return; }
+    if (guard) { guard = 0; toast('לחץ שוב על "אחורה" כדי לצאת מהאפליקציה'); }
+  });
+  return { open, drop };
+})();
+const nativeShowModal = HTMLDialogElement.prototype.showModal;
+HTMLDialogElement.prototype.showModal = function () {
+  nativeShowModal.apply(this, arguments);
+  const dlg = this, layer = Back.open(() => { if (dlg.open) dlg.close(); });
+  dlg.addEventListener('close', function done() {
+    if (dlg.open) return;                                // a quick close-and-reopen: the new opening keeps its layer
+    dlg.removeEventListener('close', done); Back.drop(layer);
+  });
+};
+// pages above home: an album opened from the shelf goes back to the shelf, the shelf (or an album opened from home) to home
+const pageChain = [];
+function syncPages() {
+  const page = st.page === 'home' || st.page === 'shelf' ? st.page : 'album';
+  const want = page === 'home' ? [] : page === 'shelf' ? ['shelf'] : pageChain[0] && pageChain[0].page === 'shelf' ? ['shelf', 'album'] : ['album'];
+  while (pageChain.some((x, i) => x.page !== want[i])) Back.drop(pageChain.pop().layer);
+  while (pageChain.length < want.length) {
+    const entry = { page: want[pageChain.length] };
+    entry.layer = Back.open(() => {
+      pageChain.splice(pageChain.indexOf(entry));
+      st.page = pageChain.length ? pageChain[pageChain.length - 1].page : 'home';
+      try { localStorage.setItem('album.page', st.page); } catch (e) {}
+      if (st.reader) exitReader(false);
+      render(); window.scrollTo({ top: 0 });
+    });
+    pageChain.push(entry);
+  }
+}
+// The top: two links (home with the statistics, my albums as covers) and, inside an album, its name
+function renderNav() {
+  const host = $('#tabs'); host.textContent = '';
+  const page = st.page === 'shelf' || st.page === 'home' ? st.page : 'album';
+  const link = (p, text) => el('button', { class: 'nav-link', type: 'button', 'aria-current': page === p ? 'page' : null, text, onclick: () => goPage(p) });
+  host.append(link('home', '🏠 בית'), link('shelf', '📚 האלבומים שלי'));
+  if (page === 'album' && curCol()) host.append(el('span', { class: 'nav-here' }, [el('span', { 'aria-hidden': 'true', text: '‹' }), el('b', { text: curCol().name })]));
+}
+function coverFor(c) {
+  const x = seriesStats(c.id);
+  return el('div', { class: 'book album-' + albumColor(c) + ' shelf-book' }, [
+    el('button', { class: 'cover', type: 'button', 'aria-label': 'פתח את האלבום ' + c.name, onclick: () => goPage('album', c.id) }, [
+      el('span', { class: 'cover-frame' }, [
+        el('span', { class: 'cover-kicker', text: c.trade ? 'למכירה · להחלפה' : 'אלבום מטבעות' }),
+        el('span', { class: 'cover-name', text: c.name }),
+        el('span', { class: 'cover-sub', text: c.sub || '' }),
+        el('span', { class: 'cover-count', text: c.trade ? x.total + ' מטבעות' : x.have + ' מתוך ' + x.total }),
+        c.trade ? null : el('span', { class: 'shelf-bar', 'aria-hidden': 'true' }, [el('i', { style: 'width:' + x.pct + '%' })]),
+      ]),
+    ]),
+  ]);
+}
+function renderShelf(view) {
+  const cols = tabCols();
+  view.append(el('div', { class: 'shelf-head' }, [el('h2', { text: 'האלבומים שלי' }), el('span', { class: 'muted', text: cols.length + ' אלבומים · לחץ על כריכה כדי לפתוח' })]),
+    el('div', { class: 'shelf' }, [...cols.map(c => coverFor(c)),
+      el('button', { class: 'shelf-add', type: 'button', onclick: () => openLibrary() }, [el('span', { text: '+' }), el('b', { text: 'אלבום חדש' }), el('small', { text: 'מהספרייה או משלך' })])]));
+}
+// Home: the collection in numbers
+function renderHome(view) {
+  const cols = st.collections.filter(c => c.kind !== 'merged' && !c.trade);
+  let have = 0, total = 0, keys = 0, semis = 0, paid = 0, melt = 0, photos = 0;
+  const per = [], recent = [];
+  for (const c of cols) {
+    const items = allItems(c.id), mine = items.filter(i => st.owned.has(i.id));
+    have += mine.length; total += items.length;
+    per.push({ c, have: mine.length, total: items.length });
+    for (const it of mine) {
+      const rec = st.owned.get(it.id);
+      if (it.rarityTier === 'key') keys++; else if (it.rarityTier === 'semi-key') semis++;
+      if (typeof rec.paid === 'number') paid += rec.paid;
+      if (st.photos.get(it.id) && st.photos.get(it.id + REV)) photos++;
+      const p = purityOf((it.composition || '') + ' ' + (it.metalName || ''), it.metal);
+      if (p.kind && !p.guessed && it.weight && st.spot) melt += it.weight * p.fine * (p.kind === 'gold' ? st.spot.gold : st.spot.silver);
+      recent.push({ it, c, at: rec.updatedAt || '' });
+    }
+  }
+  const trade = tradeCol() ? tradeItems() : [];
+  const tile = (n, t, cls) => el('div', { class: 'stat-tile ' + (cls || '') }, [el('b', { text: String(n) }), el('span', { text: t })]);
+  const pct = total ? Math.round(have / total * 100) : 0;
+  const money = n => n ? '₪' + Math.round(n).toLocaleString('he-IL') : '—';
+  view.append(
+    el('div', { class: 'home-tiles' }, [
+      tile(have.toLocaleString('he-IL'), 'מטבעות באוסף', 'gold'),
+      tile(pct + '%', 'הושלם מכל האלבומים'),
+      tile((total - have).toLocaleString('he-IL'), 'עוד חסרים'),
+      tile(cols.length, 'אלבומים'),
+      tile(keys, 'Key Dates באוסף', 'key'),
+      tile(semis, 'Semi-Key באוסף'),
+      tile(money(paid), 'סך ששילמתי'),
+      tile(money(melt), st.spot ? 'ערך הכסף והזהב' : 'ערך כסף/זהב (עדכן מחיר באלבום המכירה)'),
+      tile(have ? Math.round(photos / have * 100) + '%' : '—', 'מצולמים משני הצדדים'),
+      trade.length ? tile(trade.length, 'למכירה / להחלפה') : null,
+    ]),
+    el('h3', { class: 'home-h', text: 'התקדמות לפי אלבום' }),
+    el('div', { class: 'home-progress' }, per.sort((a, b) => (b.have / (b.total || 1)) - (a.have / (a.total || 1)) || b.have - a.have).map(r =>
+      el('button', { class: 'prog-row', type: 'button', onclick: () => goPage('album', r.c.id) }, [
+        el('span', { class: 'prog-name', text: r.c.name }),
+        el('span', { class: 'prog-bar', 'aria-hidden': 'true' }, [el('i', { style: 'width:' + (r.total ? Math.round(r.have / r.total * 100) : 0) + '%' })]),
+        el('span', { class: 'prog-num', text: r.have + ' מתוך ' + r.total }),
+      ]))),
+    recent.length ? el('h3', { class: 'home-h', text: 'נוספו לאחרונה' }) : null,
+    recent.length ? el('div', { class: 'home-recent' }, recent.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 8).map(({ it, c }) =>
+      el('button', { class: 'recent-coin', type: 'button', onclick: () => { goPage('album', c.id); openSheet(it.id); } }, [
+        el('span', { class: 'slot own m-' + it.metal }, [coinEl(it)]), el('small', { text: it.title }), el('small', { class: 'muted', text: c.name })]))) : null,
+    el('div', { class: 'home-go' }, [el('button', { class: 'btn gold', type: 'button', text: '📚 לאלבומים שלי', onclick: () => goPage('shelf') })]),
+  );
+}
+
 function renderTabs() {
   const host = $('#tabs'); host.textContent = '';
   for (const s of tabCols()) {
     const key = s.id, x = seriesStats(key);
     const ring = el('span', { class: 'ring', style: '--p:' + x.pct }, [el('span', { text: x.pct + '%' })]);
     host.append(el('button', { class: 'tab ' + themeOf(s) + ' album-' + albumColor(s), role: 'tab', type: 'button', 'aria-selected': String(st.tab === key),
-      onclick: () => { st.tab = key; try { localStorage.setItem('album.tab', key); } catch (e) {} render(); } }, [
+      onclick: () => { st.tab = key; st.page = 'album'; try { localStorage.setItem('album.tab', key); localStorage.setItem('album.page', 'album'); } catch (e) {} render(); } }, [
       ring,
       el('span', { class: 't-name', text: s.name }),
       el('span', { class: 't-sub', text: s.sub || '' }),
@@ -223,9 +371,12 @@ function render() {
   const empty = st.ready && !st.collections.length;
   document.body.dataset.series = themeOf(curCol());
   document.body.classList.toggle('no-collections', empty);
-  renderStats(); renderTabs();
+  syncPages(); renderStats(); renderNav();
   if (empty) { const view = $('#view'); view.textContent = ''; view.append(welcome()); return; }
   if (!st.collections.length) { $('#view').textContent = ''; return; }
+  const page = st.page === 'shelf' || st.page === 'home' ? st.page : 'album';
+  document.body.dataset.page = page;
+  if (page !== 'album') { const view = $('#view'); view.textContent = ''; page === 'home' ? renderHome(view) : renderShelf(view); return; }
   document.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.f === st.filter)));
   document.querySelectorAll('.vt').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.v === st.view)));
   $('#customizeBtn').hidden = !(curCol() && curCol().kind === 'catalog');
@@ -466,7 +617,7 @@ function renderAlbum(view, inReader) {
       el('span', { class: 'cover-kicker', text: 'אלבום מטבעות' }),
       el('span', { class: 'cover-name', text: curCol().name }),
       el('span', { class: 'cover-sub', text: curCol().sub || '' }),
-      el('span', { class: 'cover-count', text: x.have + ' / ' + x.total }),
+      el('span', { class: 'cover-count', text: x.have + ' מתוך ' + x.total }),
       el('span', { class: 'cover-hint', text: 'לחץ לפתיחה' }),
     ]),
   ]);
@@ -655,7 +806,7 @@ function railMarks(pages) {
 // The open book is wider than tall (two sheets side by side), so a phone held upright is the wrong shape.
 // Reading mode goes full screen and asks for landscape; where the phone can't lock orientation,
 // the book itself is turned 90 degrees and the reader turns the phone.
-const reader = { rotated: false, portrait: false, pushed: false, zoom: 1, panX: 0, panY: 0 };
+const reader = { rotated: false, portrait: false, layer: null, zoom: 1, panX: 0, panY: 0 };
 
 function resetReaderZoom() {
   reader.zoom = 1; reader.panX = 0; reader.panY = 0;
@@ -855,7 +1006,7 @@ function enterReader() {
     de.requestFullscreen({ navigationUI: 'hide' })
       .catch(() => {}).finally(layoutReader);
   }
-  try { history.pushState({ reader: 1 }, ''); reader.pushed = true; } catch (e) {}
+  reader.layer = Back.open(() => exitReader(true));
   render();
 }
 function exitReader(fromHistory) {
@@ -872,7 +1023,8 @@ function exitReader(fromHistory) {
     if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
     window.scrollTo({ top: 0 });
   });
-  if (reader.pushed && !fromHistory) { reader.pushed = false; history.back(); } else reader.pushed = false;
+  if (!fromHistory) Back.drop(reader.layer);
+  reader.layer = null;
   render();
 }
 function layoutReader() {
@@ -899,11 +1051,6 @@ function layoutReader() {
 }
 window.addEventListener('resize', layoutReader);
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && st.reader) exitReader(false); });
-window.addEventListener('popstate', () => {
-  if (sheetPopping) { sheetPopping = false; return; }   // our own step back after closing the card, not "leave the album"
-  if (sheetHistoryPushed) { closeSheet(true); return; }
-  if (st.reader) { reader.pushed = false; exitReader(true); }
-});
 
 let toastTimer = 0;
 function toast(text) {
@@ -912,14 +1059,9 @@ function toast(text) {
 }
 
 /* ---------- detail sheet ---------- */
-let sheetHistoryPushed = false, sheetPopping = false;
-function closeSheet(fromHistory = false) {
+function closeSheet() {
   const dlg = $('#sheet');
-  if (dlg.open) dlg.close();
-  if (sheetHistoryPushed && !fromHistory) {
-    sheetHistoryPushed = false; sheetPopping = true;
-    history.back();
-  } else if (fromHistory) sheetHistoryPushed = false;
+  if (dlg.open) dlg.close();   // its back-button entry goes with it (Back)
 }
 function openSheet(id, msg) {
   const item = findItem(id); if (!item) return;
@@ -1018,12 +1160,7 @@ function openSheet(id, msg) {
   });
   body.append(f);
   const dlg = $('#sheet');
-  if (!dlg.open) {
-    dlg.showModal();
-    if (st.reader && !sheetHistoryPushed) {
-      try { history.pushState({ reader: 1, sheet: id }, ''); sheetHistoryPushed = true; } catch (e) {}
-    }
-  }
+  if (!dlg.open) dlg.showModal();
 }
 
 // A coin enters any album only with a photo of both sides (the owner's rule): the front and the back.
@@ -1446,7 +1583,7 @@ function openAdder() {
       const x = { series: seriesSel.value, label: label.value.trim(), year: year.value ? Number(year.value) : null, metal: metal.value, diam: diam.value ? Number(diam.value) : null };
       await Store.put('extras', id, x);
       const item = extraToItem(id, x); st.extras.set(id, item);   // it enters the collection once both sides are photographed
-      $('#adder').close(); st.tab = x.series; render(); openSheet(item.id, 'עכשיו צלם את שני הצדדים (קדמי ואחורי), והמטבע ייכנס לאוסף.');
+      $('#adder').close(); st.tab = x.series; st.page = 'album'; render(); openSheet(item.id, 'עכשיו צלם את שני הצדדים (קדמי ואחורי), והמטבע ייכנס לאוסף.');
     } catch (e) { addCustom.disabled = false; msg2.className = 'msg err'; msg2.textContent = 'ההוספה נכשלה. נסה שוב.'; }
   });
   body.append(el('div', { class: 'field' }, [el('label', { for: 'a-label', text: 'שם' }), label]),
@@ -1578,14 +1715,14 @@ async function addCatalog(key) {
   await ensureCatalog(key);
   if (!colById(key)) { st.collections.push({ id: key, kind: 'catalog', name: CATALOGS[key].name, sub: CATALOGS[key].sub, color: CATALOG_COLOR[key] || 'burgundy',
       settings: { scope: 'all-years', variants: true, mints: true } }); await saveCollections(); }
-  st.tab = key; try { localStorage.setItem('album.tab', key); } catch (e) {}
+  st.tab = key; st.page = 'album'; try { localStorage.setItem('album.tab', key); localStorage.setItem('album.page', 'album'); } catch (e) {}
   render(); toast('"' + CATALOGS[key].name + '" נוסף לאלבום');
 }
 async function addOwnCollection(name, sub) {
   const id = 'u-' + newId().slice(0, 8);
   const used = st.collections.filter(c => c.kind === 'own').length;
   st.collections.push({ id, kind: 'own', name, sub, color: ALBUM_COLORS[used % ALBUM_COLORS.length] }); await saveCollections();
-  st.tab = id; try { localStorage.setItem('album.tab', id); } catch (e) {}
+  st.tab = id; st.page = 'album'; try { localStorage.setItem('album.tab', id); localStorage.setItem('album.page', 'album'); } catch (e) {}
   render(); toast('האוסף "' + name + '" נוצר');
 }
 async function mergeAlbums(cols, name) {
@@ -1596,7 +1733,7 @@ async function mergeAlbums(cols, name) {
   st.collections.splice(at, 0, merged);
   st.collections = st.collections.filter(c => !(c.kind === 'merged' && cols.includes(c)));
   for (const p of parts) colById(p).mergedInto = id;
-  st.tab = id; try { localStorage.setItem('album.tab', id); } catch (e) {}
+  st.tab = id; st.page = 'album'; try { localStorage.setItem('album.tab', id); localStorage.setItem('album.page', 'album'); } catch (e) {}
   await saveCollections(); render();
 }
 async function splitAlbum(c) {
@@ -1695,7 +1832,7 @@ function openLibrary() {
         el('span', { text: 'בחר מנדט, פרוטה, קראונים וקטלוגים מוכנים נוספים.' }),
       ]),
       el('button', { class: 'lib-choice', type: 'button', onclick: async () => { close(); await ensureTradeAlbum();
-          st.tab = TRADE_ID; try { localStorage.setItem('album.tab', TRADE_ID); } catch (e) {} render(); } }, [
+          st.tab = TRADE_ID; st.page = 'album'; try { localStorage.setItem('album.tab', TRADE_ID); localStorage.setItem('album.page', 'album'); } catch (e) {} render(); } }, [
         el('span', { class: 'lib-choice-icon', 'aria-hidden': 'true', text: '₪' }),
         el('b', { text: tradeCol() ? 'אלבום המכירה / ההחלפה' : 'אלבום למכירה / להחלפה' }),
         el('span', { text: 'המטבעות שאתה מוכר או מחליף: מחיר, ערך מתכת, חיפוש, וייצוא לשיתוף עם חברים.' }),
@@ -1983,7 +2120,7 @@ function openTradeForm(item, x, src) {
     const r = Object.assign({}, st.owned.get(it.id) || { series: TRADE_ID, acquired: '' }, { grade: grades.value, paid: paid.value === '' ? null : Number(paid.value), note: note.value.trim(), updatedAt: nowIso() });
     await Store.put('owned', it.id, r); st.owned.set(it.id, r);
     $('#adder').close();
-    st.tab = TRADE_ID; try { localStorage.setItem('album.tab', TRADE_ID); } catch (e) {}
+    st.tab = TRADE_ID; st.page = 'album'; try { localStorage.setItem('album.tab', TRADE_ID); localStorage.setItem('album.page', 'album'); } catch (e) {}
     render(); toast(item ? 'נשמר' : 'נוסף לאלבום המכירה / ההחלפה');
   });
   body.append(el('h2', { text: item ? 'עריכת מטבע למכירה' : 'מטבע למכירה / להחלפה' }),
