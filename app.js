@@ -2162,10 +2162,18 @@ function openTradeExport() {
     go.disabled = true; msg.className = 'msg'; msg.textContent = 'מכין את הקובץ...';
     try {
       const html = await buildTradeExport({ title: title.value.trim() || 'מטבעות למכירה', contact: contact.value.trim(), prices: withPrices.checked, paid: withPaid.checked });
-      const blob = new Blob([html], { type: 'text/html' });
-      const a = el('a', { href: URL.createObjectURL(blob), download: 'coins-for-trade-' + new Date().toISOString().slice(0, 10) + '.html' });
-      document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-      msg.className = 'msg ok'; msg.textContent = 'הקובץ נשמר. אפשר לשלוח אותו בוואטסאפ או במייל; הוא נפתח בכל דפדפן.';
+      const name = 'coins-for-trade-' + new Date().toISOString().slice(0, 10) + '.html';
+      const file = new File([html], name, { type: 'text/html' });
+      // on a phone: straight to WhatsApp / mail / any app through the share sheet (it needs its own tap, so a second button)
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        msg.className = 'msg ok'; msg.textContent = 'הקובץ מוכן. ';
+        msg.append(el('button', { class: 'btn primary', type: 'button', text: '📤 שלח בוואטסאפ / במייל', onclick: () =>
+          navigator.share({ files: [file], title: file.name }).catch(() => {}) }));
+      } else {
+        const a = el('a', { href: URL.createObjectURL(file), download: name });
+        document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+        msg.className = 'msg ok'; msg.textContent = 'הקובץ נשמר בהורדות. אפשר לשלוח אותו בוואטסאפ או במייל; הוא נפתח בכל דפדפן.';
+      }
     } catch (e) { msg.className = 'msg err'; msg.textContent = 'יצירת הקובץ נכשלה.'; }
     go.disabled = false;
   });
