@@ -1,6 +1,6 @@
 // Offline support: app files are cached; fonts are cached the first time they load.
-const CACHE = 'coin-album-v57';
-const APP_FILES = ['./', 'index.html', 'styles.css', 'catalog.js', 'store.js', 'photo.js', 'bot.js', 'app.js', 'manifest.webmanifest',
+const CACHE = 'coin-album-v58';
+const APP_FILES = ['./', 'index.html', 'styles.css', 'catalog.js', 'store.js', 'photo.js', 'bot.js', 'app.js', 'manifest.webmanifest', 'trade-export.html',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png'];
 
 self.addEventListener('install', e => {

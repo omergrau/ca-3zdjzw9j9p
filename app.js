@@ -41,7 +41,10 @@ function extraToItem(id, x) {
   return { id: 'x-' + id, extraId: id, series: x.series, y: x.year || '', tag: own ? '' : 'תוספת', rare: '', metal: x.metal || 'silver',
     diam: Number(x.diam) || (x.series === 'crowns' ? CROWN_DIAM : 25),
     metalName: METAL_NAME[x.metal] || '', title: x.label || 'מטבע נוסף', sub: col ? col.name + (own ? '' : ', תוספת') : '',
-    design: x.note || '', holed: false, custom: true, own };
+    design: x.note || '', holed: false, custom: true, own,
+    // trade-album fields (see "the trade album" below); `raw` is the stored record, kept whole for backups and edits
+    country: x.country || '', ask: x.ask ?? null, status: x.status || '', weight: x.weight ?? null, fine: x.fine ?? null, mkind: x.mkind || null,
+    composition: x.comp || '', catalog: x.km || '', ref: x.ref || '', raw: x };
 }
 // A collector can trim a catalog: hide whole groups (a reign, a denomination, a country) or single coins.
 // Hidden coins keep their data; they just leave the album, the counts and the lists.
@@ -233,6 +236,7 @@ function render() {
     renderAlbum(view, false);
     if (st.reader) { const stg = $('#readerStage'); stg.textContent = ''; renderAlbum(stg, true); layoutReader(); }
   }
+  else if (curCol().trade) renderTradeList(view);
   else for (const key of partsOf(st.tab) || [st.tab]) renderListOf(view, key);
   st.justAdded = null;
 }
@@ -258,6 +262,7 @@ function windowFor(diam, sheet) {
    or by year. Catalogs that span countries can also go country first, on top of either order. */
 function sortModes(series) {
   const col = colById(series), cat = CATALOGS[series];
+  if (col && col.trade) return [['year', 'שנה'], ['country', 'מדינה'], ['price', 'מחיר']];
   if (!col || col.kind === 'own' || !cat) return [['added', 'סדר הוספה'], ['year', 'שנה']];
   return series === 'crowns' ? [['year', 'שנה'], ['group', cat.groupLabel]] : [['group', cat.groupLabel || 'ערך'], ['year', 'שנה']];
 }
@@ -296,6 +301,12 @@ function albumSections(series) {
   });
   const extras = allItems(series).filter(i => i.custom);
   const col = colById(series), s = sortOf(series), years = s.by === 'year';
+  if (col && col.trade) {   // the trade album: one run in the chosen order; by country, a section per country
+    const sorted = tradeSort(extras, s.by);
+    if (s.by !== 'country') return sorted.length ? [{ title: col.name, items: sorted, years: s.by === 'year' }] : [];
+    const by = new Map(); for (const it of sorted) { const c = it.country || 'ללא מדינה'; if (!by.has(c)) by.set(c, []); by.get(c).push(it); }
+    return [...by].map(([c, items]) => ({ title: c, items, years: true }));
+  }
   if (col && col.kind === 'own') return extras.length ? [{ title: col.name, items: years ? [...extras].sort(byYear) : extras, years }] : [];
   const cat = CATALOGS[series], vis = visibleIn(series);
   const list = (cat && cat.list ? cat.list : []).filter(vis);
@@ -947,7 +958,13 @@ function openSheet(id, msg) {
   add('סוג טעות', item.errorCategory);
   add('פרטים', item.design);
   body.append(facts);
+  if (isTrade(item.series)) body.append(tradeSheetBlock(item));
   body.append(el('div', { class: 'status ' + (rec ? 'yes' : 'no'), text: rec ? '✓ באלבום' : 'עוד לא באלבום' }));
+  if (!isTrade(item.series)) body.append(el('button', { class: 'btn trade-move', type: 'button', text: '↗ העבר לאלבום המכירה / ההחלפה',
+    onclick: () => { closeSheet(); item.custom ? openTradeForm(null, Object.assign({}, item.raw, { ref: item.id }), item)
+      : (() => { const p = purityOf((item.composition || '') + ' ' + (item.metalName || ''), item.metal);
+        openTradeForm(null, { label: item.title, year: item.y || null, metal: item.metal, diam: item.diam, country: catalogCountry(item), weight: item.weight || null,
+          fine: p.fine || null, mkind: p.kind, comp: item.composition || item.metalName || '', km: item.catalog || '', ref: item.id }, item); })(); } }));
   if (item.rare) body.append(el('div', { class: 'rare-note' }, [el('span', { 'aria-hidden': 'true', text: '◆' }), item.rare]));
   if (item.img) body.append(el('figure', { class: 'ref-fig' }, [
     el('img', { src: item.img.u, alt: 'תמונה להמחשה של ' + item.title, loading: 'lazy', referrerpolicy: 'no-referrer' }),
@@ -1378,6 +1395,7 @@ function openBot() {
 
 /* ---------- add dialog ---------- */
 function openAdder() {
+  if (curCol() && curCol().trade) return openTradeAdder();
   const body = $('#adderBody'); body.textContent = '';
   body.append(el('h2', { text: 'הוספת מטבע לאוסף' }));
   if (!st.collections.length) { openLibrary(); return; }
@@ -1436,7 +1454,7 @@ function openAdder() {
 async function snapshot() {
   const owned = {}, extras = {}, photos = {};
   for (const [k, v] of st.owned) owned[k] = v;
-  for (const [k, v] of st.extras) extras[k] = { series: v.series, label: v.title, year: v.y || null, metal: v.metal, diam: v.diam || null };
+  for (const [k, v] of st.extras) extras[k] = v.raw || { series: v.series, label: v.title, year: v.y || null, metal: v.metal, diam: v.diam || null };
   for (const [k, blob] of await Store.all('photos')) photos[k] = await Photo.toDataURL(blob);
   return { app: 'coin-album', version: 3, exportedAt: nowIso(), collections: st.collections, owned, extras, photos };
 }
@@ -1669,6 +1687,12 @@ function openLibrary() {
         el('b', { text: 'אוסף קיים מהמאגר' }),
         el('span', { text: 'בחר מנדט, פרוטה, קראונים וקטלוגים מוכנים נוספים.' }),
       ]),
+      el('button', { class: 'lib-choice', type: 'button', onclick: async () => { close(); await ensureTradeAlbum();
+          st.tab = TRADE_ID; try { localStorage.setItem('album.tab', TRADE_ID); } catch (e) {} render(); } }, [
+        el('span', { class: 'lib-choice-icon', 'aria-hidden': 'true', text: '₪' }),
+        el('b', { text: tradeCol() ? 'אלבום המכירה / ההחלפה' : 'אלבום למכירה / להחלפה' }),
+        el('span', { text: 'המטבעות שאתה מוכר או מחליף: מחיר, ערך מתכת, חיפוש, וייצוא לשיתוף עם חברים.' }),
+      ]),
     ]);
     shell('אוסף חדש', 'איך תרצה להתחיל את האוסף?', choices, null);
   }
@@ -1709,6 +1733,298 @@ async function loadCollections() {
   if (colorsChanged) await saveCollections();
 }
 
+/* ---------- the trade album: coins for sale / swap ----------
+   One own-kind collection with `trade: true` (id 'trade'). Its coins are extras that also keep: country, asking price
+   (ask), status (sale / swap / both), weight and precious-metal purity (fine), and the catalog item they came from (ref).
+   What was paid, the grade and notes live in the owned record like any coin. The metal value is weight x purity x the
+   price per gram, fetched live (gold-api.com + open.er-api.com) or typed in. The whole album can be exported to one
+   standalone HTML file with a page-turning book to share with friends. */
+const TRADE_ID = 'trade';
+const TRADE_STATUS = [['sale', 'למכירה'], ['swap', 'להחלפה'], ['both', 'מכירה או החלפה']];
+const tradeCol = () => colById(TRADE_ID);
+const isTrade = id => id === TRADE_ID;
+
+// Precious-metal purity from texts like '92.5% כסף', 'Silver (.900)', 'כסף 720', '.835 silver'
+function purityOf(text, metal) {
+  const t = String(text || '').toLowerCase();
+  const kind = /זהב|gold/.test(t) || metal === 'gold' ? 'gold' : (/כסף|silver|בילון|billon/.test(t) || metal === 'silver' ? 'silver' : null);
+  if (!kind) return { kind: null, fine: 0 };
+  let m = t.match(/(\d{1,3}(?:\.\d+)?)\s*%\s*(?:כסף|silver|זהב|gold)/) || t.match(/(?:כסף|silver|זהב|gold)[^\d%]{0,12}(\d{1,3}(?:\.\d+)?)\s*%/);
+  if (m) return { kind, fine: Math.min(1, parseFloat(m[1]) / 100) };
+  m = t.match(/(?:^|[^\d])0?\.(\d{3,4})(?!\d)/);
+  if (m) return { kind, fine: parseFloat('0.' + m[1]) };
+  m = t.match(/(?:כסף|silver|זהב|gold)\s*(\d{3,4})(?!\d)/);
+  if (m) return { kind, fine: parseInt(m[1], 10) / 1000 };
+  if (/(\d{2})\s*k\b|(\d{2})\s*קראט/.test(t)) { const k = parseInt(RegExp.$1 || RegExp.$2, 10); return { kind, fine: k / 24 }; }
+  return { kind, fine: kind === 'gold' ? 0.9 : 0.5, guessed: true };
+}
+function meltValue(item) {
+  const spot = st.spot || {};
+  if (!item.weight || !item.mkind || !item.fine) return null;
+  const perGram = item.mkind === 'gold' ? spot.gold : spot.silver;
+  return perGram ? Math.round(item.weight * item.fine * perGram) : null;
+}
+const shekel = n => n == null || n === '' || isNaN(n) ? '' : '₪' + Math.round(Number(n)).toLocaleString('he-IL');
+
+async function ensureTradeAlbum() {
+  if (!tradeCol()) {
+    st.collections.push({ id: TRADE_ID, kind: 'own', trade: true, name: 'למכירה / להחלפה', sub: 'המטבעות שאני מוכר או מחליף', color: 'green',
+      sort: { by: 'year' } });
+    await saveCollections();
+  }
+  return tradeCol();
+}
+
+async function loadSpot() { try { st.spot = (await Store.get('meta', 'spot')) || null; } catch (e) { st.spot = null; } }
+// Live prices: USD per troy ounce, converted to shekels per gram
+async function refreshSpot() {
+  const j = u => fetch(u, { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+  const [au, ag, fx] = await Promise.all([j('https://api.gold-api.com/price/XAU'), j('https://api.gold-api.com/price/XAG'), j('https://open.er-api.com/v6/latest/USD')]);
+  const ils = fx && fx.rates && fx.rates.ILS, oz = 31.1035;
+  if (!ils || !au.price || !ag.price) throw new Error('bad data');
+  st.spot = { gold: au.price * ils / oz, silver: ag.price * ils / oz, at: nowIso(), source: 'gold-api.com, open.er-api.com' };
+  await Store.put('meta', 'spot', st.spot);
+  return st.spot;
+}
+
+function tradeItems() { return allItems(TRADE_ID); }
+function tradeSort(items, by) {
+  const s = [...items];
+  if (by === 'country') s.sort((a, b) => (a.country || '').localeCompare(b.country || '', 'he') || (Number(a.y) || 0) - (Number(b.y) || 0));
+  else if (by === 'price') s.sort((a, b) => (Number(b.ask) || 0) - (Number(a.ask) || 0) || (Number(a.y) || 0) - (Number(b.y) || 0));
+  else s.sort((a, b) => (Number(a.y) || 0) - (Number(b.y) || 0) || (a.title || '').localeCompare(b.title || '', 'he'));
+  return s;
+}
+const tradeMatch = (it, q) => !q || [it.title, it.country, it.y, it.note, it.composition, it.catalog, st.owned.get(it.id)?.note]
+  .join(' ').toLowerCase().includes(q.toLowerCase());
+
+function renderTradeList(view) {
+  const col = tradeCol(), by = (col.sort && col.sort.by) || 'year';
+  const q = st.tradeQuery || '';
+  const all = tradeItems(), items = tradeSort(all.filter(it => tradeMatch(it, q)), by);
+  const sum = (f) => all.reduce((s, it) => s + (Number(f(it)) || 0), 0);
+  const search = el('input', { class: 'trade-search', type: 'search', placeholder: 'חיפוש: שם, שנה, מדינה, הערה...', value: q, 'aria-label': 'חיפוש מטבע' });
+  search.addEventListener('input', () => { st.tradeQuery = search.value; clearTimeout(st.tradeT); st.tradeT = setTimeout(() => { render(); const s = $('.trade-search'); if (s) { s.focus(); s.setSelectionRange(s.value.length, s.value.length); } }, 250); });
+  const sortBtns = el('div', { class: 'sort-opts' }, [['year', 'שנה'], ['country', 'מדינה'], ['price', 'מחיר']].map(([k, t]) =>
+    el('button', { class: 'so', type: 'button', 'aria-pressed': String(by === k), text: t, onclick: async () => { col.sort = { by: k }; await saveCollections(); render(); } })));
+  const spot = st.spot;
+  const spotLine = el('div', { class: 'trade-spot' }, [
+    el('span', { text: spot ? 'כסף ' + spot.silver.toFixed(2) + ' ₪/גרם · זהב ' + Math.round(spot.gold).toLocaleString('he-IL') + ' ₪/גרם' + (spot.at ? ' · ' + new Date(spot.at).toLocaleDateString('he-IL') : '') : 'מחיר כסף/זהב: עוד לא נטען' }),
+    el('button', { class: 'btn small', type: 'button', text: '↻ עדכן מחיר', onclick: async e => {
+      e.target.disabled = true; e.target.textContent = 'טוען...';
+      try { await refreshSpot(); toast('מחירי המתכות עודכנו'); } catch (err) { toast('לא הצלחתי לטעון מחיר. אפשר להזין ידנית.'); }
+      render(); } }),
+    el('button', { class: 'btn small', type: 'button', text: 'הזן ידנית', onclick: () => openSpotDialog() }),
+  ]);
+  const totals = el('div', { class: 'trade-totals' }, [
+    el('span', {}, [el('b', { text: String(all.length) }), ' מטבעות']),
+    el('span', {}, ['מבוקש: ', el('b', { text: shekel(sum(it => it.ask)) || '₪0' })]),
+    el('span', {}, ['שולם: ', el('b', { text: shekel(sum(it => st.owned.get(it.id)?.paid)) || '₪0' })]),
+    el('span', {}, ['ערך מתכת: ', el('b', { text: shekel(sum(it => meltValue(it))) || '—' })]),
+  ]);
+  const rows = items.map(it => {
+    const rec = st.owned.get(it.id), melt = meltValue(it);
+    const status = (TRADE_STATUS.find(s => s[0] === it.status) || TRADE_STATUS[0])[1];
+    return el('button', { class: 'trade-row', type: 'button', onclick: () => openSheet(it.id) }, [
+      el('span', { class: 'slot m-' + it.metal + (rec ? ' own' : '') }, [coinEl(it)]),
+      el('span', { class: 'trade-main' }, [
+        el('b', { text: it.title }),
+        el('small', { text: [it.country, it.y, rec?.grade, status].filter(Boolean).join(' · ') }),
+      ]),
+      el('span', { class: 'trade-prices' }, [
+        it.ask ? el('b', { text: shekel(it.ask) }) : el('small', { text: 'בלי מחיר' }),
+        rec?.paid != null && rec.paid !== '' ? el('small', { text: 'שולם ' + shekel(rec.paid) }) : null,
+        melt ? el('small', { class: 'melt', text: 'מתכת ' + shekel(melt) }) : null,
+      ]),
+    ]);
+  });
+  view.append(el('div', { class: 'tray trade-tray' }, [
+    trayHead(col.name, col.sub || ''),
+    el('div', { class: 'trade-bar' }, [search, sortBtns]),
+    totals, spotLine,
+    el('div', { class: 'trade-actions' }, [
+      el('button', { class: 'btn accent', type: 'button', text: '+ מטבע מהקטלוג', onclick: () => openTradeAdder() }),
+      el('button', { class: 'btn', type: 'button', text: '⤓ ייצוא אלבום לשיתוף', onclick: () => openTradeExport() }),
+    ]),
+    rows.length ? el('div', { class: 'trade-rows' }, rows)
+      : el('p', { class: 'muted', style: 'color:var(--on-velvet-dim)', text: all.length ? 'אין מטבעות שמתאימים לחיפוש.' : 'עוד אין כאן מטבעות. הוסף מטבע מהקטלוג, או פתח מטבע מאחד האלבומים ולחץ "העבר לאלבום המכירה".' }),
+  ]));
+}
+
+function openSpotDialog() {
+  const body = $('#adderBody'); body.textContent = '';
+  const ag = el('input', { id: 's-ag', type: 'number', step: 'any', inputmode: 'decimal', value: st.spot ? st.spot.silver.toFixed(2) : '' });
+  const au = el('input', { id: 's-au', type: 'number', step: 'any', inputmode: 'decimal', value: st.spot ? Math.round(st.spot.gold) : '' });
+  body.append(el('h2', { text: 'מחיר כסף וזהב' }), el('p', { class: 'muted', text: 'בשקלים לגרם מתכת טהורה. ערך המתכת של מטבע = משקל × טוהר × מחיר לגרם.' }),
+    el('div', { class: 'row2' }, [el('div', { class: 'field' }, [el('label', { for: 's-ag', text: 'כסף (₪ לגרם)' }), ag]),
+      el('div', { class: 'field' }, [el('label', { for: 's-au', text: 'זהב (₪ לגרם)' }), au])]),
+    el('div', { class: 'confirm' }, [
+      el('button', { class: 'btn primary', type: 'button', text: 'שמור', onclick: async () => {
+        st.spot = { silver: Number(ag.value) || 0, gold: Number(au.value) || 0, at: nowIso(), source: 'ידני' };
+        await Store.put('meta', 'spot', st.spot); $('#adder').close(); render(); } }),
+      el('button', { class: 'btn', type: 'button', text: 'ביטול', onclick: () => $('#adder').close() })]));
+  $('#adder').showModal();
+}
+
+// Every catalog coin can be searched; catalogs not opened yet are loaded on the first search.
+async function allCatalogCoins() {
+  const out = [];
+  await Promise.all(Object.keys(CATALOGS).map(k => CATALOGS[k].src && !CATALOGS[k].list ? loadCatalogFile(k).catch(() => null) : null));
+  for (const [k, c] of Object.entries(CATALOGS)) for (const it of c.list || []) out.push(it);
+  return out;
+}
+function openTradeAdder(prefill) {
+  const body = $('#adderBody'); body.textContent = '';
+  const q = el('input', { id: 't-q', type: 'search', placeholder: 'למשל: פרוטה 1949, קראון 1935, רופי 1919...', autocomplete: 'off' });
+  const status = el('p', { class: 'muted', text: 'הקלד שם, ערך או שנה. החיפוש עובר על כל הקטלוגים בספרייה.' });
+  const results = el('div', { class: 'trade-results' });
+  let coins = null, timer = 0;
+  const run = async () => {
+    const text = q.value.trim(); results.textContent = '';
+    if (text.length < 2) return;
+    if (!coins) { status.textContent = 'טוען קטלוגים לחיפוש...'; coins = await allCatalogCoins(); status.textContent = coins.length.toLocaleString('he-IL') + ' מטבעות בחיפוש.'; }
+    const words = text.toLowerCase().split(/\s+/);
+    const hits = coins.filter(it => { const s = [it.title, it.y, it.sub, CATALOGS[it.series]?.name, it.label].join(' ').toLowerCase(); return words.every(w => s.includes(w)); }).slice(0, 60);
+    if (!hits.length) results.append(el('p', { class: 'muted', text: 'לא נמצא. אפשר להוסיף מטבע ידנית למטה.' }));
+    for (const it of hits) results.append(el('button', { class: 'trade-hit', type: 'button', onclick: () => tradeFromCatalog(it) }, [
+      el('span', { class: 'slot m-' + it.metal }, [coinEl(it)]),
+      el('span', {}, [el('b', { text: it.title }), el('small', { text: (CATALOGS[it.series]?.name || '') + (it.sub ? ' · ' + it.sub : '') })])]));
+  };
+  q.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(run, 250); });
+  const manual = el('button', { class: 'btn', type: 'button', text: 'מטבע שלא בקטלוג', onclick: () => openTradeForm(null, {}) });
+  body.append(el('h2', { text: 'הוספת מטבע למכירה / להחלפה' }), el('div', { class: 'field' }, [el('label', { for: 't-q', text: 'חיפוש מטבע מדויק' }), q]), status, results,
+    el('div', { class: 'confirm' }, [manual, el('button', { class: 'btn', type: 'button', text: 'סגור', onclick: () => $('#adder').close() })]));
+  if (prefill) { q.value = prefill; run(); }
+  if (!$('#adder').open) $('#adder').showModal();
+  setTimeout(() => q.focus(), 50);
+}
+function catalogCountry(it) {
+  const cat = CATALOGS[it.series];
+  if (cat && cat.countryName) return cat.countryName;
+  if (it.country && cat && cat.countries) { const c = cat.countries.find(x => x.key === it.country); if (c && !cat.countryLabel) return c.name; }
+  if (cat && cat.countryLabel) return cat.name;   // the "countries" axis is a ruler / period: the album name is the country
+  return cat ? cat.name : '';
+}
+function tradeFromCatalog(it) {
+  const p = purityOf((it.composition || '') + ' ' + (it.metalName || ''), it.metal);
+  openTradeForm(null, { label: it.title, year: it.y || null, metal: it.metal, diam: it.diam, country: catalogCountry(it), weight: it.weight || null,
+    fine: p.fine || null, mkind: p.kind, comp: it.composition || it.metalName || '', km: it.catalog || '', ref: it.id });
+}
+// Create or edit a trade coin; `src` is the album coin it comes from (its photos are copied).
+function openTradeForm(item, x, src) {
+  const body = $('#adderBody'); body.textContent = '';
+  const v = item ? item.raw : x, rec = item ? st.owned.get(item.id) : (src ? st.owned.get(src.id) : null);
+  const inp = (id, label, attrs, val) => { const i = el('input', Object.assign({ id }, attrs)); if (val != null) i.value = val; return [el('label', { for: id, text: label }), i]; };
+  const [lLabel, label] = inp('t-label', 'שם המטבע', { placeholder: 'למשל: 100 פרוטה 1949' }, v.label || '');
+  const [lYear, year] = inp('t-year', 'שנה', { type: 'number', inputmode: 'numeric' }, v.year || '');
+  const [lCountry, country] = inp('t-country', 'מדינה', { placeholder: 'למשל: ישראל' }, v.country || '');
+  const [lAsk, ask] = inp('t-ask', 'מחיר מבוקש (₪)', { type: 'number', step: 'any', inputmode: 'decimal' }, v.ask ?? '');
+  const [lPaid, paid] = inp('t-paid', 'מחיר קנייה (₪)', { type: 'number', step: 'any', inputmode: 'decimal' }, rec?.paid ?? '');
+  const [lW, weight] = inp('t-w', 'משקל (גרם)', { type: 'number', step: 'any', inputmode: 'decimal' }, v.weight ?? '');
+  const [lF, fine] = inp('t-f', 'טוהר כסף/זהב (למשל 0.925)', { type: 'number', step: 'any', min: '0', max: '1', inputmode: 'decimal' }, v.fine ?? '');
+  const mkind = el('select', { id: 't-mk' }, [['', 'לא כסף/זהב'], ['silver', 'כסף'], ['gold', 'זהב']].map(([k, t]) => el('option', { value: k, text: t })));
+  mkind.value = v.mkind || '';
+  const statusSel = el('select', { id: 't-st' }, TRADE_STATUS.map(([k, t]) => el('option', { value: k, text: t }))); statusSel.value = v.status || 'sale';
+  const grades = el('select', { id: 't-g' }, GRADES.map(g => el('option', { value: g, text: g || 'מצב לא ידוע' }))); grades.value = rec?.grade || '';
+  const note = el('textarea', { id: 't-note', rows: '2', placeholder: 'מצב, פגמים, תנאי החלפה...' }); note.value = rec?.note || '';
+  const meltOut = el('div', { class: 'trade-melt' });
+  const showMelt = () => {
+    const per = mkind.value === 'gold' ? st.spot?.gold : st.spot?.silver;
+    meltOut.textContent = mkind.value && Number(weight.value) && Number(fine.value)
+      ? 'ערך המתכת כרגע: ' + (per ? shekel(Number(weight.value) * Number(fine.value) * per) : 'צריך לעדכן מחיר מתכת') : '';
+  };
+  [weight, fine, mkind].forEach(i => i.addEventListener('input', showMelt)); showMelt();
+  const msg = el('div', { class: 'msg' });
+  const save = el('button', { class: 'btn primary', type: 'button', text: item ? 'שמור' : '+ הוסף לאלבום המכירה' });
+  save.addEventListener('click', async () => {
+    if (!label.value.trim()) { msg.className = 'msg err'; msg.textContent = 'כתוב שם למטבע.'; return; }
+    save.disabled = true;
+    await ensureTradeAlbum();
+    const id = item ? item.extraId : newId();
+    const rx = Object.assign({}, v, { series: TRADE_ID, label: label.value.trim(), year: year.value ? Number(year.value) : null, country: country.value.trim(),
+      ask: ask.value === '' ? null : Number(ask.value), weight: weight.value === '' ? null : Number(weight.value), fine: fine.value === '' ? null : Number(fine.value),
+      mkind: mkind.value || null, status: statusSel.value, metal: v.metal || (mkind.value || 'silver') });
+    await Store.put('extras', id, rx);
+    const it = extraToItem(id, rx); st.extras.set(id, it);
+    const r = Object.assign({}, st.owned.get(it.id) || { series: TRADE_ID, acquired: '' }, { grade: grades.value, paid: paid.value === '' ? null : Number(paid.value), note: note.value.trim(), updatedAt: nowIso() });
+    await Store.put('owned', it.id, r); st.owned.set(it.id, r);
+    if (src && !item) for (const side of ['', REV]) {   // bring the photos along
+      const blob = await Store.get('photos', src.id + side);
+      if (blob) { await Store.put('photos', it.id + side, blob); setPhotoUrl(it.id + side, blob); }
+    }
+    $('#adder').close();
+    st.tab = TRADE_ID; try { localStorage.setItem('album.tab', TRADE_ID); } catch (e) {}
+    render(); toast(item ? 'נשמר' : 'נוסף לאלבום המכירה / ההחלפה');
+  });
+  body.append(el('h2', { text: item ? 'עריכת מטבע למכירה' : 'מטבע למכירה / להחלפה' }),
+    el('div', { class: 'field' }, [lLabel, label]),
+    el('div', { class: 'row2' }, [el('div', { class: 'field' }, [lYear, year]), el('div', { class: 'field' }, [lCountry, country])]),
+    el('div', { class: 'row2' }, [el('div', { class: 'field' }, [lAsk, ask]), el('div', { class: 'field' }, [lPaid, paid])]),
+    el('div', { class: 'row2' }, [el('div', { class: 'field' }, [el('label', { for: 't-st', text: 'סטטוס' }), statusSel]), el('div', { class: 'field' }, [el('label', { for: 't-g', text: 'מצב' }), grades])]),
+    el('div', { class: 'row2' }, [el('div', { class: 'field' }, [el('label', { for: 't-mk', text: 'מתכת יקרה' }), mkind]), el('div', { class: 'field' }, [lW, weight])]),
+    el('div', { class: 'field' }, [lF, fine]), meltOut,
+    el('div', { class: 'field' }, [el('label', { for: 't-note', text: 'הערות' }), note]),
+    el('div', { class: 'confirm' }, [save, el('button', { class: 'btn', type: 'button', text: 'ביטול', onclick: () => $('#adder').close() })]), msg);
+  if (!$('#adder').open) $('#adder').showModal();
+}
+// The detail sheet of a trade coin: prices up front, then the usual photos and the edit form
+function tradeSheetBlock(item) {
+  const rec = st.owned.get(item.id), melt = meltValue(item);
+  const status = (TRADE_STATUS.find(s => s[0] === item.status) || TRADE_STATUS[0])[1];
+  return el('div', { class: 'trade-sheet' }, [
+    el('dl', { class: 'facts' }, [
+      ...[['סטטוס', status], ['מדינה', item.country], ['מחיר מבוקש', shekel(item.ask)], ['מחיר קנייה', shekel(rec?.paid)],
+        ['ערך מתכת כרגע', melt ? shekel(melt) + (item.fine ? ' (' + item.weight + ' גרם × ' + item.fine + ')' : '') : ''],
+        ['רווח מול מחיר הקנייה', item.ask && rec?.paid ? shekel(item.ask - rec.paid) : '']]
+        .filter(([, v]) => v).flatMap(([k, v]) => [el('dt', { text: k }), el('dd', { text: String(v) })])]),
+    el('button', { class: 'btn primary', type: 'button', text: '✎ ערוך מחיר ופרטים', onclick: () => { closeSheet(); openTradeForm(item); } }),
+  ]);
+}
+
+/* ----- export: one standalone HTML file with the album as a book ----- */
+function openTradeExport() {
+  const body = $('#adderBody'); body.textContent = '';
+  const withPrices = el('input', { type: 'checkbox', id: 'x-prices', checked: true });
+  const withPaid = el('input', { type: 'checkbox', id: 'x-paid' });
+  const title = el('input', { id: 'x-title', value: 'המטבעות שלי למכירה ולהחלפה' });
+  const contact = el('input', { id: 'x-contact', placeholder: 'למשל: לפרטים — עומר, 050-...' });
+  const msg = el('div', { class: 'msg' });
+  const go = el('button', { class: 'btn primary', type: 'button', text: '⤓ צור קובץ לשיתוף' });
+  go.addEventListener('click', async () => {
+    go.disabled = true; msg.className = 'msg'; msg.textContent = 'מכין את הקובץ...';
+    try {
+      const html = await buildTradeExport({ title: title.value.trim() || 'מטבעות למכירה', contact: contact.value.trim(), prices: withPrices.checked, paid: withPaid.checked });
+      const blob = new Blob([html], { type: 'text/html' });
+      const a = el('a', { href: URL.createObjectURL(blob), download: 'coins-for-trade-' + new Date().toISOString().slice(0, 10) + '.html' });
+      document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      msg.className = 'msg ok'; msg.textContent = 'הקובץ נשמר. אפשר לשלוח אותו בוואטסאפ או במייל; הוא נפתח בכל דפדפן.';
+    } catch (e) { msg.className = 'msg err'; msg.textContent = 'יצירת הקובץ נכשלה.'; }
+    go.disabled = false;
+  });
+  body.append(el('h2', { text: 'ייצוא האלבום לשיתוף' }),
+    el('p', { class: 'muted', text: 'קובץ אחד שנפתח בכל דפדפן, עם האלבום כספר מדפדף, חיפוש ומיון. התמונות שלך בתוכו.' }),
+    el('div', { class: 'field' }, [el('label', { for: 'x-title', text: 'כותרת' }), title]),
+    el('div', { class: 'field' }, [el('label', { for: 'x-contact', text: 'פרטי קשר (לא חובה)' }), contact]),
+    el('label', { class: 'check', for: 'x-prices' }, [withPrices, ' להציג מחיר מבוקש']),
+    el('label', { class: 'check', for: 'x-paid' }, [withPaid, ' להציג גם מחיר קנייה (בדרך כלל לא)']),
+    el('div', { class: 'confirm' }, [go, el('button', { class: 'btn', type: 'button', text: 'סגור', onclick: () => $('#adder').close() })]), msg);
+  $('#adder').showModal();
+}
+async function buildTradeExport(opt) {
+  const coins = [];
+  for (const it of tradeSort(tradeItems(), 'year')) {
+    const rec = st.owned.get(it.id) || {};
+    const front = await Store.get('photos', it.id), back = await Store.get('photos', it.id + REV);
+    coins.push({ t: it.title, y: it.y || '', c: it.country || '', g: rec.grade || '', n: rec.note || '', m: it.metal, d: it.diam || 25,
+      s: (TRADE_STATUS.find(s => s[0] === it.status) || TRADE_STATUS[0])[1],
+      p: opt.prices && it.ask ? Number(it.ask) : null, pd: opt.paid && rec.paid ? Number(rec.paid) : null, mv: opt.prices ? meltValue(it) : null,
+      f: front ? await Photo.toDataURL(front) : '', b: back ? await Photo.toDataURL(back) : '' });
+  }
+  const data = JSON.stringify({ title: opt.title, contact: opt.contact, made: new Date().toLocaleDateString('he-IL'), coins }).replace(/</g, '\\u003c');
+  const tpl = await (await fetch('trade-export.html', { cache: 'no-cache' })).text();
+  return tpl.replace('__TITLE__', () => opt.title.replace(/[<&]/g, '')).replace('__DATA__', () => data);
+}
+
 /* ---------- boot ---------- */
 async function load() {
   const [owned, extras, photos] = await Promise.all([Store.all('owned'), Store.all('extras'), Store.all('photos')]);
@@ -1717,6 +2033,7 @@ async function load() {
   for (const [id, blob] of photos) setPhotoUrl(id, blob);
   st.extras = new Map([...extras].map(([id, x]) => [id, x]));
   await loadCollections();
+  await loadSpot();
   st.extras = new Map([...extras].map(([id, x]) => [id, extraToItem(id, x)]));   // needs the collections for names
   for (const c of st.collections) if (c.kind === 'catalog' && CATALOGS[c.id].src) ensureCatalog(c.id).then(render);
 }

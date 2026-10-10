@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>__TITLE__</title>
+<style>
+:root { --bg: #2a1d16; --velvet: #3b2a20; --paper: #f6efe1; --paper2: #ece2cc; --ink: #2b2118; --dim: #7a6a55; --gold: #c9a24a; --line: #d9ccb0;
+  --silver: #c9ccd1; --bronze: #b0773f; --copper: #b8693e; --cuni: #b9bdb6; --steel: #9aa1a8; --alu: #d8dcdf; --bimetal: #c9a24a; --goldc: #d9b44a; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: radial-gradient(circle at 50% 0, #4a3527, var(--bg) 70%); color: var(--ink); font-family: "Segoe UI", Arial, sans-serif; min-height: 100%; }
+header { color: #f3e6c8; text-align: center; padding: 22px 16px 8px; }
+header h1 { margin: 0 0 4px; font-size: clamp(22px, 5vw, 34px); font-family: Georgia, "David", serif; color: var(--gold); letter-spacing: .02em; }
+header p { margin: 2px 0; color: #d6c6a6; font-size: 14px; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center; padding: 10px 16px; position: sticky; top: 0; z-index: 5; background: rgba(42,29,22,.92); backdrop-filter: blur(6px); }
+.bar input { flex: 1 1 220px; max-width: 360px; padding: 10px 14px; border-radius: 999px; border: 1px solid #6b5443; background: #f9f3e6; font-size: 15px; }
+.seg { display: inline-flex; border: 1px solid #6b5443; border-radius: 999px; overflow: hidden; }
+.seg button { border: 0; background: transparent; color: #e9dcc1; padding: 8px 12px; font-size: 14px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--gold); color: #2b2118; font-weight: 700; }
+main { padding: 12px 16px 40px; max-width: 1180px; margin: 0 auto; }
+/* the book */
+.stage { perspective: 2200px; display: flex; justify-content: center; margin-top: 8px; }
+.book { position: relative; display: flex; flex-direction: row; gap: 0; filter: drop-shadow(0 18px 30px rgba(0,0,0,.45)); }
+.page { width: min(46vw, 520px); aspect-ratio: 3 / 4; background: linear-gradient(90deg, var(--paper2), var(--paper) 8%, var(--paper) 92%, var(--paper2)); border: 1px solid var(--line);
+  padding: 18px 16px 30px; position: relative; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 10px; }
+.page.right { border-radius: 4px 0 0 4px; }  .page.left { border-radius: 0 4px 4px 0; }
+.page .pno { position: absolute; bottom: 8px; inset-inline: 0; text-align: center; font-size: 12px; color: var(--dim); }
+.page.blank { display: flex; align-items: center; justify-content: center; color: var(--dim); font-family: Georgia, serif; font-size: 18px; }
+.single .page { width: min(92vw, 520px); }
+.leaf { position: absolute; top: 0; width: 50%; height: 100%; transform-style: preserve-3d; transition: transform .7s cubic-bezier(.3,.1,.2,1); z-index: 3; }
+.leaf > .page { position: absolute; inset: 0; width: 100%; backface-visibility: hidden; }
+.leaf > .page.back { transform: rotateY(180deg); }
+.single .leaf { width: 100%; }
+.nav { display: flex; justify-content: center; gap: 14px; margin: 16px 0 4px; color: #e9dcc1; align-items: center; }
+.nav button { background: var(--gold); color: #2b2118; border: 0; border-radius: 999px; padding: 9px 18px; font-size: 15px; font-weight: 700; cursor: pointer; }
+.nav button:disabled { opacity: .35; cursor: default; }
+/* a coin pocket */
+.pocket { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center; cursor: pointer; border-radius: 8px; padding: 4px; background: rgba(255,255,255,.35); border: 1px dashed #d8c9a8; min-width: 0; }
+.pocket:hover { background: rgba(255,255,255,.7); }
+.disc { width: 62%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff8, transparent 45%), var(--c, var(--silver)); box-shadow: inset 0 0 0 3px rgba(0,0,0,.12), 0 2px 5px rgba(0,0,0,.25);
+  display: flex; align-items: center; justify-content: center; font-weight: 700; color: #3b2e22; font-size: 13px; overflow: hidden; }
+.disc img { width: 100%; height: 100%; object-fit: cover; }
+.pocket b { font-size: 12px; line-height: 1.2; max-width: 100%; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.pocket small { font-size: 11px; color: var(--dim); }
+.price { font-size: 12px; font-weight: 700; color: #6b3d0c; background: #f3d98f; border-radius: 999px; padding: 1px 8px; }
+/* grid view */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.grid .pocket { background: var(--paper); border: 1px solid var(--line); padding: 12px 8px; border-radius: 12px; }
+.grid .disc { width: 70%; }
+.empty { color: #e9dcc1; text-align: center; padding: 40px; }
+/* coin modal */
+dialog { border: 0; border-radius: 16px; padding: 0; width: min(560px, 94vw); background: var(--paper); color: var(--ink); }
+dialog::backdrop { background: rgba(0,0,0,.6); }
+.m-in { padding: 18px; }
+.m-photos { display: flex; gap: 10px; justify-content: center; margin-bottom: 12px; }
+.m-photos .disc { width: min(42vw, 200px); font-size: 22px; }
+.m-in h2 { margin: 0 0 6px; font-family: Georgia, "David", serif; }
+dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 10px 0; }
+dt { color: var(--dim); } dd { margin: 0; font-weight: 600; }
+.m-x { float: left; border: 0; background: #e4d8bd; border-radius: 50%; width: 34px; height: 34px; font-size: 18px; cursor: pointer; }
+footer { text-align: center; color: #bfae8c; font-size: 12px; padding: 16px; }
+@media (max-width: 760px) { .page { padding: 12px 10px 26px; gap: 6px; } .pocket b { font-size: 11px; } }
+@media (prefers-reduced-motion: reduce) { .leaf { transition: none; } }
+</style>
+</head>
+<body>
+<header><h1 id="h"></h1><p id="sub"></p><p id="contact"></p></header>
+<div class="bar">
+  <input id="q" type="search" placeholder="חיפוש: שם, שנה, מדינה..." aria-label="חיפוש">
+  <div class="seg" id="sort"><button data-s="year" aria-pressed="true">שנה</button><button data-s="country">מדינה</button><button data-s="price">מחיר</button></div>
+  <div class="seg" id="mode"><button data-m="book" aria-pressed="true">📖 אלבום</button><button data-m="grid">▦ רשימה</button></div>
+</div>
+<main id="main"></main>
+<dialog id="dlg"><div class="m-in" id="m"></div></dialog>
+<footer>נוצר באפליקציית אלבום המטבעות</footer>
+<script>
+const DATA = __DATA__;
+const COLORS = { silver: 'var(--silver)', gold: 'var(--goldc)', bronze: 'var(--bronze)', copper: 'var(--copper)', cuni: 'var(--cuni)', steel: 'var(--steel)', alu: 'var(--alu)', bimetal: 'var(--bimetal)' };
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const money = n => n == null ? '' : '₪' + Math.round(n).toLocaleString('he-IL');
+const state = { q: '', sort: 'year', mode: 'book', spread: 0, busy: false };
+$('#h').textContent = DATA.title; document.title = DATA.title;
+$('#sub').textContent = DATA.coins.length + ' מטבעות · עודכן ' + DATA.made;
+$('#contact').textContent = DATA.contact || '';
+
+function list() {
+  const q = state.q.trim().toLowerCase();
+  const out = DATA.coins.filter(c => !q || [c.t, c.y, c.c, c.n, c.s, c.g].join(' ').toLowerCase().includes(q));
+  const y = c => Number(c.y) || 0;
+  if (state.sort === 'country') out.sort((a, b) => a.c.localeCompare(b.c, 'he') || y(a) - y(b));
+  else if (state.sort === 'price') out.sort((a, b) => (b.p || 0) - (a.p || 0) || y(a) - y(b));
+  else out.sort((a, b) => y(a) - y(b) || a.t.localeCompare(b.t, 'he'));
+  return out;
+}
+function disc(c, side) {
+  const img = side === 'b' ? c.b : c.f;
+  return '<span class="disc" style="--c:' + (COLORS[c.m] || COLORS.silver) + '">' + (img ? '<img src="' + img + '" alt="">' : esc(c.y || '·')) + '</span>';
+}
+function pocket(c, i) {
+  return '<div class="pocket" data-i="' + i + '" role="button" tabindex="0">' + disc(c, 'f') + '<b>' + esc(c.t) + '</b><small>' +
+    esc([c.y, c.c].filter(Boolean).join(' · ')) + '</small>' + (c.p != null ? '<span class="price">' + money(c.p) + '</span>' : '<small>' + esc(c.s) + '</small>') + '</div>';
+}
+const PER = 9;
+function pages(items) { const p = []; for (let i = 0; i < items.length; i += PER) p.push(items.slice(i, i + PER).map(c => [c, DATA.coins.indexOf(c)])); return p; }
+function pageHtml(pg, n, side) {
+  if (!pg) return '<div class="page blank ' + side + '">' + (n === 0 ? esc(DATA.title) : 'סוף האלבום') + '</div>';
+  return '<div class="page ' + side + '">' + pg.map(([c, i]) => pocket(c, i)).join('') + '<span class="pno">' + n + '</span></div>';
+}
+const single = () => window.innerWidth < 760;
+// spreads: right page then left page (Hebrew binding). Spread 0 opens with the title on the right.
+function spreadPages(all) {
+  if (single()) return all.map((pg, k) => [pg, k + 1]);
+  const s = [[null, 0]].concat(all.map((pg, k) => [pg, k + 1]));
+  if (s.length % 2) s.push([null, -1]);
+  return s;
+}
+function renderBook(items) {
+  const all = pages(items), sp = spreadPages(all), step = single() ? 1 : 2;
+  const last = Math.max(0, sp.length - step);
+  state.spread = Math.min(state.spread, last - (last % step));
+  const cur = sp.slice(state.spread, state.spread + step);
+  const html = single() ? pageHtml(cur[0][0], cur[0][1], 'right')
+    : pageHtml(cur[0][0], cur[0][1], 'right') + pageHtml(cur[1] && cur[1][0], cur[1] ? cur[1][1] : -1, 'left');
+  $('#main').innerHTML = '<div class="stage"><div class="book' + (single() ? ' single' : '') + '" id="book">' + html + '</div></div>' +
+    '<div class="nav"><button id="next" aria-label="עמוד הבא">→ הבא</button><span>' + (Math.floor(state.spread / step) + 1) + ' / ' + (Math.floor(last / step) + 1) + '</span><button id="prev" aria-label="עמוד קודם">הקודם ←</button></div>';
+  $('#prev').disabled = state.spread <= 0; $('#next').disabled = state.spread >= last;
+  $('#next').onclick = () => turn(+1, sp, step); $('#prev').onclick = () => turn(-1, sp, step);
+}
+// A page turn: a leaf with the current page on its front and the next page on its back swings over the spine
+function turn(dir, sp, step) {
+  if (state.busy) return;
+  const to = state.spread + dir * step; if (to < 0 || to >= sp.length) return;
+  const book = $('#book'), sides = book.querySelectorAll('.page');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) { state.spread = to; return draw(); }
+  state.busy = true;
+  const leaf = document.createElement('div'); leaf.className = 'leaf';
+  const nxt = sp.slice(to, to + step);
+  let front, back;
+  if (single()) { front = sides[0].outerHTML; back = pageHtml(nxt[0][0], nxt[0][1], 'right'); leaf.style.right = '0'; leaf.style.transformOrigin = dir > 0 ? 'left center' : 'right center'; }
+  else if (dir > 0) { front = sides[1].outerHTML; back = pageHtml(nxt[0][0], nxt[0][1], 'right'); leaf.style.left = '0'; leaf.style.transformOrigin = 'right center';
+    sides[1].outerHTML = pageHtml(nxt[1] && nxt[1][0], nxt[1] ? nxt[1][1] : -1, 'left'); }
+  else { front = sides[0].outerHTML; back = pageHtml(nxt[1] && nxt[1][0], nxt[1] ? nxt[1][1] : -1, 'left'); leaf.style.right = '0'; leaf.style.transformOrigin = 'left center';
+    sides[0].outerHTML = pageHtml(nxt[0][0], nxt[0][1], 'right'); }
+  leaf.innerHTML = front.replace('class="page', 'class="page front') + back.replace('class="page', 'class="page back');
+  book.appendChild(leaf);
+  requestAnimationFrame(() => requestAnimationFrame(() => { leaf.style.transform = 'rotateY(' + ((single() ? dir > 0 : dir > 0) ? 180 : -180) + 'deg)'; }));
+  setTimeout(() => { state.spread = to; state.busy = false; draw(); }, 720);
+}
+function renderGrid(items) {
+  $('#main').innerHTML = items.length ? '<div class="grid">' + items.map(c => pocket(c, DATA.coins.indexOf(c))).join('') + '</div>' : '<p class="empty">לא נמצאו מטבעות.</p>';
+}
+function draw() {
+  const items = list();
+  if (!items.length) { $('#main').innerHTML = '<p class="empty">לא נמצאו מטבעות.</p>'; return; }
+  state.mode === 'book' ? renderBook(items) : renderGrid(items);
+}
+function openCoin(i) {
+  const c = DATA.coins[i]; if (!c) return;
+  const rows = [['שנה', c.y], ['מדינה', c.c], ['מצב', c.g], ['סטטוס', c.s], ['מחיר', money(c.p)], ['שולם', money(c.pd)], ['ערך מתכת', money(c.mv)], ['הערות', c.n]]
+    .filter(r => r[1]).map(r => '<dt>' + r[0] + '</dt><dd>' + esc(r[1]) + '</dd>').join('');
+  $('#m').innerHTML = '<button class="m-x" aria-label="סגור" onclick="dlg.close()">✕</button><div class="m-photos">' + disc(c, 'f') + (c.b ? disc(c, 'b') : '') + '</div><h2>' + esc(c.t) + '</h2><dl>' + rows + '</dl>';
+  $('#dlg').showModal();
+}
+document.addEventListener('click', e => { const p = e.target.closest('.pocket'); if (p && !e.target.closest('.leaf')) openCoin(Number(p.dataset.i)); if (e.target === $('#dlg')) $('#dlg').close(); });
+document.addEventListener('keydown', e => { const p = e.target.closest && e.target.closest('.pocket'); if (p && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openCoin(Number(p.dataset.i)); } });
+$('#q').addEventListener('input', e => { state.q = e.target.value; state.spread = 0; draw(); });
+for (const b of document.querySelectorAll('#sort button')) b.onclick = () => { state.sort = b.dataset.s; state.spread = 0; document.querySelectorAll('#sort button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); draw(); };
+for (const b of document.querySelectorAll('#mode button')) b.onclick = () => { state.mode = b.dataset.m; document.querySelectorAll('#mode button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); draw(); };
+let rw = 0; addEventListener('resize', () => { clearTimeout(rw); rw = setTimeout(draw, 200); });
+draw();
+</script>
+</body>
+</html>
