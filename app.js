@@ -45,7 +45,7 @@ function extraToItem(id, x) {
     metalName: METAL_NAME[x.metal] || '', title: x.label || 'מטבע נוסף', sub: col ? col.name + (own ? '' : ', תוספת') : '',
     design: x.note || '', holed: false, custom: true, own,
     // trade-album fields (see "the trade album" below); `raw` is the stored record, kept whole for backups and edits
-    country: x.country || '', ask: x.ask ?? null, status: x.status || '', weight: x.weight ?? null, fine: x.fine ?? null, mkind: x.mkind || null,
+    country: x.country || '', ask: x.ask ?? null, formula: x.formula || '', status: x.status || '', weight: x.weight ?? null, fine: x.fine ?? null, mkind: x.mkind || null,
     composition: x.comp || '', catalog: x.km || '', ref: x.ref || '', raw: x };
 }
 // A collector can trim a catalog: hide whole groups (a reign, a denomination, a country) or single coins.
@@ -1082,6 +1082,11 @@ function openSheet(id, msg) {
   add('משקל', item.weight != null ? item.weight + ' גרם' : '');
   add('קוטר', item.diam ? item.diam + ' מ״מ' : '');
   add('עובי', item.thickness != null ? item.thickness + ' מ״מ' : '');
+  const pm = metalOf(item);
+  if (pm) {
+    const per = pm.kind === 'gold' ? st.spot?.gold : st.spot?.silver, metalHe = pm.kind === 'gold' ? 'זהב' : 'כסף';
+    add('ערך המתכת היום', (per ? shekel(pm.pure * per) + ' · ' : '') + pm.pure.toFixed(2) + ' גרם ' + metalHe + ' טהור' + (per ? ' × ₪' + per.toFixed(2) + ' לגרם' : ' (מחיר ה' + metalHe + ' עוד לא נטען)'));
+  }
   const anyMintage = item.mintageText || item.mintage != null || item.mintageCirculated != null || item.mintageProof != null;
   add('כמות הנפקה', item.mintageText || (item.mintage != null ? fmtNum(item.mintage) : (anyMintage ? '' : 'לא פורסמה')));
   add('מחזור', item.mintageCirculated != null ? fmtNum(item.mintageCirculated) : '');
@@ -1902,11 +1907,63 @@ function purityOf(text, metal) {
   if (/(\d{2})\s*k\b|(\d{2})\s*קראט/.test(t)) { const k = parseInt(RegExp.$1 || RegExp.$2, 10); return { kind, fine: k / 24 }; }
   return { kind, fine: kind === 'gold' ? 0.9 : 0.5, guessed: true };
 }
+// The pure silver or gold in a coin: a trade coin says it itself (weight, fineness, metal); a catalog coin's
+// composition is read with purityOf, and only a stated fineness counts.
+function metalOf(item) {
+  if (item.series === TRADE_ID) return item.weight && item.mkind && item.fine ? { kind: item.mkind, pure: item.weight * item.fine } : null;
+  const p = purityOf((item.composition || '') + ' ' + (item.metalName || ''), item.metal);
+  return p.kind && !p.guessed && item.weight ? { kind: p.kind, pure: item.weight * p.fine } : null;
+}
 function meltValue(item) {
-  const spot = st.spot || {};
-  if (!item.weight || !item.mkind || !item.fine) return null;
-  const perGram = item.mkind === 'gold' ? spot.gold : spot.silver;
-  return perGram ? Math.round(item.weight * item.fine * perGram) : null;
+  const m = metalOf(item), spot = st.spot || {};
+  const perGram = m && (m.kind === 'gold' ? spot.gold : spot.silver);
+  return perGram ? Math.round(m.pure * perGram) : null;
+}
+/* Price formulas: an asking price tied to the metal, e.g. SI*1.1, SI+5, (SI+20)*0.95, PAID*1.2, SI*110%.
+   Only numbers, + - * / ( ) and % and these names; evaluated by a small parser, never eval. */
+const FORMULA_VARS = [
+  ['SI', 'ערך הכסף שבמטבע'], ['GO', 'ערך הזהב שבמטבע'], ['M', 'ערך המתכת (כסף או זהב)'],
+  ['SP', 'מחיר גרם כסף'], ['GP', 'מחיר גרם זהב'], ['W', 'משקל המטבע'], ['F', 'טוהר'], ['PAID', 'מחיר הקנייה']];
+function formulaVars(item, over) {
+  const m = metalOf(item), sp = st.spot?.silver || null, gp = st.spot?.gold || null;
+  const v = { SI: m && m.kind === 'silver' && sp ? m.pure * sp : null, GO: m && m.kind === 'gold' && gp ? m.pure * gp : null,
+    SP: sp, GP: gp, W: item.weight ?? null, F: item.fine ?? null, PAID: st.owned.get(item.id)?.paid ?? null };
+  Object.assign(v, over || {});
+  v.M = v.SI ?? v.GO;
+  return v;
+}
+function evalFormula(src, vars) {
+  const s = String(src).replace(/[×xX](?=\s*[\d(])/g, '*').replace(/÷/g, '/').toUpperCase();
+  let i = 0;
+  const ws = () => { while (s[i] === ' ') i++; };
+  const fail = m => { throw new Error(m); };
+  const prim = () => {
+    ws();
+    if (s[i] === '(') { i++; const v = expr(); ws(); if (s[i++] !== ')') fail('חסר סוגר'); return v; }
+    if (s[i] === '-') { i++; return -prim(); }
+    if (s[i] === '+') { i++; return prim(); }
+    let m = /^\d+(?:[.,]\d+)?%?/.exec(s.slice(i));
+    if (m) { i += m[0].length; const n = parseFloat(m[0].replace(',', '.')); return m[0].endsWith('%') ? n / 100 : n; }
+    m = /^[A-Z]+/.exec(s.slice(i));
+    if (m) {
+      i += m[0].length;
+      if (!(m[0] in vars)) fail('לא מכיר את ' + m[0]);
+      if (vars[m[0]] == null) fail(m[0] === 'SI' ? 'אין במטבע הזה כסף ידוע (צריך משקל, טוהר ומחיר כסף)' : m[0] === 'GO' ? 'אין במטבע הזה זהב ידוע' : 'אין ערך ל-' + m[0]);
+      return vars[m[0]];
+    }
+    fail('לא הבנתי את הנוסחה');
+  };
+  const term = () => { let v = prim(); for (;;) { ws(); const c = s[i]; if (c !== '*' && c !== '/') return v; i++; const r = prim(); v = c === '*' ? v * r : v / r; } };
+  const expr = () => { let v = term(); for (;;) { ws(); const c = s[i]; if (c !== '+' && c !== '-') return v; i++; const r = term(); v = c === '+' ? v + r : v - r; } };
+  const v = expr(); ws();
+  if (i < s.length) fail('לא הבנתי את הנוסחה');
+  if (!isFinite(v)) fail('התוצאה לא מספר');
+  return v;
+}
+// the asking price: from the formula when there is one (it follows the metal price), else the typed price
+function askOf(item) {
+  if (item.formula) { try { return Math.round(evalFormula(item.formula, formulaVars(item))); } catch (e) { /* falls back to the typed price */ } }
+  return item.ask == null || item.ask === '' ? null : Number(item.ask);
 }
 const shekel = n => n == null || n === '' || isNaN(n) ? '' : '₪' + Math.round(Number(n)).toLocaleString('he-IL');
 
@@ -1935,7 +1992,7 @@ function tradeItems() { return allItems(TRADE_ID); }
 function tradeSort(items, by) {
   const s = [...items];
   if (by === 'country') s.sort((a, b) => (a.country || '').localeCompare(b.country || '', 'he') || (Number(a.y) || 0) - (Number(b.y) || 0));
-  else if (by === 'price') s.sort((a, b) => (Number(b.ask) || 0) - (Number(a.ask) || 0) || (Number(a.y) || 0) - (Number(b.y) || 0));
+  else if (by === 'price') s.sort((a, b) => (askOf(b) || 0) - (askOf(a) || 0) || (Number(a.y) || 0) - (Number(b.y) || 0));
   else s.sort((a, b) => (Number(a.y) || 0) - (Number(b.y) || 0) || (a.title || '').localeCompare(b.title || '', 'he'));
   return s;
 }
@@ -1962,7 +2019,7 @@ function renderTradeList(view) {
   ]);
   const totals = el('div', { class: 'trade-totals' }, [
     el('span', {}, [el('b', { text: String(all.length) }), ' מטבעות']),
-    el('span', {}, ['מבוקש: ', el('b', { text: shekel(sum(it => it.ask)) || '₪0' })]),
+    el('span', {}, ['מבוקש: ', el('b', { text: shekel(sum(it => askOf(it))) || '₪0' })]),
     el('span', {}, ['שולם: ', el('b', { text: shekel(sum(it => st.owned.get(it.id)?.paid)) || '₪0' })]),
     el('span', {}, ['ערך מתכת: ', el('b', { text: shekel(sum(it => meltValue(it))) || '—' })]),
   ]);
@@ -1976,7 +2033,8 @@ function renderTradeList(view) {
         el('small', { text: [it.country, it.y, rec?.grade, status].filter(Boolean).join(' · ') }),
       ]),
       el('span', { class: 'trade-prices' }, [
-        it.ask ? el('b', { text: shekel(it.ask) }) : el('small', { text: 'בלי מחיר' }),
+        askOf(it) ? el('b', { text: shekel(askOf(it)) }) : el('small', { text: 'בלי מחיר' }),
+        it.formula ? el('small', { class: 'formula-tag', dir: 'ltr', text: 'ƒ ' + it.formula }) : null,
         rec?.paid != null && rec.paid !== '' ? el('small', { text: 'שולם ' + shekel(rec.paid) }) : null,
         melt ? el('small', { class: 'melt', text: 'מתכת ' + shekel(melt) }) : null,
       ]),
@@ -2071,13 +2129,38 @@ function openTradeForm(item, x, src) {
   const statusSel = el('select', { id: 't-st' }, TRADE_STATUS.map(([k, t]) => el('option', { value: k, text: t }))); statusSel.value = v.status || 'sale';
   const grades = el('select', { id: 't-g' }, GRADES.map(g => el('option', { value: g, text: g || 'מצב לא ידוע' }))); grades.value = rec?.grade || '';
   const note = el('textarea', { id: 't-note', rows: '2', placeholder: 'מצב, פגמים, תנאי החלפה...' }); note.value = rec?.note || '';
+  const formula = el('input', { id: 't-fx', dir: 'ltr', placeholder: 'SI*1.1', autocomplete: 'off', spellcheck: 'false' }); formula.value = v.formula || '';
+  const fxOut = el('div', { class: 'fx-out' });
+  const fxVars = () => {
+    const w = Number(weight.value) || null, f = Number(fine.value) || null, k = mkind.value, pure = w && f ? w * f : null;
+    return formulaVars({ id: item ? item.id : '', series: TRADE_ID, weight: w, fine: f, mkind: k },
+      { SI: k === 'silver' && pure && st.spot?.silver ? pure * st.spot.silver : null, GO: k === 'gold' && pure && st.spot?.gold ? pure * st.spot.gold : null,
+        PAID: paid.value === '' ? null : Number(paid.value) });
+  };
+  const showFx = () => {
+    const f = formula.value.trim();
+    ask.disabled = !!f;
+    if (!f) { fxOut.textContent = ''; fxOut.className = 'fx-out'; return; }
+    try { const r = Math.round(evalFormula(f, fxVars())); fxOut.className = 'fx-out ok'; fxOut.textContent = '= ' + shekel(r) + ' · המחיר יתעדכן לבד כשמחיר ' + (/GO|GP/i.test(f) ? 'הזהב' : 'הכסף') + ' משתנה'; ask.value = r; }
+    catch (e) { fxOut.className = 'fx-out err'; fxOut.textContent = e.message; }
+  };
+  const chip = (t, ins) => el('button', { class: 'fx-chip', type: 'button', dir: 'ltr', text: t, onclick: () => { formula.value = ins; formula.focus(); showFx(); } });
+  const fxBox = el('div', { class: 'fx-box' }, [
+    el('label', { for: 't-fx', text: 'נוסחת מחיר (לא חובה): מחיר שצמוד לערך הכסף או הזהב' }), formula, fxOut,
+    el('div', { class: 'fx-chips' }, [chip('SI×1.1', 'SI*1.1'), chip('SI+5', 'SI+5'), chip('SI×1.2+10', 'SI*1.2+10'), chip('GO×1.05', 'GO*1.05'),
+      chip('PAID×1.3', 'PAID*1.3'), el('button', { class: 'fx-chip', type: 'button', text: 'בלי נוסחה', onclick: () => { formula.value = ''; showFx(); } })]),
+    el('details', { class: 'fx-help' }, [el('summary', { text: 'מה אפשר לכתוב?' }),
+      el('dl', {}, FORMULA_VARS.flatMap(([k, t]) => [el('dt', { dir: 'ltr', text: k }), el('dd', { text: t })])),
+      el('p', { class: 'muted', text: 'פעולות: + − * / וסוגריים, ואחוזים (SI*110%). למשל: SI*1.1 · SI+5 · (SI+20)*0.9' })]),
+  ]);
+  formula.addEventListener('input', showFx);
   const meltOut = el('div', { class: 'trade-melt' });
   const showMelt = () => {
     const per = mkind.value === 'gold' ? st.spot?.gold : st.spot?.silver;
     meltOut.textContent = mkind.value && Number(weight.value) && Number(fine.value)
       ? 'ערך המתכת כרגע: ' + (per ? shekel(Number(weight.value) * Number(fine.value) * per) : 'צריך לעדכן מחיר מתכת') : '';
   };
-  [weight, fine, mkind].forEach(i => i.addEventListener('input', showMelt)); showMelt();
+  [weight, fine, mkind, paid].forEach(i => i.addEventListener('input', () => { showMelt(); showFx(); })); showMelt(); showFx();
   const msg = el('div', { class: 'msg' });
   // Photos of both sides are required. A coin moved from an album brings its own; otherwise they are taken here.
   const shots = { front: null, back: null };
@@ -2108,7 +2191,7 @@ function openTradeForm(item, x, src) {
     await ensureTradeAlbum();
     const id = item ? item.extraId : newId();
     const rx = Object.assign({}, v, { series: TRADE_ID, label: label.value.trim(), year: year.value ? Number(year.value) : null, country: country.value.trim(),
-      ask: ask.value === '' ? null : Number(ask.value), weight: weight.value === '' ? null : Number(weight.value), fine: fine.value === '' ? null : Number(fine.value),
+      ask: ask.value === '' ? null : Number(ask.value), formula: formula.value.trim(), weight: weight.value === '' ? null : Number(weight.value), fine: fine.value === '' ? null : Number(fine.value),
       mkind: mkind.value || null, status: statusSel.value, metal: v.metal || (mkind.value || 'silver') });
     await Store.put('extras', id, rx);
     const it = extraToItem(id, rx); st.extras.set(id, it);
@@ -2129,7 +2212,7 @@ function openTradeForm(item, x, src) {
     el('div', { class: 'row2' }, [el('div', { class: 'field' }, [lAsk, ask]), el('div', { class: 'field' }, [lPaid, paid])]),
     el('div', { class: 'row2' }, [el('div', { class: 'field' }, [el('label', { for: 't-st', text: 'סטטוס' }), statusSel]), el('div', { class: 'field' }, [el('label', { for: 't-g', text: 'מצב' }), grades])]),
     el('div', { class: 'row2' }, [el('div', { class: 'field' }, [el('label', { for: 't-mk', text: 'מתכת יקרה' }), mkind]), el('div', { class: 'field' }, [lW, weight])]),
-    el('div', { class: 'field' }, [lF, fine]), meltOut,
+    el('div', { class: 'field' }, [lF, fine]), meltOut, fxBox,
     el('div', { class: 'field' }, [el('label', { for: 't-note', text: 'הערות' }), note]),
     shotBox,
     el('div', { class: 'confirm' }, [save, el('button', { class: 'btn', type: 'button', text: 'ביטול', onclick: () => $('#adder').close() })]), msg);
@@ -2141,9 +2224,9 @@ function tradeSheetBlock(item) {
   const status = (TRADE_STATUS.find(s => s[0] === item.status) || TRADE_STATUS[0])[1];
   return el('div', { class: 'trade-sheet' }, [
     el('dl', { class: 'facts' }, [
-      ...[['סטטוס', status], ['מדינה', item.country], ['מחיר מבוקש', shekel(item.ask)], ['מחיר קנייה', shekel(rec?.paid)],
+      ...[['סטטוס', status], ['מדינה', item.country], ['מחיר מבוקש', shekel(askOf(item)) + (item.formula ? ' (לפי ' + item.formula + ')' : '')], ['מחיר קנייה', shekel(rec?.paid)],
         ['ערך מתכת כרגע', melt ? shekel(melt) + (item.fine ? ' (' + item.weight + ' גרם × ' + item.fine + ')' : '') : ''],
-        ['רווח מול מחיר הקנייה', item.ask && rec?.paid ? shekel(item.ask - rec.paid) : '']]
+        ['רווח מול מחיר הקנייה', askOf(item) && rec?.paid ? shekel(askOf(item) - rec.paid) : '']]
         .filter(([, v]) => v).flatMap(([k, v]) => [el('dt', { text: k }), el('dd', { text: String(v) })])]),
     el('button', { class: 'btn primary', type: 'button', text: '✎ ערוך מחיר ופרטים', onclick: () => { closeSheet(); openTradeForm(item); } }),
   ]);
@@ -2192,8 +2275,9 @@ async function buildTradeExport(opt) {
     const rec = st.owned.get(it.id) || {};
     const front = await Store.get('photos', it.id), back = await Store.get('photos', it.id + REV);
     coins.push({ t: it.title, y: it.y || '', c: it.country || '', g: rec.grade || '', n: rec.note || '', m: it.metal, d: it.diam || 25,
+      mt: it.composition || (it.mkind === 'gold' ? 'זהב' : it.mkind === 'silver' ? 'כסף' : METAL_NAME[it.metal] || ''),
       s: (TRADE_STATUS.find(s => s[0] === it.status) || TRADE_STATUS[0])[1],
-      p: opt.prices && it.ask ? Number(it.ask) : null, pd: opt.paid && rec.paid ? Number(rec.paid) : null, mv: opt.prices ? meltValue(it) : null,
+      p: opt.prices && askOf(it) ? askOf(it) : null, pd: opt.paid && rec.paid ? Number(rec.paid) : null, mv: opt.prices ? meltValue(it) : null,
       f: front ? await Photo.toDataURL(front) : '', b: back ? await Photo.toDataURL(back) : '' });
   }
   const data = JSON.stringify({ title: opt.title, contact: opt.contact, made: new Date().toLocaleDateString('he-IL'), coins }).replace(/</g, '\\u003c');
@@ -2210,6 +2294,7 @@ async function load() {
   st.extras = new Map([...extras].map(([id, x]) => [id, x]));
   await loadCollections();
   await loadSpot();
+  if (!st.spot || (st.spot.source !== 'ידני' && Date.now() - Date.parse(st.spot.at || 0) > 6 * 3600e3)) refreshSpot().then(() => render()).catch(() => {});
   st.extras = new Map([...extras].map(([id, x]) => [id, extraToItem(id, x)]));   // needs the collections for names
   for (const c of st.collections) if (c.kind === 'catalog' && CATALOGS[c.id].src) ensureCatalog(c.id).then(render);
 }

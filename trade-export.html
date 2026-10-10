@@ -180,7 +180,7 @@ footer { text-align: center; color: rgba(233,220,193,.55); font-size: 12px; padd
 <div class="bar">
   <span class="brand" id="brand"></span>
   <label class="search"><input id="q" type="search" placeholder="חיפוש: שם, שנה, מדינה…" aria-label="חיפוש מטבע"></label>
-  <div class="seg" id="sort" role="group" aria-label="מיון"><button data-s="year" aria-pressed="true">שנה</button><button data-s="country" aria-pressed="false">מדינה</button><button data-s="price" aria-pressed="false">מחיר</button></div>
+  <div class="seg" id="sort" role="group" aria-label="מיון"><button data-s="year" aria-pressed="true">שנה</button><button data-s="country" aria-pressed="false">מדינה</button><button data-s="metal" aria-pressed="false">חומר</button><button data-s="price" aria-pressed="false">מחיר</button></div>
   <div class="seg" id="mode" role="group" aria-label="תצוגה"><button data-m="book" aria-pressed="true">📖 אלבום</button><button data-m="grid" aria-pressed="false">▦ רשימה</button></div>
 </div>
 <main id="main"></main>
@@ -192,15 +192,21 @@ const COLORS = { silver: 'var(--silver)', gold: 'var(--goldc)', bronze: 'var(--b
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const money = n => n == null || n === '' ? '' : '₪' + Math.round(n).toLocaleString('he-IL');
+// the material of a coin, in words, and its place when sorting by material (precious first)
+const METAL_HE = { gold: 'זהב', silver: 'כסף', bimetal: 'דו-מתכתי', cuni: 'נחושת-ניקל', bronze: 'ברונזה', copper: 'נחושת', steel: 'פלדה', alu: 'אלומיניום' };
+const METAL_ORDER = ['gold', 'silver', 'bimetal', 'cuni', 'bronze', 'copper', 'steel', 'alu'];
+const metalOf = c => c.mt || METAL_HE[c.m] || '';
+const metalRank = c => { const k = METAL_ORDER.indexOf(c.m); return k < 0 ? 99 : k; };
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const state = { q: '', sort: 'year', mode: 'book', at: 0, open: false, busy: false };
 document.title = DATA.title; $('#brand').textContent = DATA.title;
 
 function list() {
   const q = state.q.trim().toLowerCase();
-  const out = DATA.coins.map((c, i) => Object.assign({ i }, c)).filter(c => !q || [c.t, c.y, c.c, c.n, c.s, c.g].join(' ').toLowerCase().includes(q));
+  const out = DATA.coins.map((c, i) => Object.assign({ i }, c)).filter(c => !q || [c.t, c.y, c.c, c.n, c.s, c.g, metalOf(c)].join(' ').toLowerCase().includes(q));
   const y = c => Number(String(c.y).match(/\d{3,4}/)) || 0;
   if (state.sort === 'country') out.sort((a, b) => (a.c || '').localeCompare(b.c || '', 'he') || y(a) - y(b));
+  else if (state.sort === 'metal') out.sort((a, b) => metalRank(a) - metalRank(b) || metalOf(a).localeCompare(metalOf(b), 'he') || y(a) - y(b));
   else if (state.sort === 'price') out.sort((a, b) => (b.p || 0) - (a.p || 0) || y(a) - y(b));
   else out.sort((a, b) => y(a) - y(b) || a.t.localeCompare(b.t, 'he'));
   return out;
@@ -217,7 +223,9 @@ const pocket = c => '<div class="pocket" data-i="' + c.i + '" role="button" tabi
 const single = () => innerWidth < 760;
 const perPage = () => single() ? 6 : 9;
 function headOf(items) {
-  if (state.sort === 'country') { const cs = [...new Set(items.map(c => c.c).filter(Boolean))]; return cs.slice(0, 2).join(' · ') + (cs.length > 2 ? '…' : ''); }
+  const names = f => { const cs = [...new Set(items.map(f).filter(Boolean))]; return cs.slice(0, 2).join(' · ') + (cs.length > 2 ? '…' : ''); };
+  if (state.sort === 'country') return names(c => c.c);
+  if (state.sort === 'metal') return names(c => METAL_HE[c.m] || c.mt);
   const ys = items.map(c => Number(String(c.y).match(/\d{3,4}/))).filter(Boolean);
   if (!ys.length) return '';
   const a = Math.min(...ys), b = Math.max(...ys); return a === b ? String(a) : a + '–' + b;
@@ -353,7 +361,7 @@ function draw() {
 /* ---------- the coin card ---------- */
 function openCoin(i) {
   const c = DATA.coins[i]; if (!c) return;
-  const rows = [['שנה', c.y], ['מדינה', c.c], ['מצב', c.g], ['סטטוס', c.s], ['שולם', money(c.pd)], ['ערך המתכת', money(c.mv)], ['הערות', c.n]]
+  const rows = [['שנה', c.y], ['מדינה', c.c], ['חומר', metalOf(c)], ['מצב', c.g], ['סטטוס', c.s], ['שולם', money(c.pd)], ['ערך המתכת', money(c.mv)], ['הערות', c.n]]
     .filter(r => r[1]).map(r => '<dt>' + r[0] + '</dt><dd>' + esc(r[1]) + '</dd>').join('');
   $('#m').innerHTML = '<div class="m-top"><button class="m-x" aria-label="סגור" id="mx">✕</button>' +
     '<button class="flip" id="flip" aria-label="הפוך את המטבע"><span class="flip-in">' + disc(c, 'f') + disc(c, 'b', 'rev') + '</span></button>' +

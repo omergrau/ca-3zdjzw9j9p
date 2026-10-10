@@ -900,3 +900,17 @@ body[data-page="home"] .toolbar, body[data-page="shelf"] .toolbar, .hero-stats {
 .recent-coin .slot { width: 56px; height: 56px; }
 .recent-coin small { font-size: 11px; line-height: 1.2; }
 .home-go { margin: 20px 0 6px; display: flex; justify-content: center; }
+
+/* price formula (trade album) */
+.fx-box { display: grid; gap: 8px; padding: 12px; border-radius: 14px; background: var(--paper, #f6efe1); border: 1px solid var(--line); }
+.fx-box label { font-weight: 700; font-size: 14px; }
+.fx-box input { font: 600 17px ui-monospace, Consolas, monospace; text-align: left; letter-spacing: .03em; }
+.fx-out { font-weight: 700; font-size: 15px; min-height: 1.2em; }
+.fx-out.ok { color: #2f7a3a; } .fx-out.err { color: #b3261e; font-weight: 600; font-size: 13px; }
+.fx-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.fx-chip { border: 1px solid var(--line); background: var(--paper-2, #ece2cc); color: var(--ink); border-radius: 999px; padding: 5px 11px; font: 600 13px ui-monospace, Consolas, monospace; cursor: pointer; }
+.fx-chip:active { transform: scale(.96); }
+.fx-help summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+.fx-help dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 8px 0; font-size: 13px; }
+.fx-help dt { font: 700 13px ui-monospace, Consolas, monospace; } .fx-help dd { margin: 0; }
+.formula-tag { font-family: ui-monospace, Consolas, monospace; opacity: .8; }
