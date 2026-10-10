@@ -995,6 +995,7 @@ function openSheet(id, msg) {
   );
   const msgEl = el('div', { class: 'msg' + (msg ? ' ok' : ''), text: msg || '' });
   const save = el('button', { class: 'btn ' + (rec ? 'primary' : 'accent'), type: 'submit', text: rec ? 'שמור שינויים' : '+ הכנס לאלבום' });
+  if (!rec && !hasBothPhotos(id)) { save.disabled = true; save.title = NEED_PHOTOS; }
 
   const left = el('div', { class: 'confirm' });
   if (rec) {
@@ -1007,7 +1008,10 @@ function openSheet(id, msg) {
     });
     left.append(rm);
   }
-  f.append(el('div', { class: 'actions' }, [el('div', { class: 'confirm' }, [save]), left]), msgEl);
+  if (!rec && item.custom) left.append(el('button', { class: 'btn danger', type: 'button', text: 'מחק את המטבע', onclick: async () => {
+    await Store.del('extras', item.extraId); st.extras.delete(item.extraId); await deletePhotos(item.id); closeSheet(); render(); toast('המטבע נמחק'); } }));
+  f.append(el('div', { class: 'actions' }, [el('div', { class: 'confirm' }, [save]), left]),
+    !rec && !hasBothPhotos(id) ? el('p', { class: 'need-photos', text: '📷 ' + NEED_PHOTOS }) : null, msgEl);
   f.addEventListener('submit', e => {
     e.preventDefault();
     saveOwned(item, { grade, paid: paid.value, acquired: date.value, note: note.value.trim() }, msgEl, save);
@@ -1022,7 +1026,11 @@ function openSheet(id, msg) {
   }
 }
 
+// A coin enters any album only with a photo of both sides (the owner's rule): the front and the back.
+const hasBothPhotos = id => !!(st.photos.get(id) && st.photos.get(id + REV));
+const NEED_PHOTOS = 'כדי להכניס מטבע לאוסף צריך תמונה של שני הצדדים: קדמי ואחורי. צלם או העלה אותן למטה.';
 async function saveOwned(item, v, msgEl, btn) {
+  if (!st.owned.has(item.id) && !hasBothPhotos(item.id)) { msgEl.className = 'msg err'; msgEl.textContent = NEED_PHOTOS; return; }
   const n = v.paid === '' ? null : Number(v.paid);
   if (n !== null && (!isFinite(n) || n < 0)) { msgEl.className = 'msg err'; msgEl.textContent = 'הסכום צריך להיות מספר חיובי.'; return; }
   const rec = { series: item.series, grade: v.grade, paid: n, acquired: v.acquired, note: v.note, updatedAt: nowIso() };
@@ -1057,7 +1065,7 @@ async function deletePhotos(id) {
 }
 function photoSection(item) {
   const own = st.owned.has(item.id);
-  const front = own && st.photos.get(item.id), back = own && st.photos.get(item.id + REV);
+  const front = st.photos.get(item.id), back = st.photos.get(item.id + REV);   // photos come first: a coin enters the album only with both
   const camIn = el('input', { type: 'file', accept: 'image/*', capture: 'environment', hidden: true });
   const galIn = el('input', { type: 'file', accept: 'image/*', hidden: true });
   let mode = 'both';
@@ -1188,8 +1196,9 @@ async function takePhotos(item, firstFile, mode) {
   try {
     if (front) await saveCoinPhoto(item, 'front', front);
     if (back) await saveCoinPhoto(item, 'back', back);
-    const isNew = await ensureOwnedForPhoto(item);
-    render(); openSheet(item.id, isNew ? 'התמונות נשמרו והמטבע נכנס לאלבום.' : 'התמונה נשמרה.');
+    const isNew = hasBothPhotos(item.id) ? await ensureOwnedForPhoto(item) : false;
+    render(); openSheet(item.id, isNew ? 'התמונות נשמרו והמטבע נכנס לאלבום.'
+      : (st.owned.has(item.id) ? 'התמונה נשמרה.' : 'התמונה נשמרה. צריך גם את הצד השני כדי שהמטבע ייכנס לאלבום.'));
   } catch (e) { toast('שמירת התמונות נכשלה. ייתכן שהזיכרון בטלפון מלא.'); }
 }
 
@@ -1436,10 +1445,8 @@ function openAdder() {
       const id = newId();
       const x = { series: seriesSel.value, label: label.value.trim(), year: year.value ? Number(year.value) : null, metal: metal.value, diam: diam.value ? Number(diam.value) : null };
       await Store.put('extras', id, x);
-      const item = extraToItem(id, x); st.extras.set(id, item);
-      const rec = { series: x.series, grade: '', paid: null, acquired: '', note: '', updatedAt: nowIso() };
-      await Store.put('owned', item.id, rec); st.owned.set(item.id, rec);
-      $('#adder').close(); st.tab = x.series; render(); openSheet(item.id, 'נוסף לאוסף. אפשר להשלים פרטים.');
+      const item = extraToItem(id, x); st.extras.set(id, item);   // it enters the collection once both sides are photographed
+      $('#adder').close(); st.tab = x.series; render(); openSheet(item.id, 'עכשיו צלם את שני הצדדים (קדמי ואחורי), והמטבע ייכנס לאוסף.');
     } catch (e) { addCustom.disabled = false; msg2.className = 'msg err'; msg2.textContent = 'ההוספה נכשלה. נסה שוב.'; }
   });
   body.append(el('div', { class: 'field' }, [el('label', { for: 'a-label', text: 'שם' }), label]),
@@ -1935,9 +1942,31 @@ function openTradeForm(item, x, src) {
   };
   [weight, fine, mkind].forEach(i => i.addEventListener('input', showMelt)); showMelt();
   const msg = el('div', { class: 'msg' });
+  // Photos of both sides are required. A coin moved from an album brings its own; otherwise they are taken here.
+  const shots = { front: null, back: null };
+  const srcHas = src && hasBothPhotos(src.id);
+  const shotBox = el('div', { class: 'trade-shots' });
+  const drawShots = () => {
+    shotBox.textContent = '';
+    if (item || srcHas) { shotBox.append(el('p', { class: 'muted', text: item ? '' : '📷 התמונות של המטבע יעברו איתו לאלבום המכירה.' })); return; }
+    for (const [side, t] of [['front', 'צד קדמי'], ['back', 'צד אחורי']]) {
+      const input = el('input', { type: 'file', accept: 'image/*', hidden: true });
+      input.addEventListener('change', async () => {
+        const f = input.files && input.files[0]; input.value = ''; if (!f) return;
+        try { const r = await Photo.crop(f, $('#cropper'), $('#cropperBody'), el, 'עריכת ה' + t); if (r) shots[side] = r; } catch (e) { toast('לא הצלחתי לפתוח את התמונה.'); }
+        drawShots();
+      });
+      const url = shots[side] ? URL.createObjectURL(shots[side].photo) : '';
+      shotBox.append(el('div', { class: 'trade-shot' }, [input,
+        url ? el('img', { src: url, alt: t }) : el('span', { class: 'ph-missing', text: '?' }),
+        el('button', { class: 'btn small' + (url ? '' : ' accent'), type: 'button', text: (url ? '↻ ' : '📷 ') + t, onclick: () => input.click() })]));
+    }
+  };
+  drawShots();
   const save = el('button', { class: 'btn primary', type: 'button', text: item ? 'שמור' : '+ הוסף לאלבום המכירה' });
   save.addEventListener('click', async () => {
     if (!label.value.trim()) { msg.className = 'msg err'; msg.textContent = 'כתוב שם למטבע.'; return; }
+    if (!item && !srcHas && !(shots.front && shots.back)) { msg.className = 'msg err'; msg.textContent = 'צריך תמונה של שני הצדדים (קדמי ואחורי) כדי להוסיף מטבע.'; return; }
     save.disabled = true;
     await ensureTradeAlbum();
     const id = item ? item.extraId : newId();
@@ -1946,12 +1975,13 @@ function openTradeForm(item, x, src) {
       mkind: mkind.value || null, status: statusSel.value, metal: v.metal || (mkind.value || 'silver') });
     await Store.put('extras', id, rx);
     const it = extraToItem(id, rx); st.extras.set(id, it);
-    const r = Object.assign({}, st.owned.get(it.id) || { series: TRADE_ID, acquired: '' }, { grade: grades.value, paid: paid.value === '' ? null : Number(paid.value), note: note.value.trim(), updatedAt: nowIso() });
-    await Store.put('owned', it.id, r); st.owned.set(it.id, r);
-    if (src && !item) for (const side of ['', REV]) {   // bring the photos along
+    if (srcHas && !item) for (const side of ['', REV]) {   // bring the photos along
       const blob = await Store.get('photos', src.id + side);
       if (blob) { await Store.put('photos', it.id + side, blob); setPhotoUrl(it.id + side, blob); }
     }
+    for (const side of ['front', 'back']) if (shots[side]) await saveCoinPhoto(it, side, shots[side]);
+    const r = Object.assign({}, st.owned.get(it.id) || { series: TRADE_ID, acquired: '' }, { grade: grades.value, paid: paid.value === '' ? null : Number(paid.value), note: note.value.trim(), updatedAt: nowIso() });
+    await Store.put('owned', it.id, r); st.owned.set(it.id, r);
     $('#adder').close();
     st.tab = TRADE_ID; try { localStorage.setItem('album.tab', TRADE_ID); } catch (e) {}
     render(); toast(item ? 'נשמר' : 'נוסף לאלבום המכירה / ההחלפה');
@@ -1964,6 +1994,7 @@ function openTradeForm(item, x, src) {
     el('div', { class: 'row2' }, [el('div', { class: 'field' }, [el('label', { for: 't-mk', text: 'מתכת יקרה' }), mkind]), el('div', { class: 'field' }, [lW, weight])]),
     el('div', { class: 'field' }, [lF, fine]), meltOut,
     el('div', { class: 'field' }, [el('label', { for: 't-note', text: 'הערות' }), note]),
+    shotBox,
     el('div', { class: 'confirm' }, [save, el('button', { class: 'btn', type: 'button', text: 'ביטול', onclick: () => $('#adder').close() })]), msg);
   if (!$('#adder').open) $('#adder').showModal();
 }

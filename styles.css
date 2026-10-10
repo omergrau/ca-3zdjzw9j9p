@@ -850,3 +850,7 @@ body[data-series="file"] { --velvet: var(--file-velvet); --velvet-2: var(--file-
 .trade-sheet { margin: 6px 0 10px; display: grid; gap: 8px; justify-items: start; }
 .trade-move { margin: 8px 0; }
 label.check { display: flex; gap: 8px; align-items: center; margin: 6px 0; }
+.need-photos { font-size: 13px; color: #9a5a12; background: #fbf0d8; border-radius: 10px; padding: 8px 10px; margin: 8px 0 0; }
+.trade-shots { display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0; }
+.trade-shot { display: grid; justify-items: center; gap: 6px; }
+.trade-shot img, .trade-shot .ph-missing { width: 84px; height: 84px; border-radius: 50%; object-fit: cover; }
