@@ -4,171 +4,383 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>__TITLE__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Assistant:wght@400;600;700&display=swap">
 <style>
-:root { --bg: #2a1d16; --velvet: #3b2a20; --paper: #f6efe1; --paper2: #ece2cc; --ink: #2b2118; --dim: #7a6a55; --gold: #c9a24a; --line: #d9ccb0;
-  --silver: #c9ccd1; --bronze: #b0773f; --copper: #b8693e; --cuni: #b9bdb6; --steel: #9aa1a8; --alu: #d8dcdf; --bimetal: #c9a24a; --goldc: #d9b44a; }
-* { box-sizing: border-box; }
-html, body { margin: 0; background: radial-gradient(circle at 50% 0, #4a3527, var(--bg) 70%); color: var(--ink); font-family: "Segoe UI", Arial, sans-serif; min-height: 100%; }
-header { color: #f3e6c8; text-align: center; padding: 22px 16px 8px; }
-header h1 { margin: 0 0 4px; font-size: clamp(22px, 5vw, 34px); font-family: Georgia, "David", serif; color: var(--gold); letter-spacing: .02em; }
-header p { margin: 2px 0; color: #d6c6a6; font-size: 14px; }
-.bar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center; padding: 10px 16px; position: sticky; top: 0; z-index: 5; background: rgba(42,29,22,.92); backdrop-filter: blur(6px); }
-.bar input { flex: 1 1 220px; max-width: 360px; padding: 10px 14px; border-radius: 999px; border: 1px solid #6b5443; background: #f9f3e6; font-size: 15px; }
-.seg { display: inline-flex; border: 1px solid #6b5443; border-radius: 999px; overflow: hidden; }
-.seg button { border: 0; background: transparent; color: #e9dcc1; padding: 8px 12px; font-size: 14px; cursor: pointer; }
-.seg button[aria-pressed="true"] { background: var(--gold); color: #2b2118; font-weight: 700; }
-main { padding: 12px 16px 40px; max-width: 1180px; margin: 0 auto; }
-/* the book */
-.stage { perspective: 2200px; display: flex; justify-content: center; margin-top: 8px; }
-.book { position: relative; display: flex; flex-direction: row; gap: 0; filter: drop-shadow(0 18px 30px rgba(0,0,0,.45)); }
-.page { width: min(46vw, 520px); aspect-ratio: 3 / 4; background: linear-gradient(90deg, var(--paper2), var(--paper) 8%, var(--paper) 92%, var(--paper2)); border: 1px solid var(--line);
-  padding: 18px 16px 30px; position: relative; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 10px; }
-.page.right { border-radius: 4px 0 0 4px; }  .page.left { border-radius: 0 4px 4px 0; }
-.page .pno { position: absolute; bottom: 8px; inset-inline: 0; text-align: center; font-size: 12px; color: var(--dim); }
-.page.blank { display: flex; align-items: center; justify-content: center; color: var(--dim); font-family: Georgia, serif; font-size: 18px; }
-.single .page { width: min(92vw, 520px); }
-.leaf { position: absolute; top: 0; width: 50%; height: 100%; transform-style: preserve-3d; transition: transform .7s cubic-bezier(.3,.1,.2,1); z-index: 3; }
-.leaf > .page { position: absolute; inset: 0; width: 100%; backface-visibility: hidden; }
-.leaf > .page.back { transform: rotateY(180deg); }
+:root {
+  --table: #1c130e; --table-2: #3a2619;
+  --leather: #5b1620; --leather-2: #7a2430; --leather-3: #3e0d14; --foil: #e3c06a; --foil-dim: rgba(227,192,106,.45);
+  --paper: #f7f0e1; --paper-2: #ebdfc6; --paper-edge: #d9c9a6; --ink: #2b2118; --dim: #7d6b54;
+  --pocket: #e6dac0; --pocket-2: #d8c8a7;
+  --silver: #c9ccd1; --bronze: #b0773f; --copper: #b8693e; --cuni: #b9bdb6; --steel: #9aa1a8; --alu: #d8dcdf; --bimetal: #c9a24a; --goldc: #d9b44a;
+  --f-display: "Frank Ruhl Libre", "David", Georgia, serif; --f-body: "Assistant", "Segoe UI", Arial, sans-serif;
+  --pw: min(44vw, 430px, (100vh - 210px) * .75);
+}
+[hidden] { display: none !important; }
+.stage.single { --pw: min(92vw, 470px, (100vh - 200px) * .75); --pw: min(92vw, 470px, (100dvh - 200px) * .75); }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; min-height: 100%; overflow-x: hidden; overflow-x: clip; }
+main { overflow-x: clip; }
+body { color: #f3e6c8; font-family: var(--f-body);
+  background: radial-gradient(ellipse at 50% -10%, #5a3d29 0, var(--table-2) 35%, var(--table) 80%) fixed, var(--table); }
+button { font: inherit; }
+
+/* top bar: search, sort, view */
+.bar { position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center;
+  padding: 10px 16px; padding-top: max(10px, env(safe-area-inset-top)); background: rgba(28,19,14,.86); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(227,192,106,.18); }
+.brand { font-family: var(--f-display); font-weight: 900; color: var(--foil); font-size: 18px; margin-inline-end: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40vw; }
+.search { flex: 1 1 200px; max-width: 320px; position: relative; }
+.search input { width: 100%; padding: 9px 36px 9px 14px; border-radius: 999px; border: 1px solid rgba(227,192,106,.35); background: rgba(255,248,232,.95); color: var(--ink); font: 15px var(--f-body); }
+.search::before { content: '⌕'; position: absolute; right: 13px; top: 50%; transform: translateY(-52%); color: var(--dim); font-size: 18px; pointer-events: none; }
+.seg { display: inline-flex; border: 1px solid rgba(227,192,106,.35); border-radius: 999px; overflow: hidden; }
+.seg button { border: 0; background: transparent; color: #e9dcc1; padding: 7px 12px; font-size: 14px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--foil); color: #2b1a10; font-weight: 700; }
+@media (max-width: 640px) { .brand { display: none; } .search { flex-basis: 100%; max-width: none; } }
+
+main { padding: 18px 12px 40px; max-width: 1100px; margin: 0 auto; }
+
+/* ---------- the book ---------- */
+.stage { display: flex; justify-content: center; perspective: 2400px; touch-action: pan-y; user-select: none; -webkit-user-select: none; padding: 6px 0 4px; }
+.book { position: relative; display: flex; width: calc(var(--pw) * 2); aspect-ratio: 1.5; transition: transform .8s cubic-bezier(.3,.1,.2,1); transform-style: preserve-3d; }
+.single .book { width: var(--pw); aspect-ratio: .75; }
+.book.closed { transform: translateX(25%); }
+.single .book.closed { transform: none; }
+.pg { position: relative; width: var(--pw); height: 100%; overflow: hidden; color: var(--ink);
+  background:
+    radial-gradient(circle at 20% 15%, rgba(255,255,255,.55), transparent 55%),
+    repeating-linear-gradient(0deg, rgba(120,90,50,.025) 0 2px, transparent 2px 4px),
+    var(--paper);
+  box-shadow: 0 18px 40px rgba(0,0,0,.45), 0 0 0 1px var(--paper-edge); }
+/* the right page meets the spine on its left, the left page on its right */
+.pg.r { border-radius: 4px 10px 10px 4px; }
+.pg.l { border-radius: 10px 4px 4px 10px; }
+.pg.r::after, .pg.l::after { content: ''; position: absolute; top: 0; bottom: 0; width: 34px; pointer-events: none; }
+.pg.r::after { left: 0; background: linear-gradient(90deg, rgba(60,40,20,.28), transparent); }
+.pg.l::after { right: 0; background: linear-gradient(270deg, rgba(60,40,20,.28), transparent); }
+.single .pg { border-radius: 4px 10px 10px 4px; }
+.single .pg.r::after, .single .pg.l::after { left: auto; right: 0; background: linear-gradient(270deg, rgba(60,40,20,.28), transparent); }
+.pg-in { position: absolute; inset: 0; padding: 5.5% 6% 9%; display: flex; flex-direction: column; container-type: inline-size; }
+.pg-head { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--paper-edge); padding-bottom: 4px; margin-bottom: 4%;
+  font: 700 clamp(10px, 3.2cqw, 14px) var(--f-display); color: var(--dim); letter-spacing: .02em; }
+.pg-no { position: absolute; bottom: 3.2%; inset-inline: 0; text-align: center; font: 600 clamp(10px, 3cqw, 13px) var(--f-display); color: var(--dim); }
+.pockets { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 3.2cqw; min-height: 0; }
+.single .pockets { grid-template-columns: repeat(2, 1fr); }
+.single .pocket b { font-size: clamp(12px, 4.4cqw, 16px); } .single .pocket small { font-size: clamp(11px, 3.6cqw, 13px); } .single .tag { font-size: clamp(12px, 3.8cqw, 14px); }
+
+/* a coin pocket: a clear plastic sleeve on a card */
+.pocket { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.2cqw; min-width: 0; min-height: 0;
+  padding: 2.2cqw 1.6cqw; border-radius: 2.4cqw; cursor: pointer; text-align: center;
+  background: linear-gradient(180deg, var(--pocket), var(--pocket-2)); box-shadow: inset 0 1px 3px rgba(80,55,25,.35), inset 0 -1px 0 rgba(255,255,255,.6); }
+.pocket::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(115deg, rgba(255,255,255,.55) 0 18%, transparent 30% 62%, rgba(255,255,255,.22) 70%, transparent 82%); }
+.pocket > * { flex-shrink: 0; }
+.pockets .disc { width: auto; height: 50%; max-width: 78%; }
+.pocket:hover .disc, .pocket:focus-visible .disc { transform: scale(1.05); }
+.pocket:focus-visible { outline: 2px solid var(--foil); outline-offset: 2px; }
+.disc { width: min(64%, 24cqw); aspect-ratio: 1; flex: none; border-radius: 50%; overflow: hidden; display: grid; place-items: center;
+  background: radial-gradient(circle at 34% 28%, rgba(255,255,255,.7), transparent 42%), var(--c, var(--silver));
+  box-shadow: 0 3px 7px rgba(40,25,10,.4), inset 0 0 0 2px rgba(0,0,0,.08); transition: transform .2s;
+  font: 700 4cqw var(--f-display); color: #3b2e22; }
+.disc img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pocket b { font: 700 clamp(11px, 3.4cqw, 15px)/1.15 var(--f-display); max-width: 100%; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.pocket small { font-size: clamp(10px, 2.7cqw, 12px); color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.tag { font: 700 clamp(11px, 3cqw, 13px) var(--f-body); color: #5a3208; background: linear-gradient(180deg, #f7df99, #e9c165); border-radius: 999px; padding: .1em .7em; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.tag.st { background: #e9e1cf; color: #5c4b36; font-weight: 600; }
+
+/* title page and end page */
+.endpaper .pg-in { justify-content: center; align-items: center; text-align: center; gap: 3cqw;
+  background: radial-gradient(circle at 50% 40%, rgba(255,255,255,.5), transparent 60%); }
+.endpaper h1 { margin: 0; font: 900 clamp(20px, 9cqw, 42px)/1.1 var(--f-display); color: var(--leather-2); }
+.endpaper p { margin: 0; font-size: clamp(11px, 3.6cqw, 16px); color: var(--dim); }
+.endpaper .orn { font-size: 7cqw; color: var(--foil); letter-spacing: .3em; }
+.endpaper .contact { font-weight: 700; color: var(--ink); font-size: clamp(12px, 4cqw, 17px); }
+.hint { font-size: clamp(10px, 3cqw, 13px); color: var(--dim); border: 1px dashed var(--paper-edge); border-radius: 10px; padding: 2cqw 4cqw; }
+
+/* the leather cover */
+.cover { position: absolute; top: 0; left: 0; width: var(--pw); height: 100%; z-index: 6; cursor: pointer; border: 0; padding: 7%;
+  transform-origin: right center; transform-style: preserve-3d; transition: transform 1s cubic-bezier(.35,.05,.2,1); }
+.single .cover { width: 100%; }
+.cover-face, .cover-back { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 10px 4px 4px 10px; }
+.cover-face { padding: 8%; display: grid; container-type: inline-size;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,.12), transparent 50%),
+    repeating-radial-gradient(circle at 40% 60%, rgba(0,0,0,.06) 0 1px, transparent 1px 3px),
+    linear-gradient(160deg, var(--leather-2), var(--leather) 60%, var(--leather-3));
+  box-shadow: inset -10px 0 18px rgba(0,0,0,.35), inset 0 0 0 2px rgba(0,0,0,.25), 0 22px 50px rgba(0,0,0,.55); }
+.cover-face::before { content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 7%; background: linear-gradient(90deg, rgba(0,0,0,.25), rgba(255,255,255,.08) 40%, rgba(0,0,0,.3)); border-radius: 0 4px 4px 0; }
+.cover-frame { border: 2px solid var(--foil-dim); outline: 1px solid rgba(227,192,106,.3); outline-offset: 2.4cqw; border-radius: 4px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 4cqw; padding: 6cqw; color: #f6e7dc; }
+.cover-kicker { font: 700 3.6cqw var(--f-body); letter-spacing: .35em; color: var(--foil); opacity: .85; }
+.cover-emblem { width: 30cqw; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; font: 900 12cqw var(--f-display); color: #5a3a10;
+  background: radial-gradient(circle at 35% 30%, #fff3c4, #e3c06a 45%, #a9822e 100%); box-shadow: 0 4px 10px rgba(0,0,0,.45), inset 0 0 0 1.4cqw rgba(120,85,25,.35); }
+.cover-name { font: 900 clamp(22px, 11cqw, 52px)/1.08 var(--f-display); color: var(--foil); text-shadow: 0 1px 0 rgba(0,0,0,.5), 0 -1px 0 rgba(255,240,200,.15); }
+.cover-sub { font-size: 4cqw; color: rgba(246,231,220,.8); }
+.cover-open { margin-top: 2cqw; font: 700 4cqw var(--f-body); color: #2b1a10; background: var(--foil); border-radius: 999px; padding: 1.6cqw 6cqw; box-shadow: 0 3px 8px rgba(0,0,0,.35); }
+.cover-back { transform: rotateY(180deg); background: linear-gradient(160deg, #8e6a4a, #6b4b32); box-shadow: inset 0 0 0 6px rgba(0,0,0,.12); border-radius: 4px 10px 10px 4px; }
+.book.opening .cover { transform: rotateY(180deg); }
+/* closed: only the cover shows; the inside of the cover carries the title page and lands on the right as it opens */
+.book:not(.open) > .pg.r { visibility: hidden; }
+.single .book:not(.open) > .pg.r { visibility: visible; }
+.cover-back > .pg { position: absolute; inset: 0; width: 100%; }
+.book.open .cover { display: none; }
+
+/* a turning leaf */
+.leaf { position: absolute; top: 0; height: 100%; width: var(--pw); z-index: 5; transform-style: preserve-3d; transition: transform .75s cubic-bezier(.3,.1,.2,1); }
 .single .leaf { width: 100%; }
-.nav { display: flex; justify-content: center; gap: 14px; margin: 16px 0 4px; color: #e9dcc1; align-items: center; }
-.nav button { background: var(--gold); color: #2b2118; border: 0; border-radius: 999px; padding: 9px 18px; font-size: 15px; font-weight: 700; cursor: pointer; }
-.nav button:disabled { opacity: .35; cursor: default; }
-/* a coin pocket */
-.pocket { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center; cursor: pointer; border-radius: 8px; padding: 4px; background: rgba(255,255,255,.35); border: 1px dashed #d8c9a8; min-width: 0; }
-.pocket:hover { background: rgba(255,255,255,.7); }
-.disc { width: 62%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff8, transparent 45%), var(--c, var(--silver)); box-shadow: inset 0 0 0 3px rgba(0,0,0,.12), 0 2px 5px rgba(0,0,0,.25);
-  display: flex; align-items: center; justify-content: center; font-weight: 700; color: #3b2e22; font-size: 13px; overflow: hidden; }
-.disc img { width: 100%; height: 100%; object-fit: cover; }
-.pocket b { font-size: 12px; line-height: 1.2; max-width: 100%; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.pocket small { font-size: 11px; color: var(--dim); }
-.price { font-size: 12px; font-weight: 700; color: #6b3d0c; background: #f3d98f; border-radius: 999px; padding: 1px 8px; }
-/* grid view */
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
-.grid .pocket { background: var(--paper); border: 1px solid var(--line); padding: 12px 8px; border-radius: 12px; }
-.grid .disc { width: 70%; }
-.empty { color: #e9dcc1; text-align: center; padding: 40px; }
-/* coin modal */
-dialog { border: 0; border-radius: 16px; padding: 0; width: min(560px, 94vw); background: var(--paper); color: var(--ink); }
-dialog::backdrop { background: rgba(0,0,0,.6); }
-.m-in { padding: 18px; }
-.m-photos { display: flex; gap: 10px; justify-content: center; margin-bottom: 12px; }
-.m-photos .disc { width: min(42vw, 200px); font-size: 22px; }
-.m-in h2 { margin: 0 0 6px; font-family: Georgia, "David", serif; }
-dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 10px 0; }
-dt { color: var(--dim); } dd { margin: 0; font-weight: 600; }
-.m-x { float: left; border: 0; background: #e4d8bd; border-radius: 50%; width: 34px; height: 34px; font-size: 18px; cursor: pointer; }
-footer { text-align: center; color: #bfae8c; font-size: 12px; padding: 16px; }
-@media (max-width: 760px) { .page { padding: 12px 10px 26px; gap: 6px; } .pocket b { font-size: 11px; } }
-@media (prefers-reduced-motion: reduce) { .leaf { transition: none; } }
+.leaf > .pg { position: absolute; inset: 0; width: 100%; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.leaf > .pg.back { transform: rotateY(180deg); }
+.leaf > .pg.verso { background: linear-gradient(90deg, var(--paper-2), var(--paper)); }
+.leaf .shade { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, rgba(0,0,0,.25), transparent 60%); opacity: 0; transition: opacity .75s; backface-visibility: hidden; z-index: 2; }
+.leaf.go .shade { opacity: 1; }
+
+/* page controls */
+.nav { display: flex; justify-content: center; align-items: center; gap: 16px; margin: 18px 0 2px; }
+.nav button { width: 48px; height: 48px; border-radius: 50%; border: 1px solid rgba(227,192,106,.5); background: rgba(227,192,106,.12); color: var(--foil); font-size: 22px; cursor: pointer; display: grid; place-items: center; }
+.nav button:hover:not(:disabled) { background: var(--foil); color: #2b1a10; }
+.nav button:disabled { opacity: .25; cursor: default; }
+.nav .ind { min-width: 110px; text-align: center; color: #e9dcc1; font-size: 14px; }
+.swipe-hint { text-align: center; color: rgba(233,220,193,.6); font-size: 13px; margin: 6px 0 0; }
+
+/* list view */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+.grid .pocket { container-type: inline-size; background: linear-gradient(180deg, var(--paper), var(--paper-2)); color: var(--ink); padding: 16px 10px 14px; border-radius: 14px; gap: 6px; box-shadow: 0 6px 16px rgba(0,0,0,.35); }
+.grid .disc { width: 72%; height: auto; font-size: 18px; }
+.grid .pocket b { font-size: 15px; } .grid .pocket small { font-size: 12px; } .grid .tag { font-size: 13px; }
+.empty { color: #e9dcc1; text-align: center; padding: 48px 16px; font-size: 17px; }
+
+/* the coin card */
+dialog { border: 0; border-radius: 20px; padding: 0; width: min(520px, 94vw); max-height: 92dvh; overflow-y: auto; overscroll-behavior: contain;
+  background: var(--paper); color: var(--ink); box-shadow: 0 30px 80px rgba(0,0,0,.6); }
+dialog[open] { animation: rise .25s ease-out; }
+@keyframes rise { from { transform: translateY(16px); opacity: 0; } }
+dialog::backdrop { background: rgba(10,6,4,.7); backdrop-filter: blur(3px); }
+.m-top { position: relative; padding: 26px 20px 18px; text-align: center; color: #f6e7dc; border-radius: 20px 20px 0 0;
+  background: linear-gradient(160deg, var(--leather-2), var(--leather) 60%, var(--leather-3)); }
+.m-x { position: absolute; top: 12px; left: 12px; width: 36px; height: 36px; border-radius: 50%; border: 0; background: rgba(255,255,255,.14); color: #fff; font-size: 18px; cursor: pointer; }
+.flip { width: min(62vw, 250px); aspect-ratio: 1; margin: 0 auto; perspective: 900px; cursor: pointer; border: 0; padding: 0; background: none; display: block; }
+.flip-in { display: block; position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .7s cubic-bezier(.3,.1,.2,1); }
+.flip.turned .flip-in { transform: rotateY(180deg); }
+.flip .disc { position: absolute; inset: 0; width: 100%; backface-visibility: hidden; -webkit-backface-visibility: hidden; box-shadow: 0 10px 26px rgba(0,0,0,.55); font-size: 30px; }
+.flip .disc.rev { transform: rotateY(180deg); }
+.flip-hint { margin: 10px 0 0; font-size: 13px; color: rgba(246,231,220,.75); }
+.m-body { padding: 18px 22px 22px; }
+.m-body h2 { margin: 0 0 4px; font: 900 26px/1.15 var(--f-display); }
+.m-body .m-sub { color: var(--dim); margin: 0 0 12px; }
+.m-price { display: inline-block; font: 900 22px var(--f-display); color: #5a3208; background: linear-gradient(180deg, #f7df99, #e9c165); border-radius: 12px; padding: 4px 14px; margin-bottom: 12px; }
+dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; margin: 0; }
+dt { color: var(--dim); } dd { margin: 0; font-weight: 700; }
+.m-contact { margin-top: 16px; padding: 12px 14px; border-radius: 12px; background: var(--paper-2); font-weight: 600; }
+
+footer { text-align: center; color: rgba(233,220,193,.55); font-size: 12px; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); }
+@media (prefers-reduced-motion: reduce) { .leaf, .cover, .flip-in, .book { transition: none !important; } }
 </style>
 </head>
 <body>
-<header><h1 id="h"></h1><p id="sub"></p><p id="contact"></p></header>
 <div class="bar">
-  <input id="q" type="search" placeholder="חיפוש: שם, שנה, מדינה..." aria-label="חיפוש">
-  <div class="seg" id="sort"><button data-s="year" aria-pressed="true">שנה</button><button data-s="country">מדינה</button><button data-s="price">מחיר</button></div>
-  <div class="seg" id="mode"><button data-m="book" aria-pressed="true">📖 אלבום</button><button data-m="grid">▦ רשימה</button></div>
+  <span class="brand" id="brand"></span>
+  <label class="search"><input id="q" type="search" placeholder="חיפוש: שם, שנה, מדינה…" aria-label="חיפוש מטבע"></label>
+  <div class="seg" id="sort" role="group" aria-label="מיון"><button data-s="year" aria-pressed="true">שנה</button><button data-s="country" aria-pressed="false">מדינה</button><button data-s="price" aria-pressed="false">מחיר</button></div>
+  <div class="seg" id="mode" role="group" aria-label="תצוגה"><button data-m="book" aria-pressed="true">📖 אלבום</button><button data-m="grid" aria-pressed="false">▦ רשימה</button></div>
 </div>
 <main id="main"></main>
-<dialog id="dlg"><div class="m-in" id="m"></div></dialog>
+<dialog id="dlg" aria-label="פרטי המטבע"><div id="m"></div></dialog>
 <footer>נוצר באפליקציית אלבום המטבעות</footer>
 <script>
 const DATA = __DATA__;
 const COLORS = { silver: 'var(--silver)', gold: 'var(--goldc)', bronze: 'var(--bronze)', copper: 'var(--copper)', cuni: 'var(--cuni)', steel: 'var(--steel)', alu: 'var(--alu)', bimetal: 'var(--bimetal)' };
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const money = n => n == null ? '' : '₪' + Math.round(n).toLocaleString('he-IL');
-const state = { q: '', sort: 'year', mode: 'book', spread: 0, busy: false };
-$('#h').textContent = DATA.title; document.title = DATA.title;
-$('#sub').textContent = DATA.coins.length + ' מטבעות · עודכן ' + DATA.made;
-$('#contact').textContent = DATA.contact || '';
+const money = n => n == null || n === '' ? '' : '₪' + Math.round(n).toLocaleString('he-IL');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const state = { q: '', sort: 'year', mode: 'book', at: 0, open: false, busy: false };
+document.title = DATA.title; $('#brand').textContent = DATA.title;
 
 function list() {
   const q = state.q.trim().toLowerCase();
-  const out = DATA.coins.filter(c => !q || [c.t, c.y, c.c, c.n, c.s, c.g].join(' ').toLowerCase().includes(q));
-  const y = c => Number(c.y) || 0;
-  if (state.sort === 'country') out.sort((a, b) => a.c.localeCompare(b.c, 'he') || y(a) - y(b));
+  const out = DATA.coins.map((c, i) => Object.assign({ i }, c)).filter(c => !q || [c.t, c.y, c.c, c.n, c.s, c.g].join(' ').toLowerCase().includes(q));
+  const y = c => Number(String(c.y).match(/\d{3,4}/)) || 0;
+  if (state.sort === 'country') out.sort((a, b) => (a.c || '').localeCompare(b.c || '', 'he') || y(a) - y(b));
   else if (state.sort === 'price') out.sort((a, b) => (b.p || 0) - (a.p || 0) || y(a) - y(b));
   else out.sort((a, b) => y(a) - y(b) || a.t.localeCompare(b.t, 'he'));
   return out;
 }
-function disc(c, side) {
+const disc = (c, side, cls) => {
   const img = side === 'b' ? c.b : c.f;
-  return '<span class="disc" style="--c:' + (COLORS[c.m] || COLORS.silver) + '">' + (img ? '<img src="' + img + '" alt="">' : esc(c.y || '·')) + '</span>';
+  return '<span class="disc' + (cls ? ' ' + cls : '') + '" style="--c:' + (COLORS[c.m] || COLORS.silver) + '">' + (img ? '<img src="' + img + '" alt="">' : esc(String(c.y || '·').slice(0, 4))) + '</span>';
+};
+const pocket = c => '<div class="pocket" data-i="' + c.i + '" role="button" tabindex="0" aria-label="' + esc(c.t + ' ' + (c.y || '')) + '">' + disc(c, 'f') +
+  '<b>' + esc(c.t) + '</b><small>' + esc([c.y, c.c].filter(Boolean).join(' · ')) + '</small>' +
+  (c.p != null ? '<span class="tag">' + money(c.p) + '</span>' : '<span class="tag st">' + esc(c.s || '') + '</span>') + '</div>';
+
+/* ---------- pages ---------- */
+const single = () => innerWidth < 760;
+const perPage = () => single() ? 6 : 9;
+function headOf(items) {
+  if (state.sort === 'country') { const cs = [...new Set(items.map(c => c.c).filter(Boolean))]; return cs.slice(0, 2).join(' · ') + (cs.length > 2 ? '…' : ''); }
+  const ys = items.map(c => Number(String(c.y).match(/\d{3,4}/))).filter(Boolean);
+  if (!ys.length) return '';
+  const a = Math.min(...ys), b = Math.max(...ys); return a === b ? String(a) : a + '–' + b;
 }
-function pocket(c, i) {
-  return '<div class="pocket" data-i="' + i + '" role="button" tabindex="0">' + disc(c, 'f') + '<b>' + esc(c.t) + '</b><small>' +
-    esc([c.y, c.c].filter(Boolean).join(' · ')) + '</small>' + (c.p != null ? '<span class="price">' + money(c.p) + '</span>' : '<small>' + esc(c.s) + '</small>') + '</div>';
+function titlePage() {
+  const n = DATA.coins.length;
+  return { cls: 'endpaper', html: '<div class="orn">✦ ✦ ✦</div><h1>' + esc(DATA.title) + '</h1><p>' + n + ' מטבעות · עודכן ' + esc(DATA.made) + '</p>' +
+    (DATA.contact ? '<p class="contact">' + esc(DATA.contact) + '</p>' : '') +
+    '<p class="hint">' + (single() ? 'החליקו את הדף ימינה ושמאלה כדי לדפדף' : 'לחצו על החיצים או החליקו כדי לדפדף') + ' · לחיצה על מטבע פותחת אותו</p>' };
 }
-const PER = 9;
-function pages(items) { const p = []; for (let i = 0; i < items.length; i += PER) p.push(items.slice(i, i + PER).map(c => [c, DATA.coins.indexOf(c)])); return p; }
-function pageHtml(pg, n, side) {
-  if (!pg) return '<div class="page blank ' + side + '">' + (n === 0 ? esc(DATA.title) : 'סוף האלבום') + '</div>';
-  return '<div class="page ' + side + '">' + pg.map(([c, i]) => pocket(c, i)).join('') + '<span class="pno">' + n + '</span></div>';
+function endPage() {
+  return { cls: 'endpaper', html: '<div class="orn">✦</div><h1 style="font-size:clamp(18px,7cqw,32px)">סוף האלבום</h1>' +
+    (DATA.contact ? '<p>מעוניינים? דברו איתי</p><p class="contact">' + esc(DATA.contact) + '</p>' : '<p>תודה שדפדפתם</p>') };
 }
-const single = () => window.innerWidth < 760;
-// spreads: right page then left page (Hebrew binding). Spread 0 opens with the title on the right.
-function spreadPages(all) {
-  if (single()) return all.map((pg, k) => [pg, k + 1]);
-  const s = [[null, 0]].concat(all.map((pg, k) => [pg, k + 1]));
-  if (s.length % 2) s.push([null, -1]);
-  return s;
+function allPages(items) {
+  const per = perPage(), out = [titlePage()];
+  for (let k = 0; k < items.length; k += per) { const chunk = items.slice(k, k + per); out.push({ items: chunk, no: out.length, head: headOf(chunk) }); }
+  out.push(endPage());
+  if (!single() && out.length % 2) out.push({ cls: 'endpaper', html: '' });
+  return out;
+}
+function pageHtml(p, side) {
+  if (!p) return '<div class="pg ' + side + ' verso"></div>';
+  if (!p.items) return '<div class="pg ' + side + ' ' + (p.cls || '') + '"><div class="pg-in">' + p.html + '</div></div>';
+  return '<div class="pg ' + side + '"><div class="pg-in"><div class="pg-head"><span>' + esc(DATA.title) + '</span><span>' + esc(p.head) + '</span></div>' +
+    '<div class="pockets">' + p.items.map(pocket).join('') + '</div><div class="pg-no">' + p.no + '</div></div></div>';
+}
+function coverHtml() {
+  return '<div class="cover" id="cover" role="button" tabindex="0" aria-label="פתח את האלבום"><div class="cover-face"><div class="cover-frame">' +
+    '<span class="cover-kicker">למכירה · להחלפה</span><span class="cover-emblem">₪</span><span class="cover-name">' + esc(DATA.title) + '</span>' +
+    '<span class="cover-sub">' + DATA.coins.length + ' מטבעות</span><span class="cover-open">פתחו את האלבום</span></div></div><div class="cover-back">' + (single() ? '' : pageHtml(PAGES[0], 'r')) + '</div></div>';
+}
+
+/* the book shows one page (phone) or a spread: the right page comes first in a Hebrew book */
+let PAGES = [];
+const step = () => single() ? 1 : 2;
+function view(at) { return single() ? [PAGES[at]] : [PAGES[at], PAGES[at + 1]]; }
+function bookInner(at) {
+  const v = view(at);
+  return single() ? pageHtml(v[0], 'r') : pageHtml(v[0], 'r') + pageHtml(v[1], 'l');   // RTL flex: the first child sits on the right
 }
 function renderBook(items) {
-  const all = pages(items), sp = spreadPages(all), step = single() ? 1 : 2;
-  const last = Math.max(0, sp.length - step);
-  state.spread = Math.min(state.spread, last - (last % step));
-  const cur = sp.slice(state.spread, state.spread + step);
-  const html = single() ? pageHtml(cur[0][0], cur[0][1], 'right')
-    : pageHtml(cur[0][0], cur[0][1], 'right') + pageHtml(cur[1] && cur[1][0], cur[1] ? cur[1][1] : -1, 'left');
-  $('#main').innerHTML = '<div class="stage"><div class="book' + (single() ? ' single' : '') + '" id="book">' + html + '</div></div>' +
-    '<div class="nav"><button id="next" aria-label="עמוד הבא">→ הבא</button><span>' + (Math.floor(state.spread / step) + 1) + ' / ' + (Math.floor(last / step) + 1) + '</span><button id="prev" aria-label="עמוד קודם">הקודם ←</button></div>';
-  $('#prev').disabled = state.spread <= 0; $('#next').disabled = state.spread >= last;
-  $('#next').onclick = () => turn(+1, sp, step); $('#prev').onclick = () => turn(-1, sp, step);
+  PAGES = allPages(items);
+  const last = PAGES.length - step();
+  state.at = Math.max(0, Math.min(state.at - state.at % step(), last));
+  $('#main').innerHTML = '<div class="stage' + (single() ? ' single' : '') + '" id="stage"><div class="book' + (state.open ? ' open' : ' closed') + '" id="book">' +
+    bookInner(state.at) + coverHtml() + '</div></div>' +
+    '<div class="nav"' + (state.open ? '' : ' hidden') + '><button id="prev" aria-label="הדף הקודם">›</button><span class="ind" id="ind"></span><button id="next" aria-label="הדף הבא">‹</button></div>' +
+    '<p class="swipe-hint"' + (state.open ? ' hidden' : '') + '>לחצו על הכריכה כדי לפתוח</p>';
+  $('#prev').onclick = () => turn(-1); $('#next').onclick = () => turn(+1);
+  $('#cover').onclick = openBook;
+  $('#cover').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openBook(); } };
+  updateNav();
+  swipe($('#stage'));
 }
-// A page turn: a leaf with the current page on its front and the next page on its back swings over the spine
-function turn(dir, sp, step) {
-  if (state.busy) return;
-  const to = state.spread + dir * step; if (to < 0 || to >= sp.length) return;
-  const book = $('#book'), sides = book.querySelectorAll('.page');
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (reduce) { state.spread = to; return draw(); }
+function updateNav() {
+  const last = PAGES.length - step(), ind = $('#ind'); if (!ind) return;
+  $('#prev').disabled = state.at <= 0; $('#next').disabled = state.at >= last;
+  const total = Math.ceil(PAGES.length / step());
+  ind.textContent = 'עמוד ' + (Math.floor(state.at / step()) + 1) + ' מתוך ' + total;
+}
+function openBook() {
+  if (state.open || state.busy) return;
+  const book = $('#book');
   state.busy = true;
-  const leaf = document.createElement('div'); leaf.className = 'leaf';
-  const nxt = sp.slice(to, to + step);
-  let front, back;
-  if (single()) { front = sides[0].outerHTML; back = pageHtml(nxt[0][0], nxt[0][1], 'right'); leaf.style.right = '0'; leaf.style.transformOrigin = dir > 0 ? 'left center' : 'right center'; }
-  else if (dir > 0) { front = sides[1].outerHTML; back = pageHtml(nxt[0][0], nxt[0][1], 'right'); leaf.style.left = '0'; leaf.style.transformOrigin = 'right center';
-    sides[1].outerHTML = pageHtml(nxt[1] && nxt[1][0], nxt[1] ? nxt[1][1] : -1, 'left'); }
-  else { front = sides[0].outerHTML; back = pageHtml(nxt[1] && nxt[1][0], nxt[1] ? nxt[1][1] : -1, 'left'); leaf.style.right = '0'; leaf.style.transformOrigin = 'left center';
-    sides[0].outerHTML = pageHtml(nxt[0][0], nxt[0][1], 'right'); }
-  leaf.innerHTML = front.replace('class="page', 'class="page front') + back.replace('class="page', 'class="page back');
-  book.appendChild(leaf);
-  requestAnimationFrame(() => requestAnimationFrame(() => { leaf.style.transform = 'rotateY(' + ((single() ? dir > 0 : dir > 0) ? 180 : -180) + 'deg)'; }));
-  setTimeout(() => { state.spread = to; state.busy = false; draw(); }, 720);
+  book.classList.remove('closed'); book.classList.add('opening');
+  setTimeout(() => {
+    state.open = true; state.busy = false; book.classList.add('open'); book.classList.remove('opening');
+    document.querySelector('.nav').hidden = false; document.querySelector('.swipe-hint').hidden = true;
+  }, reduce ? 0 : 1000);
 }
+// A page turn. Hebrew binding: the spine is on the right of a single page and in the middle of a spread;
+// "next" lifts the left-hand page over to the right.
+function turn(dir) {
+  if (state.busy || !state.open) return;
+  const s = step(), to = state.at + dir * s, last = PAGES.length - s;
+  if (to < 0 || to > last) return;
+  const book = $('#book');
+  if (reduce) { state.at = to; book.querySelectorAll('.pg:not(.leaf .pg)').forEach(n => n.remove()); book.insertAdjacentHTML('afterbegin', bookInner(to)); return updateNav(); }
+  state.busy = true;
+  const cur = view(state.at), nxt = view(to);
+  const leaf = document.createElement('div'); leaf.className = 'leaf';
+  let under, front, back, from, end;
+  if (single()) {
+    leaf.style.right = '0'; leaf.style.transformOrigin = 'right center';
+    if (dir > 0) { under = pageHtml(nxt[0], 'r'); front = pageHtml(cur[0], 'r front'); back = pageHtml(null, 'l back'); from = 0; end = 180; }
+    else { under = pageHtml(cur[0], 'r'); front = pageHtml(nxt[0], 'r front'); back = pageHtml(null, 'l back'); from = 180; end = 0; }
+  } else if (dir > 0) {   // the left page swings over the spine to the right
+    leaf.style.left = '0'; leaf.style.transformOrigin = 'right center';
+    under = pageHtml(cur[0], 'r') + pageHtml(nxt[1], 'l'); front = pageHtml(cur[1], 'l front'); back = pageHtml(nxt[0], 'r back'); from = 0; end = 180;
+  } else {                // the right page swings back to the left
+    leaf.style.right = '0'; leaf.style.transformOrigin = 'left center';
+    under = pageHtml(nxt[0], 'r') + pageHtml(cur[1], 'l'); front = pageHtml(cur[0], 'r front'); back = pageHtml(nxt[1], 'l back'); from = 0; end = -180;
+  }
+  book.querySelectorAll(':scope > .pg').forEach(n => n.remove());
+  book.insertAdjacentHTML('afterbegin', under);
+  leaf.innerHTML = front + back + '<span class="shade"></span>';
+  leaf.style.transition = 'none'; leaf.style.transform = 'rotateY(' + from + 'deg)';
+  book.appendChild(leaf);
+  leaf.getBoundingClientRect();
+  leaf.style.transition = ''; leaf.classList.add('go');
+  requestAnimationFrame(() => { leaf.style.transform = 'rotateY(' + end + 'deg)'; });
+  setTimeout(() => {
+    state.at = to; state.busy = false; leaf.remove();
+    book.querySelectorAll(':scope > .pg').forEach(n => n.remove());
+    book.insertAdjacentHTML('afterbegin', bookInner(to)); updateNav();
+  }, 780);
+}
+// swipe: finger moving right = next page (the way a Hebrew book turns), left = back
+function swipe(el) {
+  let x0 = null, y0 = 0, moved = false;
+  el.onpointerdown = e => { x0 = e.clientX; y0 = e.clientY; moved = false; };
+  el.onpointerup = e => {
+    if (x0 == null) return;
+    const dx = e.clientX - x0, dy = e.clientY - y0; x0 = null;
+    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.3) {
+      moved = true;
+      if (!state.open) openBook(); else turn(dx > 0 ? +1 : -1);
+    }
+  };
+  el.addEventListener('click', e => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
+}
+
 function renderGrid(items) {
-  $('#main').innerHTML = items.length ? '<div class="grid">' + items.map(c => pocket(c, DATA.coins.indexOf(c))).join('') + '</div>' : '<p class="empty">לא נמצאו מטבעות.</p>';
+  $('#main').innerHTML = '<div class="grid">' + items.map(pocket).join('') + '</div>';
 }
 function draw() {
   const items = list();
-  if (!items.length) { $('#main').innerHTML = '<p class="empty">לא נמצאו מטבעות.</p>'; return; }
+  if (!items.length) { $('#main').innerHTML = '<p class="empty">לא נמצאו מטבעות שמתאימים לחיפוש.</p>'; return; }
   state.mode === 'book' ? renderBook(items) : renderGrid(items);
 }
+
+/* ---------- the coin card ---------- */
 function openCoin(i) {
   const c = DATA.coins[i]; if (!c) return;
-  const rows = [['שנה', c.y], ['מדינה', c.c], ['מצב', c.g], ['סטטוס', c.s], ['מחיר', money(c.p)], ['שולם', money(c.pd)], ['ערך מתכת', money(c.mv)], ['הערות', c.n]]
+  const rows = [['שנה', c.y], ['מדינה', c.c], ['מצב', c.g], ['סטטוס', c.s], ['שולם', money(c.pd)], ['ערך המתכת', money(c.mv)], ['הערות', c.n]]
     .filter(r => r[1]).map(r => '<dt>' + r[0] + '</dt><dd>' + esc(r[1]) + '</dd>').join('');
-  $('#m').innerHTML = '<button class="m-x" aria-label="סגור" onclick="dlg.close()">✕</button><div class="m-photos">' + disc(c, 'f') + (c.b ? disc(c, 'b') : '') + '</div><h2>' + esc(c.t) + '</h2><dl>' + rows + '</dl>';
+  $('#m').innerHTML = '<div class="m-top"><button class="m-x" aria-label="סגור" id="mx">✕</button>' +
+    '<button class="flip" id="flip" aria-label="הפוך את המטבע"><span class="flip-in">' + disc(c, 'f') + disc(c, 'b', 'rev') + '</span></button>' +
+    '<p class="flip-hint">' + (c.b ? 'לחצו על המטבע כדי להפוך אותו' : '') + '</p></div>' +
+    '<div class="m-body"><h2>' + esc(c.t) + '</h2><p class="m-sub">' + esc([c.y, c.c].filter(Boolean).join(' · ')) + '</p>' +
+    (c.p != null ? '<div class="m-price">' + money(c.p) + '</div>' : '') + '<dl>' + rows + '</dl>' +
+    (DATA.contact ? '<div class="m-contact">לפרטים: ' + esc(DATA.contact) + '</div>' : '') + '</div>';
+  $('#mx').onclick = () => $('#dlg').close();
+  $('#flip').onclick = () => { if (c.b) $('#flip').classList.toggle('turned'); };
   $('#dlg').showModal();
 }
-document.addEventListener('click', e => { const p = e.target.closest('.pocket'); if (p && !e.target.closest('.leaf')) openCoin(Number(p.dataset.i)); if (e.target === $('#dlg')) $('#dlg').close(); });
-document.addEventListener('keydown', e => { const p = e.target.closest && e.target.closest('.pocket'); if (p && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openCoin(Number(p.dataset.i)); } });
-$('#q').addEventListener('input', e => { state.q = e.target.value; state.spread = 0; draw(); });
-for (const b of document.querySelectorAll('#sort button')) b.onclick = () => { state.sort = b.dataset.s; state.spread = 0; document.querySelectorAll('#sort button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); draw(); };
+document.addEventListener('click', e => {
+  if (e.target === $('#dlg')) return $('#dlg').close();
+  const p = e.target.closest('.pocket');
+  if (p && !e.target.closest('.leaf') && (state.mode === 'grid' || state.open)) openCoin(Number(p.dataset.i));
+});
+document.addEventListener('keydown', e => {
+  const p = e.target.closest && e.target.closest('.pocket');
+  if (p && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openCoin(Number(p.dataset.i)); return; }
+  if ($('#dlg').open || e.target.tagName === 'INPUT' || state.mode !== 'book') return;
+  if (e.key === 'ArrowLeft') state.open ? turn(+1) : openBook();
+  if (e.key === 'ArrowRight') turn(-1);
+});
+$('#q').addEventListener('input', e => { state.q = e.target.value; state.at = 0; if (state.q) state.open = true; draw(); });
+for (const b of document.querySelectorAll('#sort button')) b.onclick = () => { state.sort = b.dataset.s; state.at = 0; document.querySelectorAll('#sort button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); draw(); };
 for (const b of document.querySelectorAll('#mode button')) b.onclick = () => { state.mode = b.dataset.m; document.querySelectorAll('#mode button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); draw(); };
-let rw = 0; addEventListener('resize', () => { clearTimeout(rw); rw = setTimeout(draw, 200); });
+let rw = 0, wasSingle = single(); addEventListener('resize', () => { clearTimeout(rw); rw = setTimeout(() => { if (single() !== wasSingle) { wasSingle = single(); state.at = 0; draw(); } }, 200); });
 draw();
 </script>
 </body>
